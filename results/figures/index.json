@@ -1,0 +1,52 @@
+[
+ {
+  "name": "fig1_band_diagram",
+  "caption": "Band diagram Ec, Ev, Efn, Efp at VF = 0 and 0.7 V (V0), zoomed on both junctions (placeholder: COMSOL results not available)",
+  "source": "none"
+ },
+ {
+  "name": "fig2_carriers",
+  "caption": "Electron and hole densities, V0 vs V1, VF = 0.7 V",
+  "source": "reference model"
+ },
+ {
+  "name": "fig3_heat_source",
+  "caption": "Q_tot(x) zoomed on 0-10 um and the mirror region with J\u00b7E and Q_rec, V0, VF = 0.7 V",
+  "source": "reference model"
+ },
+ {
+  "name": "fig4_temperature_configB",
+  "caption": "KEY FIGURE: T(x) - T_room in mK, Config B, V0 vs V1, VF = 0.7 V",
+  "source": "reference model"
+ },
+ {
+  "name": "fig5_Qroom_vs_dTsink",
+  "caption": "Q_room vs dT_sink (Config A), V0 vs V1, VF = 0.65/0.70/0.75 V, with dT_max markers",
+  "source": "reference model"
+ },
+ {
+  "name": "fig6_dTmax_COP_vs_VF",
+  "caption": "dT_max and COP vs VF (COP at dT = 0 and dT_max/2)",
+  "source": "reference model"
+ },
+ {
+  "name": "fig7_V5_scaling",
+  "caption": "V5: dT_max vs Wi for each tau_long, with the analytic bound n D_a Pi / k",
+  "source": "reference model"
+ },
+ {
+  "name": "fig8_V6_heatmap",
+  "caption": "V6: dT_max heat map over (w_rz, tau_short)",
+  "source": "reference model"
+ },
+ {
+  "name": "fig9_comsol_vs_reference",
+  "caption": "COMSOL (solid) vs reference model (dashed) for V0 and V1",
+  "source": "reference model only"
+ },
+ {
+  "name": "fig10_thermophotonic_map",
+  "caption": "V10 thermophotonic stub: net cooling per pair eta_EQE*hw - qV over EQE and qV/hw (analytic)",
+  "source": "analytic"
+ }
+]
