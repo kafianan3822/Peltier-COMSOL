@@ -13,6 +13,8 @@ reference model. Stacking modules does not fix this. Parallel modules multiply w
 and a series cascade needs about 2000 stages and about 10^1556 × the electrical power for
 10 K ([`results/cascade.md`](results/cascade.md)).
 
+**New to COMSOL scripting? Start with the step-by-step [user manual](docs/USER_MANUAL.md).**
+
 Current status: [`results/summary.md`](results/summary.md). The COMSOL columns stay PENDING
 until the drivers have been run on a machine with a COMSOL licence.
 
