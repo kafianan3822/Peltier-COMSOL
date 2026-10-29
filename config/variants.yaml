@@ -1,0 +1,92 @@
+# =============================================================================
+# Variant matrix (spec §7).  Parameters are applied by the driver
+# (model.parameter / model.param().set), never by nested parametric sweeps.
+#
+# Every variant inherits `defaults` and then applies its own keys.
+#   params   : overrides of config/params_base.yaml entries (COMSOL expressions)
+#   stats    : MB (Maxwell-Boltzmann) | FD (Fermi-Dirac)
+#   bgn      : off | slotboom
+#   mobility : M1 (Arora, library) | M2 (user-defined Caughey-Thomas)
+#   fletcher : false | true   (carrier-carrier scattering add-on)
+#   qsrc     : builtin (semi.Q_tot) | corrected (semi.Q_tot + k_B*T0*U)
+#   configs  : thermal configurations to run (A = std_room, B = std_float,
+#              C = std_lat).  Study 1 (std_eq_iv) always runs.
+#   sweep    : optional cartesian product -> expands into sub-runs
+#              <ID>_<name1>=<v1>_<name2>=<v2> ...
+# =============================================================================
+defaults:
+  params: {rz_on: "0", mesh_factor: "1"}
+  stats: MB
+  bgn: "off"
+  mobility: M1
+  fletcher: false
+  qsrc: builtin
+  configs: [A, B]
+
+variants:
+  V0:
+    purpose: "Device as drawn"
+  V1:
+    purpose: "Engineered recombination zone"
+    params: {rz_on: "1"}
+  V2a:
+    purpose: "Realistic transport (V0 + FD, Slotboom BGN, Fletcher)"
+    stats: FD
+    bgn: slotboom
+    fletcher: true
+    flag: "Q_tot inside doped layers less reliable with BGN"
+  V2b:
+    purpose: "Realistic transport (V1 + FD, Slotboom BGN, Fletcher)"
+    params: {rz_on: "1"}
+    stats: FD
+    bgn: slotboom
+    fletcher: true
+    flag: "Q_tot inside doped layers less reliable with BGN"
+  V3a:
+    purpose: "Corrected heat source (V0)"
+    qsrc: corrected
+  V3b:
+    purpose: "Corrected heat source (V1)"
+    params: {rz_on: "1"}
+    qsrc: corrected
+  V4:
+    purpose: "Mesh convergence (V1, mesh_factor=2)"
+    params: {rz_on: "1", mesh_factor: "2"}
+  V5:
+    purpose: "Scaling study (V1; Config B only)"
+    params: {rz_on: "1"}
+    configs: [B]
+    sweep:
+      Wi:       ["0.25[mm]", "0.5[mm]", "1[mm]", "2[mm]"]
+      tau_long: ["0.1[ms]", "1[ms]", "5[ms]"]
+  V6:
+    purpose: "Recombination-zone design (V1; Config B only)"
+    params: {rz_on: "1"}
+    configs: [B]
+    sweep:
+      w_rz:      ["25[um]", "50[um]", "100[um]", "200[um]"]
+      tau_short: ["0.1[us]", "1[us]", "10[us]"]
+  V7a:
+    purpose: "Lateral sink, Config C (V0)"
+    configs: [C]
+    sweep:
+      h_lat:  ["1e3[W/(m^2*K)]", "1e4[W/(m^2*K)]", "1e5[W/(m^2*K)]"]
+      w_wall: ["0[um]", "50[um]", "200[um]"]
+  V7b:
+    purpose: "Lateral sink, Config C (V1)"
+    params: {rz_on: "1"}
+    configs: [C]
+    sweep:
+      h_lat:  ["1e3[W/(m^2*K)]", "1e4[W/(m^2*K)]", "1e5[W/(m^2*K)]"]
+      w_wall: ["0[um]", "50[um]", "200[um]"]
+  V8a:
+    purpose: "Mobility fallback M2 (V0)"
+    mobility: M2
+  V8b:
+    purpose: "Mobility fallback M2 (V1)"
+    params: {rz_on: "1"}
+    mobility: M2
+
+sets:
+  core: [V0, V1]
+  full: [V0, V1, V2a, V2b, V3a, V3b, V4, V5, V6, V7a, V7b, V8a, V8b]

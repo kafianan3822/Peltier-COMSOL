@@ -1,0 +1,33 @@
+# Answers to spec §2 (supplied by the user; not asked interactively).
+comsol:
+  version: "6.3"
+  # Resolution order used by comsol/python/env.py and the .bat/.sh wrappers:
+  #   1. environment variable COMSOL63_PATH (install root, e.g. C:\Program Files\COMSOL\COMSOL63\Multiphysics)
+  #   2. install_path below (if not null)
+  #   3. standard locations listed in search_paths
+  install_path: null
+  env_var: COMSOL63_PATH
+  search_paths:
+    windows:
+      - 'C:\Program Files\COMSOL\COMSOL63\Multiphysics'
+      - 'C:\COMSOL\COMSOL63\Multiphysics'
+    linux:
+      - /usr/local/comsol63/multiphysics
+      - /opt/comsol63/multiphysics
+    macos:
+      - /Applications/COMSOL63/Multiphysics
+modules:
+  semiconductor: true
+  heat_transfer: true        # Heat Transfer in Solids, 1D
+  livelink_matlab: false
+drivers: [A, B]              # A = Python + MPh, B = pure Java API (C = MATLAB not requested)
+os: windows
+python:
+  version: "3.11+"
+  packages: [mph, numpy, scipy, pandas, matplotlib, pyyaml, pytest]
+execution_scope:
+  layout: full               # full repository layout of spec §3
+  first_run: core            # V0, V1 + reference models first
+  then: full                 # staged: remaining variant matrix (§7)
+mph:
+  cores: 4

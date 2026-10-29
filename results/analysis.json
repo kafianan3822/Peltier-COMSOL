@@ -1,0 +1,1065 @@
+{
+ "metrics": [
+  {
+   "variant": "V0",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V1",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V2a",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V2b",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V3a",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V3b",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V4",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=0.25mm_tau_long=0.1ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=0.25mm_tau_long=1ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=0.25mm_tau_long=5ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=0.5mm_tau_long=0.1ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=0.5mm_tau_long=1ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=0.5mm_tau_long=5ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=1mm_tau_long=0.1ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=1mm_tau_long=1ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=1mm_tau_long=5ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=2mm_tau_long=0.1ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=2mm_tau_long=1ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=2mm_tau_long=5ms",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=25um_tau_short=0.1us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=25um_tau_short=1us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=25um_tau_short=10us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=50um_tau_short=0.1us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=50um_tau_short=1us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=50um_tau_short=10us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=100um_tau_short=0.1us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=100um_tau_short=1us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=100um_tau_short=10us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=200um_tau_short=0.1us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=200um_tau_short=1us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V6_w_rz=200um_tau_short=10us",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e3Wperm2K_w_wall=0um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e3Wperm2K_w_wall=50um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e3Wperm2K_w_wall=200um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e4Wperm2K_w_wall=0um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e4Wperm2K_w_wall=50um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e4Wperm2K_w_wall=200um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e5Wperm2K_w_wall=0um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e5Wperm2K_w_wall=50um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e5Wperm2K_w_wall=200um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e3Wperm2K_w_wall=0um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e3Wperm2K_w_wall=50um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e3Wperm2K_w_wall=200um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e4Wperm2K_w_wall=0um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e4Wperm2K_w_wall=50um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e4Wperm2K_w_wall=200um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e5Wperm2K_w_wall=0um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e5Wperm2K_w_wall=50um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e5Wperm2K_w_wall=200um",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V8a",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V8b",
+   "source": "comsol",
+   "available": false
+  },
+  {
+   "variant": "V0",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0005619087097,
+   "J": 561.9087097,
+   "P_el": 0.0003933360967,
+   "Qtot_int": 0.0004831419462,
+   "Qjn_n": -9.624436156e-05,
+   "Qjn_p": -9.507381203e-05,
+   "Qc_contacts": -8.980584958e-05,
+   "Q_room": -5.82072675e-05,
+   "eta_E": 1.0,
+   "dT_end_B": 9.829999999055872e-05,
+   "cop0": -0.14798353869636466,
+   "dT_max": null,
+   "dT_max_status": "none (room heated)",
+   "dT_max_text": "none (room heated)",
+   "cop_half": NaN,
+   "dT_max_best": 2.3612768768311847e-06,
+   "VF_best": 0.55
+  },
+  {
+   "variant": "V1",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0011733869821792353,
+   "J": 1173.386982179235,
+   "P_el": 0.0008213708884283323,
+   "Qtot_int": 0.0010089049359918408,
+   "Qjn_n": -0.00025816068876853863,
+   "Qjn_p": -0.00025571632800775346,
+   "Qc_contacts": -0.00018753404766350842,
+   "Q_room": 0.0005580726181735456,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0009427000202322233,
+   "cop0": 0.679440465506204,
+   "dT_max": 0.000942690233445946,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.943 mK",
+   "cop_half": 0.3397202327692058,
+   "dT_max_best": 0.005137528372847894,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V2a",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V2b",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V3a",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V3b",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V4",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V5_Wi=0.25mm_tau_long=0.1ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.00975572280816056,
+   "J": 9755.72280816056,
+   "P_el": 0.006829005999319987,
+   "Qtot_int": 0.008388193390210763,
+   "Qjn_n": -0.0019120941792237407,
+   "Qjn_p": -0.0018917713816965249,
+   "Qc_contacts": -0.001559187390890774,
+   "Q_room": 0.002531653396684331,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0010691000995279865,
+   "cop0": 0.37072063041026093,
+   "dT_max": 0.0010691103872466218,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.069 mK",
+   "cop_half": 0.18536031522824287,
+   "dT_max_best": 0.0045379730840371625,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=0.25mm_tau_long=1ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.009827760766848001,
+   "J": 9827.760766848001,
+   "P_el": 0.006879432552070308,
+   "Qtot_int": 0.008450133254199388,
+   "Qjn_n": -0.0019187147075021055,
+   "Qjn_p": -0.0018982418434837535,
+   "Qc_contacts": -0.0015707007021290792,
+   "Q_room": 0.002680376417436426,
+   "eta_E": 1.0,
+   "dT_end_B": -0.001131900042878442,
+   "cop0": 0.38962173160371,
+   "dT_max": 0.001131915717060811,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.132 mK",
+   "cop_half": 0.1948108658428158,
+   "dT_max_best": 0.004950451601309958,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=0.25mm_tau_long=5ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.00983378419857397,
+   "J": 9833.78419857397,
+   "P_el": 0.006883648941149918,
+   "Qtot_int": 0.008455312325238426,
+   "Qjn_n": -0.0019192255077588969,
+   "Qjn_p": -0.0018987400962494087,
+   "Qc_contacts": -0.001571663384088508,
+   "Q_room": 0.0026939352190456195,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0011376000215364002,
+   "cop0": 0.3913527902014533,
+   "dT_max": 0.001137641562077703,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.138 mK",
+   "cop_half": 0.19567639509741303,
+   "dT_max_best": 0.004988212612360503,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=0.5mm_tau_long=0.1ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.003379881334,
+   "J": 3379.881334,
+   "P_el": 0.002365916932,
+   "Qtot_int": 0.002906099189,
+   "Qjn_n": -0.0007097293397,
+   "Qjn_p": -0.0007026884833,
+   "Qc_contacts": -0.0005401822563,
+   "Q_room": 0.00120986094,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0010217999999895255,
+   "cop0": 0.5113708443080421,
+   "dT_max": 0.0010218420101351352,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.022 mK",
+   "cop_half": 0.25568542215402107,
+   "dT_max_best": 0.005086413171971137,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=0.5mm_tau_long=1ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.003622522584006023,
+   "J": 3622.5225840060234,
+   "P_el": 0.002535765835327125,
+   "Qtot_int": 0.0031147277067125286,
+   "Qjn_n": -0.0007480964041463029,
+   "Qjn_p": -0.0007405500856818718,
+   "Qc_contacts": -0.0005789618716854038,
+   "Q_room": 0.0014877827083453075,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0012566002890821437,
+   "cop0": 0.5867192873962194,
+   "dT_max": 0.001256573233108108,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.257 mK",
+   "cop_half": 0.29335964363002226,
+   "dT_max_best": 0.006563702500844594,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=0.5mm_tau_long=5ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.003643331887089777,
+   "J": 3643.331887089777,
+   "P_el": 0.0025503323453484102,
+   "Qtot_int": 0.0031326200191622577,
+   "Qjn_n": -0.0007512813864018643,
+   "Qjn_p": -0.0007436917186143285,
+   "Qc_contacts": -0.0005822876737138475,
+   "Q_room": 0.0015150626336682088,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0012796002682762264,
+   "cop0": 0.5940647896020929,
+   "dT_max": 0.0012796137111486486,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.280 mK",
+   "cop_half": 0.29703239486609506,
+   "dT_max_best": 0.006710393915309406,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=1mm_tau_long=0.1ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0007412523520896054,
+   "J": 741.2523520896053,
+   "P_el": 0.0005188766491249775,
+   "Qtot_int": 0.0006373457100997232,
+   "Qjn_n": -0.0001756974221074025,
+   "Qjn_p": -0.00017415326977702594,
+   "Qc_contacts": -0.00011846906107474556,
+   "Q_room": 0.00023253447018037346,
+   "eta_E": 1.0,
+   "dT_end_B": -0.00039280004642705535,
+   "cop0": 0.4481498093344596,
+   "dT_max": 0.00039279471312259534,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.393 mK",
+   "cop_half": 0.22407490468614233,
+   "dT_max_best": 0.0018495483206960068,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=1mm_tau_long=1ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0011733869821792353,
+   "J": 1173.386982179235,
+   "P_el": 0.0008213708884283323,
+   "Qtot_int": 0.0010089049359918408,
+   "Qjn_n": -0.00025816068876853863,
+   "Qjn_p": -0.00025571632800775346,
+   "Qc_contacts": -0.00018753404766350842,
+   "Q_room": 0.0005580726181735456,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0009427000202322233,
+   "cop0": 0.679440465506204,
+   "dT_max": 0.000942690233445946,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.943 mK",
+   "cop_half": 0.3397202327692058,
+   "dT_max_best": 0.005137528372847894,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=1mm_tau_long=5ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0012153616923452832,
+   "J": 1215.3616923452832,
+   "P_el": 0.0008507531954057488,
+   "Qtot_int": 0.001044995760360683,
+   "Qjn_n": -0.00026563906300720126,
+   "Qjn_p": -0.00026310726196280746,
+   "Qc_contacts": -0.00019424256535493373,
+   "Q_room": 0.0006017998672874176,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0010166003291942616,
+   "cop0": 0.7073730409141762,
+   "dT_max": 0.0010165538298986488,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.017 mK",
+   "cop_half": 0.35368652046448285,
+   "dT_max_best": 0.005596821706081081,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=2mm_tau_long=0.1ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 1.3877102776401904e-05,
+   "J": 13.877102776401905,
+   "P_el": 9.713972047902033e-06,
+   "Qtot_int": 1.1931850120883416e-05,
+   "Qjn_n": -4.617466620091037e-06,
+   "Qjn_p": -4.588558300993655e-06,
+   "Qc_contacts": -2.2178780699813867e-06,
+   "Q_room": 2.70648127574617e-06,
+   "eta_E": 1.0,
+   "dT_end_B": -9.09999783971216e-06,
+   "cop0": 0.27861736594394676,
+   "dT_max": 9.143517824620872e-06,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.009 mK",
+   "cop_half": 0.13930868298503857,
+   "dT_max_best": 3.0199232211409494e-05,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=2mm_tau_long=1ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.00030455206521204804,
+   "J": 304.55206521204803,
+   "P_el": 0.00021318644694011125,
+   "Qtot_int": 0.0002618608249783099,
+   "Qjn_n": -7.297825050108767e-05,
+   "Qjn_p": -7.234381777834645e-05,
+   "Qc_contacts": -4.867437802819862e-05,
+   "Q_room": 0.00014248588243480134,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0004813999325392615,
+   "cop0": 0.668362765753763,
+   "dT_max": 0.00048137122432432433,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.481 mK",
+   "cop_half": 0.3341813827952596,
+   "dT_max_best": 0.0026119627821268652,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V5_Wi=2mm_tau_long=5ms",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.000371063639143904,
+   "J": 371.06363914390397,
+   "P_el": 0.00025974454815538015,
+   "Qtot_int": 0.0003190489952184362,
+   "Qjn_n": -8.632269160362e-05,
+   "Qjn_p": -8.554970417102476e-05,
+   "Qc_contacts": -5.930444712305595e-05,
+   "Q_room": 0.00019854672093931011,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0006707999619948168,
+   "cop0": 0.7643922574166421,
+   "dT_max": 0.0006707659493243244,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.671 mK",
+   "cop_half": 0.38219612882514714,
+   "dT_max_best": 0.0037585622077702706,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=25um_tau_short=0.1us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0007087238400642725,
+   "J": 708.7238400642725,
+   "P_el": 0.0004961066956324009,
+   "Qtot_int": 0.0006093769573096157,
+   "Qjn_n": -0.00016577160710241185,
+   "Qjn_p": -0.00016429521717836954,
+   "Qc_contacts": -0.00011327026167721479,
+   "Q_room": 0.00038788673711356544,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0006552002439548232,
+   "cop0": 0.7818615359573401,
+   "dT_max": 0.0006552140828949179,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.655 mK",
+   "cop_half": 0.3909307679649982,
+   "dT_max_best": 0.003700596200337838,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=25um_tau_short=1us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.002550084951,
+   "J": 2550.084951,
+   "P_el": 0.001785059466,
+   "Qtot_int": 0.002192621302,
+   "Qjn_n": -0.0004869072822,
+   "Qjn_p": -0.00048159503,
+   "Qc_contacts": -0.0004075618363,
+   "Q_room": 0.001172867761,
+   "eta_E": 1.0,
+   "dT_end_B": -0.001981199999988803,
+   "cop0": 0.6570468847322503,
+   "dT_max": 0.0019811955426313234,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.981 mK",
+   "cop_half": 0.32852344236612513,
+   "dT_max_best": 0.010415315751125762,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=25um_tau_short=10us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.001485054856,
+   "J": 1485.054856,
+   "P_el": 0.001039538399,
+   "Qtot_int": 0.001276884094,
+   "Qjn_n": -0.00025885856,
+   "Qjn_p": -0.0002557649432,
+   "Qc_contacts": -0.0002373456946,
+   "Q_room": 0.000445500964,
+   "eta_E": 1.0,
+   "dT_end_B": -0.000752499999975953,
+   "cop0": 0.4285565250334622,
+   "dT_max": 0.0007525354121621622,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.753 mK",
+   "cop_half": 0.2142782625167311,
+   "dT_max_best": 0.0020495658158783785,
+   "VF_best": 0.775
+  },
+  {
+   "variant": "V6_w_rz=50um_tau_short=0.1us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0001964762775,
+   "J": 196.4762775,
+   "P_el": 0.0001375333943,
+   "Qtot_int": 0.0001689347923,
+   "Qjn_n": -5.269660779e-05,
+   "Qjn_p": -5.228731495e-05,
+   "Qc_contacts": -3.140139798e-05,
+   "Q_room": 0.0001168394158,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0001973999999904663,
+   "cop0": 0.8495348815984013,
+   "dT_max": 0.00019736387806721135,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.197 mK",
+   "cop_half": 0.42476744079920065,
+   "dT_max_best": 0.0011321320175675675,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=50um_tau_short=1us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.002039395457,
+   "J": 2039.395457,
+   "P_el": 0.00142757682,
+   "Qtot_int": 0.001753518808,
+   "Qjn_n": -0.0004118619498,
+   "Qjn_p": -0.0004076135491,
+   "Qc_contacts": -0.0003259419875,
+   "Q_room": 0.0009630467819,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0016267999999968197,
+   "cop0": 0.674602423123864,
+   "dT_max": 0.0016267682126689192,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.627 mK",
+   "cop_half": 0.337301211561932,
+   "dT_max_best": 0.008779121537331082,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=50um_tau_short=10us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0020162149,
+   "J": 2016.2149,
+   "P_el": 0.00141135043,
+   "Qtot_int": 0.001733587634,
+   "Qjn_n": -0.0003568260939,
+   "Qjn_p": -0.0003526259821,
+   "Qc_contacts": -0.0003222372049,
+   "Q_room": 0.0007235767546,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0012222999999949025,
+   "cop0": 0.5126839792722493,
+   "dT_max": 0.0012222580314189188,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.222 mK",
+   "cop_half": 0.25634198963612465,
+   "dT_max_best": 0.004840853413977884,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=100um_tau_short=0.1us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 3.613450359e-06,
+   "J": 3.613450359,
+   "P_el": 2.529415251e-06,
+   "Qtot_int": 3.106927174e-06,
+   "Qjn_n": -1.347273402e-06,
+   "Qjn_p": -1.339745982e-06,
+   "Qc_contacts": -5.775119228e-07,
+   "Q_room": 2.70001099e-06,
+   "eta_E": 1.0,
+   "dT_end_B": -4.600000011123484e-06,
+   "cop0": 1.067444733960674,
+   "dT_max": 4.560829375030816e-06,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.005 mK",
+   "cop_half": 0.5337223669803371,
+   "dT_max_best": 1.0252475535454358e-05,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=100um_tau_short=1us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0011733869821792353,
+   "J": 1173.386982179235,
+   "P_el": 0.0008213708884283323,
+   "Qtot_int": 0.0010089049359918408,
+   "Qjn_n": -0.00025816068876853863,
+   "Qjn_p": -0.00025571632800775346,
+   "Qc_contacts": -0.00018753404766350842,
+   "Q_room": 0.0005580726181735456,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0009427000202322233,
+   "cop0": 0.679440465506204,
+   "dT_max": 0.000942690233445946,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.943 mK",
+   "cop_half": 0.3397202327692058,
+   "dT_max_best": 0.005137528372847894,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=100um_tau_short=10us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.002506728623,
+   "J": 2506.728623,
+   "P_el": 0.001754710036,
+   "Qtot_int": 0.00215534254,
+   "Qjn_n": -0.0004553932086,
+   "Qjn_p": -0.000450171275,
+   "Qc_contacts": -0.0004006325044,
+   "Q_room": 0.0009540216892,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0016115000000240798,
+   "cop0": 0.5436919317566558,
+   "dT_max": 0.0016115231236486485,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.612 mK",
+   "cop_half": 0.2718459658783279,
+   "dT_max_best": 0.007425760679742445,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=200um_tau_short=0.1us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 7.296617273e-07,
+   "J": 0.7296617273,
+   "P_el": 5.107632094e-07,
+   "Qtot_int": 6.273798238e-07,
+   "Qjn_n": -3.040055612e-07,
+   "Qjn_p": -3.024855542e-07,
+   "Qc_contacts": -1.166166144e-07,
+   "Q_room": 5.109750131e-07,
+   "eta_E": 1.0,
+   "dT_end_B": -8.999999749903509e-07,
+   "cop0": 1.0004146813752877,
+   "dT_max": 8.631334680666845e-07,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.001 mK",
+   "cop_half": 0.5002073406876438,
+   "dT_max_best": 1.0729395611578592e-06,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=200um_tau_short=1us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0002023846984,
+   "J": 202.3846984,
+   "P_el": 0.0001416692889,
+   "Qtot_int": 0.0001740149875,
+   "Qjn_n": -5.446012737e-05,
+   "Qjn_p": -5.40385263e-05,
+   "Qc_contacts": -3.234569863e-05,
+   "Q_room": 9.864963081e-05,
+   "eta_E": 1.0,
+   "dT_end_B": -0.00016660000000001673,
+   "cop0": 0.6963374461035129,
+   "dT_max": 0.00016663788990314946,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "0.167 mK",
+   "cop_half": 0.34816872305175645,
+   "dT_max_best": 0.0009145568540540541,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V6_w_rz=200um_tau_short=10us",
+   "source": "reference",
+   "available": true,
+   "VF": 0.7,
+   "I": 0.0025988019374401255,
+   "J": 2598.8019374401256,
+   "P_el": 0.0018191613907189025,
+   "Qtot_int": 0.002234509313668848,
+   "Qjn_n": -0.0004938526307381638,
+   "Qjn_p": -0.0004884388930103896,
+   "Qc_contacts": -0.0004153479236499451,
+   "Q_room": 0.0009304310646064653,
+   "eta_E": 1.0,
+   "dT_end_B": -0.0015717006692170798,
+   "cop0": 0.511461537719712,
+   "dT_max": 0.0015716740956081081,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "1.572 mK",
+   "cop_half": 0.255730768858079,
+   "dT_max_best": 0.0075382280011735475,
+   "VF_best": 0.8
+  },
+  {
+   "variant": "V7a_h_lat=1e3Wperm2K_w_wall=0um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e3Wperm2K_w_wall=50um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e3Wperm2K_w_wall=200um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e4Wperm2K_w_wall=0um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e4Wperm2K_w_wall=50um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e4Wperm2K_w_wall=200um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e5Wperm2K_w_wall=0um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e5Wperm2K_w_wall=50um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7a_h_lat=1e5Wperm2K_w_wall=200um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e3Wperm2K_w_wall=0um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e3Wperm2K_w_wall=50um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e3Wperm2K_w_wall=200um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e4Wperm2K_w_wall=0um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e4Wperm2K_w_wall=50um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e4Wperm2K_w_wall=200um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e5Wperm2K_w_wall=0um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e5Wperm2K_w_wall=50um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V7b_h_lat=1e5Wperm2K_w_wall=200um",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V8a",
+   "source": "reference",
+   "available": false
+  },
+  {
+   "variant": "V8b",
+   "source": "reference",
+   "available": false
+  }
+ ],
+ "comsol_checks": [
+  {
+   "cid": "C1",
+   "name": "Zero bias",
+   "status": "PENDING",
+   "detail": "needs COMSOL results (results/<variant>/)"
+  },
+  {
+   "cid": "C2",
+   "name": "Energy balance",
+   "status": "PENDING",
+   "detail": "needs COMSOL results (results/<variant>/)"
+  },
+  {
+   "cid": "C3",
+   "name": "Junction cooling exists",
+   "status": "PENDING",
+   "detail": "needs COMSOL results (results/<variant>/)"
+  },
+  {
+   "cid": "C4",
+   "name": "Junction-cooling magnitude",
+   "status": "PENDING",
+   "detail": "needs COMSOL results (results/<variant>/)"
+  },
+  {
+   "cid": "C5",
+   "name": "I-V benchmark (V0)",
+   "status": "PENDING",
+   "detail": "needs COMSOL results (results/<variant>/)"
+  },
+  {
+   "cid": "C6",
+   "name": "Mesh convergence",
+   "status": "PENDING",
+   "detail": "needs COMSOL results for V1 and V4"
+  },
+  {
+   "cid": "C7",
+   "name": "Plausibility (|dT_max| < 0.1 K)",
+   "status": "PENDING",
+   "detail": "needs COMSOL results (results/<variant>/)"
+  },
+  {
+   "cid": "C8",
+   "name": "Reverse bias",
+   "status": "PENDING",
+   "detail": "needs COMSOL results (results/<variant>/)"
+  },
+  {
+   "cid": "C9",
+   "name": "COMSOL vs reference model",
+   "status": "PENDING",
+   "detail": "needs COMSOL results for V0 and V1"
+  }
+ ],
+ "reference_checks": [
+  {
+   "cid": "R1",
+   "name": "Zero bias (J = 0, T = T_room)",
+   "status": "PASS",
+   "detail": "J(0) = 0.00e+00 A/m^2, T_P1 - T_room = 0.00e+00 K"
+  },
+  {
+   "cid": "R2",
+   "name": "Energy closure (eta_E = 1 for full bookkeeping)",
+   "status": "PASS",
+   "detail": "max |eta_E - 1| = 0.00e+00 (need < 5e-3)"
+  },
+  {
+   "cid": "R3",
+   "name": "Plausibility (|dT_max| < 0.1 K)",
+   "status": "PASS",
+   "detail": "reference: largest |dT_max| = 10.415 mK"
+  },
+  {
+   "cid": "R4",
+   "name": "Qualitative outcome (V0 ends warmer, V1 ends cooler)",
+   "status": "PASS",
+   "detail": "Config B T_end - T_room at 0.7 V: V0 +0.098 mK, V1 -0.943 mK"
+  }
+ ],
+ "comsol_available": false
+}
