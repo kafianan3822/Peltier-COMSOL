@@ -368,6 +368,7 @@ class PinPeltierBuilder:
             vals[key] = (s, self.param_value(expr))
         for k, (s, v) in vals.items():
             LOG.info("material readback %s = '%s' -> %.6g (SI, at T0)", api.name(k), s, v)
+        self.j.param().set("Eg0_si", f"{vals['MAT_EG0'][1]:.6g}[V]", "band gap read back from material at T0")
         self.j.param().set("Nc_si", f"{vals['MAT_NC'][1]:.6g}[1/m^3]", "Nc read back from material at T0")
         self.j.param().set("Nv_si", f"{vals['MAT_NV'][1]:.6g}[1/m^3]", "Nv read back from material at T0")
         pin, pip = self.param_value("Pi_nc"), self.param_value("Pi_pc")
@@ -549,6 +550,23 @@ class PinPeltierBuilder:
             self.set_userdef(smm, api.name("SMM_MUN_USER"), "mun_CT", "SMM_MUN_USER")
             self.set_userdef(smm, api.name("SMM_MUP_USER"), "mup_CT", "SMM_MUP_USER")
 
+    def define_recombination_variable(self) -> None:
+        """U_x: total net recombination rate written out explicitly (COMSOL 6.3 offers no variable
+        found under the names tried). Exact for this model: SRH with tau_n = tau_p = tau_x and a
+        midgap trap, R = (np - ni^2)/(tau_x (n + p + 2 ni)), plus Auger (Cn n + Cp p)(np - ni^2) when
+        Auger is included. Without band-gap narrowing ni = sqrt(Nc Nv) exp(-Eg/(2 kT/q))."""
+        n, p = api.name("N_E"), api.name("P_H")
+        var = self.comp.variable().create("var_rec")
+        var.selection().geom(T["geom"], 1)
+        var.selection().all()
+        var.set("ni_x", "sqrt(semi.Nc*semi.Nv)*exp(-Eg0_si/(2*k_B_const*T0/e_const))",
+                "intrinsic density (no BGN), for U_x")
+        u = f"({n}*{p}-ni_x^2)/(tau_x*({n}+{p}+2*ni_x))"
+        if getattr(self, "auger", False):
+            u += f"+(Cn_aug*{n}+Cp_aug*{p})*({n}*{p}-ni_x^2)"
+        var.set("U_x", u, "total net recombination rate (SRH" + (" + Auger)" if self.auger else ")"))
+        LOG.info("U_x = %s", u)
+
     def define_m2_variables(self) -> None:
         """mun_CT, mup_CT (option M2) in their own Variables node, created only when M2 is used:
         COMSOL checks every defined variable at solve time, so unused ones must not exist."""
@@ -624,6 +642,7 @@ class PinPeltierBuilder:
         except ApiNameError as e:
             LOG.warning("trap level not set explicitly (COMSOL default is midgap): %s", e)
         self.auger = self.add_auger()
+        self.define_recombination_variable()
         for tag, pt, v in ((T["mc_n"], 1, "0[V]"), (T["mc_p"], 5, "VF")):
             with verify("FEAT_CONTACT"):
                 mc = semi.create(tag, api.name("FEAT_CONTACT"), 0)
@@ -640,8 +659,8 @@ class PinPeltierBuilder:
         self.set_aux_sweep(st, self.base["sweeps"]["VF_iv"])
         self.solve(T["std_eq_iv"])
         self.probe_names(T["std_eq_iv"])
+        VF = self.vf_values(T["std_eq_iv"])
         I = np.abs(self.eval_global(self.var("I_TERMINAL"), T["std_eq_iv"]))
-        VF = self.eval_global("VF", T["std_eq_iv"])
         Ac = self.param_value("Ac")
         J = I / Ac
         JX = np.abs(self.eval_global(f"pt_p({self.var('J_X')})", T["std_eq_iv"]))
@@ -873,18 +892,61 @@ class PinPeltierBuilder:
                 continue
         return out
 
+    def main_solution(self, study: str, parametric: bool = False) -> str:
+        """The solution object holding a study's results. A study with an equilibrium step also owns a
+        'Solution Store' (target of a StoreSolution feature) that holds only the equilibrium point;
+        COMSOL 6.3 lists it under the same study, so it must be skipped (user's run)."""
+        sols = self.solutions_of(study)
+        stored, solver_sols = set(), set()
+        for sname in sols:
+            so = self.j.sol(sname)
+            for f in [str(t) for t in so.feature().tags()]:
+                try:
+                    ftype = str(so.feature(f).getType())
+                except Exception:
+                    continue
+                if ftype == "StoreSolution":
+                    try:
+                        stored.add(str(so.feature(f).getString("sol")))
+                    except Exception:
+                        pass
+                if ftype == "Stationary":
+                    solver_sols.add(sname)
+        cands = [x for x in sols if x not in stored
+                 and ("Parametric" in str(self.j.sol(x).label())) == parametric
+                 and (parametric or x in solver_sols)]
+        if not cands:
+            raise RuntimeError(f"no {'parametric ' if parametric else ''}solution found for study {study} "
+                               f"(solutions {sols}, stored {sorted(stored)})")
+        return cands[0]
+
     def dataset_of(self, study: str, parametric: bool = False) -> str:
-        """Dataset tag holding the solution of `study`.  With `parametric`, the dataset of
-        the 'Parametric Solutions' solution created by the Parametric Sweep node."""
-        sols = [s for s in self.solutions_of(study)
-                if ("Parametric" in str(self.j.sol(s).label())) == parametric]
+        """Dataset tag of the study's main solution (created if COMSOL made none)."""
+        sol = self.main_solution(study, parametric)
         for d in self.j.result().dataset().tags():
             try:
-                if str(self.j.result().dataset(d).getString("solution")) in sols:
+                if str(self.j.result().dataset(d).getString("solution")) == sol:
                     return str(d)
             except Exception:
                 continue
-        raise RuntimeError(f"no {'parametric ' if parametric else ''}dataset found for study {study}")
+        tag = f"dset_{study}{'_p' if parametric else ''}"
+        ds = self.j.result().dataset().create(tag, "Solution")
+        ds.set("solution", sol)
+        LOG.info("created dataset %s for %s", tag, sol)
+        return tag
+
+    def vf_values(self, study: str) -> np.ndarray:
+        """VF of every inner solution; checked against the study's sweep list."""
+        VF = self.eval_global("VF", study, unit="V")
+        st = self.j.study(study).feature("stat") if "stat" in [str(t) for t in self.j.study(study).feature().tags()] else None
+        if st is not None and st.getBoolean("useparam"):
+            m = re.fullmatch(r"\s*range\(([^,]+),([^,]+),([^,]+)\)\s*", str(st.getStringArray("plistarr")[0]))
+            if m:
+                expected = parse_range(str(st.getStringArray("plistarr")[0]))
+                if VF.size != expected.size or not np.allclose(VF, expected, atol=1e-9):
+                    raise RuntimeError(f"{study}: read {VF.size} VF values ({VF[:3]}...), expected the sweep "
+                                       f"{expected[0]}..{expected[-1]} ({expected.size} points) -- wrong dataset?")
+        return VF
 
     def solve(self, study: str, plist: str | None = None) -> None:
         """Run a study; on failure apply the spec §4.6 fallback (segregated, then half VF step)."""
@@ -1004,7 +1066,8 @@ class PinPeltierBuilder:
                 raise
             r = self._numerical("EvalGlobal", study, [expr], None, parametric, outer)  # unit rejected
         r = np.atleast_2d(r)
-        return r[:, 0] if r.shape[1] >= 1 else r.ravel()
+        # one expression: COMSOL returns [inner][expr] or [expr][inner]; both reduce to one row
+        return r[0] if r.shape[0] == 1 else r[:, 0]
 
     def eval_field(self, expr, study: str, unit=None):
         """Field values at mesh nodes, shape (n_inner, n_points) (or a list for several exprs)."""

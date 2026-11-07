@@ -79,7 +79,7 @@ def global_table(b, study: str) -> pd.DataFrame:
     hs, tf = b.hs_expr, b.var("TFLUX_X")
     Ac = b.param_value("Ac")
     Pi_sum = b.param_value("Pi_nc+Pi_pc")
-    VF = g("VF", unit="V")
+    VF = b.vf_values(study)
     I = np.abs(g(b.var("I_TERMINAL"), unit="A"))
     J = I / Ac
     df = pd.DataFrame(dict(VF=VF, I=I, J=J, P_el=I * VF))
@@ -102,7 +102,7 @@ def global_table(b, study: str) -> pd.DataFrame:
 
 def point_temps(b, study: str) -> pd.DataFrame:
     g = lambda e: b.eval_global(e, study, unit="K")  # noqa: E731
-    return pd.DataFrame(dict(VF=b.eval_global("VF", study, unit="V"), T_P1=g("pt_n(T)"),
+    return pd.DataFrame(dict(VF=b.vf_values(study), T_P1=g("pt_n(T)"),
                              T_P5=g("pt_p(T)"), T_P3=g("pt_c(T)")))
 
 
@@ -144,8 +144,8 @@ def profiles(b, study_semi: str, study_T: str, VFs: list[float]) -> dict[float, 
     xT = b.eval_field("x", study_T, unit="m")
     TT = b.eval_field("T", study_T, unit="K")
     qT = _field_or_nan(b, b.var("TFLUX_X"), study_T, "W/m^2")
-    VFa = b.eval_global("VF", study_semi, unit="V")
-    VFt = b.eval_global("VF", study_T, unit="V")
+    VFa = b.vf_values(study_semi)
+    VFt = b.vf_values(study_T)
     out = {}
     for v in VFs:
         i = int(np.argmin(np.abs(VFa - v)))
@@ -158,7 +158,7 @@ def profiles(b, study_semi: str, study_T: str, VFs: list[float]) -> dict[float, 
         for name, _, _ in cols_def:
             a = vals[name]
             cols[name] = a[i] if a is not None else np.full(npts, np.nan)
-        if not np.allclose(xT[k], x[i]):
+        if xT[k].shape != x[i].shape or not np.allclose(xT[k], x[i]):
             raise RuntimeError("profile export: node coordinates differ between studies")
         cols["T"] = TT[k]
         cols["tfluxX"] = qT[k] if qT is not None else np.full(npts, np.nan)

@@ -289,7 +289,7 @@ VERIFY: dict[str, V] = {
     "U_TOT": V("semi.U_tot", "variable",
                "Results > Add expression > Semiconductor > Generation-recombination > total recombination",
                "search 'total recombination' in the variable list",
-               ["semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot", "semi.R"]),
+               ["semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot", "semi.R", "U_x"]),
     "J_X": V("semi.JX", "variable", "Results > Add expression > Semiconductor > Current > Total current density, x",
              "search 'current density' in the variable list", ["semi.JX", "semi.Jx", "semi.J_x", "semi.JnX+semi.JpX", "-semi.normJ"]),
     "E_X": V("semi.EX", "variable", "Results > Add expression > Semiconductor > Electric field, x",

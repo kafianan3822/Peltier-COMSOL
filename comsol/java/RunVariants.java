@@ -165,7 +165,7 @@ public class RunVariants {
   /** Variable names probed after the first solve: {KEY, default, alternatives...}. */
   static final String[][] CANDIDATES = {
       {"Q_TOT", "semi.Q_tot", "semi.Qh", "semi.Q"},
-      {"U_TOT", "semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot", "semi.R"},
+      {"U_TOT", "semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot", "semi.R", "U_x"},
       {"J_X", "semi.JX", "semi.Jx", "semi.J_x", "semi.JnX+semi.JpX", "-semi.normJ"},
       {"E_X", "semi.EX", "semi.Ex", "-d(V,x)", "-d(V,X)"},
       {"I_TERMINAL", "semi.I0_2", "semi.I0_mc_p", "semi.mc2.I0", "semi.I0_1"},
@@ -578,18 +578,39 @@ public class RunVariants {
     return i < 0 ? s : s.substring(0, i);
   }
 
+  /** Main solution of a study: skips the equilibrium 'Solution Store' (target of a StoreSolution
+   *  feature), which COMSOL 6.3 lists under the same study. */
+  static String mainSolution(Model m, String study, boolean parametric) {
+    List<String> sols = solutionsOf(m, study);
+    Set<String> stored = new HashSet<>(), solver = new HashSet<>();
+    for (String s : sols) {
+      for (String f : m.sol(s).feature().tags()) {
+        String t = m.sol(s).feature(f).getType();
+        if (t.equals("StoreSolution")) {
+          try { stored.add(m.sol(s).feature(f).getString("sol")); } catch (Exception ignored) { /* none */ }
+        }
+        if (t.equals("Stationary")) solver.add(s);
+      }
+    }
+    for (String s : sols)
+      if (!stored.contains(s) && m.sol(s).label().contains("Parametric") == parametric
+          && (parametric || solver.contains(s))) return s;
+    throw new RuntimeException("no " + (parametric ? "parametric " : "") + "solution for study " + study);
+  }
+
   static String datasetOf(Model m, String study, boolean parametric) {
-    List<String> sols = new ArrayList<>();
-    for (String s : solutionsOf(m, study))
-      if (m.sol(s).label().contains("Parametric") == parametric) sols.add(s);
+    String sol = mainSolution(m, study, parametric);
     for (String d : m.result().dataset().tags()) {
       try {
-        if (sols.contains(m.result().dataset(d).getString("solution"))) return d;
+        if (m.result().dataset(d).getString("solution").equals(sol)) return d;
       } catch (Exception ignored) {
         // dataset without solution property
       }
     }
-    throw new RuntimeException("no " + (parametric ? "parametric " : "") + "dataset for study " + study);
+    String tag = "dset_" + study + (parametric ? "_p" : "");
+    m.result().dataset().create(tag, "Solution");
+    m.result().dataset(tag).set("solution", sol);
+    return tag;
   }
 
   static int evalCounter = 0;

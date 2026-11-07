@@ -408,6 +408,18 @@ class FakeModel:
     def _make_solutions(self, study: FakeStudy):
         sols = self.java._sol.children
         ds = self.java._result.children["dataset"].children
+        if "sseq" in study.children and f"sol_store_{study.tag}" not in sols:
+            # COMSOL keeps the equilibrium step in a 'Solution Store' owned by the same study; its
+            # dataset comes first, so a naive lookup picks it (bug seen with COMSOL 6.3)
+            st = f"sol_store_{study.tag}"
+            s = FakeEntity(st, "Solution")
+            s.study = (lambda t=study.tag: t)
+            s._label = "Solution Store 1"
+            sols[st] = s
+            d = FakeEntity(f"dset_{st}", "Solution")
+            d.props["solution"] = st
+            d._label = "Solution Store 1"
+            ds[d.tag] = d
         for par in (False, True):
             if par and not ("param" in study.children and study.children["param"]._active):
                 continue
@@ -424,6 +436,9 @@ class FakeModel:
                     v1.create(fld, "Field")
                 stat = s.create("s1", "Stationary")
                 stat.create("fc1", "FullyCoupled")
+                if f"sol_store_{study.tag}" in sols:
+                    su = s.create("su1", "StoreSolution")
+                    su.props["sol"] = f"sol_store_{study.tag}"
                 sols[st] = s
                 d = FakeEntity(f"dset_{st}", "Solution")
                 d.props["solution"] = st
@@ -432,6 +447,8 @@ class FakeModel:
 
     def _study_of_dset(self, tag):
         st = self.java._result.children["dataset"].children[tag].props["solution"]
+        if st.startswith("sol_store_"):
+            return "__store__", False
         return st.replace("sol_", "").replace("_p", ""), st.endswith("_p")
 
     def _study_of_label(self, label):
@@ -442,6 +459,8 @@ class FakeModel:
         raise KeyError(label)
 
     def _vf(self, study):
+        if study == "__store__":
+            return np.array([0.7])     # equilibrium store: one solution, parameter value VF = 0.7
         s = self.java._study.children[study]
         if "stat" not in s.children:
             return np.array([0.0])

@@ -166,7 +166,7 @@ public class BuildPinPeltier {
   /** Variable names probed after the first solve: {KEY, default, alternatives...}. */
   static final String[][] CANDIDATES = {
       {"Q_TOT", "semi.Q_tot", "semi.Qh", "semi.Q"},
-      {"U_TOT", "semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot", "semi.R"},
+      {"U_TOT", "semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot", "semi.R", "U_x"},
       {"J_X", "semi.JX", "semi.Jx", "semi.J_x", "semi.JnX+semi.JpX", "-semi.normJ"},
       {"E_X", "semi.EX", "semi.Ex", "-d(V,x)", "-d(V,X)"},
       {"I_TERMINAL", "semi.I0_2", "semi.I0_mc_p", "semi.mc2.I0", "semi.I0_1"},
@@ -579,18 +579,39 @@ public class BuildPinPeltier {
     return i < 0 ? s : s.substring(0, i);
   }
 
+  /** Main solution of a study: skips the equilibrium 'Solution Store' (target of a StoreSolution
+   *  feature), which COMSOL 6.3 lists under the same study. */
+  static String mainSolution(Model m, String study, boolean parametric) {
+    List<String> sols = solutionsOf(m, study);
+    Set<String> stored = new HashSet<>(), solver = new HashSet<>();
+    for (String s : sols) {
+      for (String f : m.sol(s).feature().tags()) {
+        String t = m.sol(s).feature(f).getType();
+        if (t.equals("StoreSolution")) {
+          try { stored.add(m.sol(s).feature(f).getString("sol")); } catch (Exception ignored) { /* none */ }
+        }
+        if (t.equals("Stationary")) solver.add(s);
+      }
+    }
+    for (String s : sols)
+      if (!stored.contains(s) && m.sol(s).label().contains("Parametric") == parametric
+          && (parametric || solver.contains(s))) return s;
+    throw new RuntimeException("no " + (parametric ? "parametric " : "") + "solution for study " + study);
+  }
+
   static String datasetOf(Model m, String study, boolean parametric) {
-    List<String> sols = new ArrayList<>();
-    for (String s : solutionsOf(m, study))
-      if (m.sol(s).label().contains("Parametric") == parametric) sols.add(s);
+    String sol = mainSolution(m, study, parametric);
     for (String d : m.result().dataset().tags()) {
       try {
-        if (sols.contains(m.result().dataset(d).getString("solution"))) return d;
+        if (m.result().dataset(d).getString("solution").equals(sol)) return d;
       } catch (Exception ignored) {
         // dataset without solution property
       }
     }
-    throw new RuntimeException("no " + (parametric ? "parametric " : "") + "dataset for study " + study);
+    String tag = "dset_" + study + (parametric ? "_p" : "");
+    m.result().dataset().create(tag, "Solution");
+    m.result().dataset(tag).set("solution", sol);
+    return tag;
   }
 
   static int evalCounter = 0;
@@ -816,6 +837,7 @@ public class BuildPinPeltier {
         log("material readback " + rb[k][1] + " = '" + s + "' -> " + val[k]);
       });
     }
+    m.param().set("Eg0_si", String.format(Locale.ROOT, "%.6g[V]", val[0]), "band gap read back from material at T0");
     m.param().set("Nc_si", String.format(Locale.ROOT, "%.6g[1/m^3]", val[1]), "Nc read back from material at T0");
     m.param().set("Nv_si", String.format(Locale.ROOT, "%.6g[1/m^3]", val[2]), "Nv read back from material at T0");
     log(String.format(Locale.ROOT, "Pi_nc = %.5f V, Pi_pc = %.5f V from the read-back Nc, Nv (spec ~0.079 / ~0.081 V assume Nc = 2.86e19, Nv = 3.10e19 cm^-3)", pval(m, "Pi_nc"), pval(m, "Pi_pc")));
@@ -934,6 +956,14 @@ public class BuildPinPeltier {
       log("trap level not set explicitly (default midgap): " + firstLine(e));
     }
     AUGER = addAuger(m);
+    // U_x: explicit total net recombination rate (SRH, tau_n = tau_p = tau_x, midgap trap [+ Auger])
+    m.component(COMP).variable().create("var_rec");
+    m.component(COMP).variable("var_rec").selection().geom(GEOM, 1);
+    m.component(COMP).variable("var_rec").selection().all();
+    m.component(COMP).variable("var_rec").set("ni_x", "sqrt(semi.Nc*semi.Nv)*exp(-Eg0_si/(2*k_B_const*T0/e_const))", "intrinsic density (no BGN)");
+    String u = "(" + N_E + "*" + P_H + "-ni_x^2)/(tau_x*(" + N_E + "+" + P_H + "+2*ni_x))";
+    if (AUGER) u += "+(Cn_aug*" + N_E + "+Cp_aug*" + P_H + ")*(" + N_E + "*" + P_H + "-ni_x^2)";
+    m.component(COMP).variable("var_rec").set("U_x", u, "total net recombination rate");
     String[][] mcs = {{"mc_n", "1", "0[V]"}, {"mc_p", "5", "VF"}};
     for (String[] c : mcs) {
       verify("FEAT_CONTACT", FEAT_CONTACT, () -> semi.create(c[0], FEAT_CONTACT, 0));

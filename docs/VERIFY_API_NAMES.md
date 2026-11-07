@@ -1100,7 +1100,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `semi.U_tot` (variable)
 - **GUI action:** Results > Add expression > Semiconductor > Generation-recombination > total recombination
 - **Java pattern in Save-as-Java output:** `search 'total recombination' in the variable list`
-- **Candidates probed at run time:** `semi.U_tot`, `semi.R_tot`, `semi.U`, `semi.Rtot`, `semi.GR_tot`, `semi.R`
+- **Candidates probed at run time:** `semi.U_tot`, `semi.R_tot`, `semi.U`, `semi.Rtot`, `semi.GR_tot`, `semi.R`, `U_x`
 
 ### J_X
 

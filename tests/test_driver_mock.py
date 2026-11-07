@@ -50,6 +50,9 @@ def test_staged_build_smoke_tests(built):
     assert b.ht.feature("bhs_n").props["Qb_input"] == "-abs(semi.JX)*Pi_nc"
     assert b.ht.feature("bhs_p").props["Qb_input"] == "-abs(semi.JX)*Pi_pc"
     assert b.Pi[0] == pytest.approx(0.0789, abs=1e-3)
+    # the equilibrium 'Solution Store' of Study 1 must not be mistaken for the sweep results
+    assert "store" not in b.dataset_of("std_eq_iv")
+    assert b.vf_values("std_eq_iv").size == 37
     # material groups that use T declare temperature as a model input (else 'Undefined variable T')
     semi_group = b.comp.material("mat1").propertyGroup("SemicondMaterial")
     assert semi_group.props.get("_inputs") == ["temperature"]
