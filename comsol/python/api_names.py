@@ -152,7 +152,7 @@ VERIFY: dict[str, V] = {
     "DOP_BOX": V("box", "value", "Distribution = Box", 'set("dopingDistribution", "<HERE>")'),
     "DOP_NA": V("NAc", "property", "Acceptor concentration N_A0", 'feature("adm1").set("<HERE>", ...)'),
     "DOP_ND": V("NDc", "property", "Donor concentration N_D0", 'feature("adm1").set("<HERE>", ...)'),
-    "DOP_X0": V("rb", "property", "Box > Base position (1D)", 'feature("adm1").set("<HERE>", "0")'),
+    "DOP_X0": V("rb", "property", "Box > Base position (1D); value is a 3-vector [x, 0, 0] in COMSOL 6.3", 'feature("adm1").set("<HERE>", "0")'),
     "DOP_W": V("jwidth", "property", "Box > Width (1D)", 'feature("adm1").set("<HERE>", "Wn")'),
     "DOP_PROFILE": V("dropoff_profile", "property", "Profile away from uniform region = Gaussian",
                      'feature("adm1").set("<HERE>", "gaussian")'),

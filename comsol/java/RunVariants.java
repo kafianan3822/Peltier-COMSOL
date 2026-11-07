@@ -72,7 +72,7 @@ public class RunVariants {
   static final String DOP_BOX = "box";  // value: Distribution = Box
   static final String DOP_NA = "NAc";  // property: Acceptor concentration N_A0
   static final String DOP_ND = "NDc";  // property: Donor concentration N_D0
-  static final String DOP_X0 = "rb";  // property: Box > Base position (1D)
+  static final String DOP_X0 = "rb";  // property: Box > Base position (1D); value is a 3-vector [x, 0, 0] in COMSOL 6.3
   static final String DOP_W = "jwidth";  // property: Box > Width (1D)
   static final String DOP_PROFILE = "dropoff_profile";  // property: Profile away from uniform region = Gaussian
   static final String DOP_GAUSS = "gaussian";  // value: Profile = Gaussian

@@ -70,7 +70,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`DOP_BOX`](#dop_box) | value | `box` | Distribution = Box |
 | [`DOP_NA`](#dop_na) | property | `NAc` | Acceptor concentration N_A0 |
 | [`DOP_ND`](#dop_nd) | property | `NDc` | Donor concentration N_D0 |
-| [`DOP_X0`](#dop_x0) | property | `rb` | Box > Base position (1D) |
+| [`DOP_X0`](#dop_x0) | property | `rb` | Box > Base position (1D); value is a 3-vector [x, 0, 0] in COMSOL 6.3 |
 | [`DOP_W`](#dop_w) | property | `jwidth` | Box > Width (1D) |
 | [`DOP_PROFILE`](#dop_profile) | property | `dropoff_profile` | Profile away from uniform region = Gaussian |
 | [`DOP_GAUSS`](#dop_gauss) | value | `gaussian` | Profile = Gaussian |
@@ -503,7 +503,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 <a id="dop_x0"></a>
 
 - **Current value:** `rb` (property)
-- **GUI action:** Box > Base position (1D)
+- **GUI action:** Box > Base position (1D); value is a 3-vector [x, 0, 0] in COMSOL 6.3
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "0")`
 
 ### DOP_W

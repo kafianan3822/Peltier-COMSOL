@@ -60,6 +60,9 @@ def verify(key: str, extra: str = ""):
     except ApiNameError:
         raise
     except Exception as exc:  # JPype wraps com.comsol.util.exceptions.FlException
+        if "vector of length" in str(exc):
+            raise RuntimeError(f"Value-format problem in the script while setting {key} (the name is right; "
+                               f"COMSOL wants a different number of components; please report it): {exc}") from exc
         if "Ambiguous overloads" in str(exc):
             raise RuntimeError(f"Python/Java type problem in the script while setting {key} (not a wrong "
                                f"COMSOL name; please report it): {exc}") from exc
@@ -396,7 +399,7 @@ class PinPeltierBuilder:
             with verify(key):
                 d.set(api.name(key), conc)
             with verify("DOP_X0"):
-                d.set(api.name("DOP_X0"), x0)
+                d.set(api.name("DOP_X0"), [x0, "0", "0"])   # COMSOL 6.3: rb is a 3-vector even in 1D
             with verify("DOP_W"):
                 d.set(api.name("DOP_W"), w)
             if profile == "gaussian":

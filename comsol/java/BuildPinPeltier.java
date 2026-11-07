@@ -73,7 +73,7 @@ public class BuildPinPeltier {
   static final String DOP_BOX = "box";  // value: Distribution = Box
   static final String DOP_NA = "NAc";  // property: Acceptor concentration N_A0
   static final String DOP_ND = "NDc";  // property: Donor concentration N_D0
-  static final String DOP_X0 = "rb";  // property: Box > Base position (1D)
+  static final String DOP_X0 = "rb";  // property: Box > Base position (1D); value is a 3-vector [x, 0, 0] in COMSOL 6.3
   static final String DOP_W = "jwidth";  // property: Box > Width (1D)
   static final String DOP_PROFILE = "dropoff_profile";  // property: Profile away from uniform region = Gaussian
   static final String DOP_GAUSS = "gaussian";  // value: Profile = Gaussian
@@ -798,7 +798,7 @@ public class BuildPinPeltier {
       verify("DOP_TYPE", DOP_TYPE, () -> f.set(DOP_TYPE, d[1].equals("donor") ? DOP_DONOR : DOP_ACCEPTOR));
       String ck = d[1].equals("donor") ? DOP_ND : DOP_NA;
       verify(d[1].equals("donor") ? "DOP_ND" : "DOP_NA", ck, () -> f.set(ck, d[4]));
-      verify("DOP_X0", DOP_X0, () -> f.set(DOP_X0, d[2]));
+      verify("DOP_X0", DOP_X0, () -> f.set(DOP_X0, new String[]{d[2], "0", "0"}));   // rb is a 3-vector even in 1D
       verify("DOP_W", DOP_W, () -> f.set(DOP_W, d[3]));
       if (d[5].equals("gaussian")) {
         verify("DOP_PROFILE", DOP_PROFILE, () -> f.set(DOP_PROFILE, DOP_GAUSS));
