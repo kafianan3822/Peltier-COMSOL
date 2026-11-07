@@ -64,7 +64,7 @@ VERIFY: dict[str, V] = {
                     "semi > right-click > Auger Recombination; 'AugerRecombination' REJECTED by COMSOL 6.3 "
                     "(api_dump), alternatives tried, else the build continues without Auger (CHANGES.md M17)",
                     'physics("semi").create("auger1", "<HERE>", 1)',
-                    ["AugerRecombination", "Auger", "AugerRecombinationModel", "AugerModel"]),
+                    ["AugerRecombination", "Auger", "AugerRecombinationModel", "AugerModel", "AugerRec", "AugerRecombinationFeature", "SemiconductorAugerRecombination", "AugerGenerationRecombination"]),
     "FEAT_CONTACT": V("MetalContact", "feature",
                       "semi > right-click > Metal Contact (select point)",
                       'physics("semi").create("mc1", "<HERE>", 0)'),

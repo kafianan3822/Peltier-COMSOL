@@ -202,7 +202,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `AugerRecombination` (feature)
 - **GUI action:** semi > right-click > Auger Recombination; 'AugerRecombination' REJECTED by COMSOL 6.3 (api_dump), alternatives tried, else the build continues without Auger (CHANGES.md M17)
 - **Java pattern in Save-as-Java output:** `physics("semi").create("auger1", "<HERE>", 1)`
-- **Candidates probed at run time:** `AugerRecombination`, `Auger`, `AugerRecombinationModel`, `AugerModel`
+- **Candidates probed at run time:** `AugerRecombination`, `Auger`, `AugerRecombinationModel`, `AugerModel`, `AugerRec`, `AugerRecombinationFeature`, `SemiconductorAugerRecombination`, `AugerGenerationRecombination`
 
 ### FEAT_CONTACT
 

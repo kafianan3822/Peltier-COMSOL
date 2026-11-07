@@ -951,6 +951,7 @@ class PinPeltierBuilder:
     def solve(self, study: str, plist: str | None = None) -> None:
         """Run a study; on failure apply the spec §4.6 fallback (segregated, then half VF step)."""
         std = self.j.study(study)
+        self.__dict__.setdefault("_readers", {}).clear()   # datasets may change with a new solution
         std.createAutoSequences("all")
         self.set_solver_tolerance(study)
         t0 = time.time()
@@ -1035,52 +1036,130 @@ class PinPeltierBuilder:
         return applied
 
     _eval_count = 0
+    # Ways of asking a Numerical feature for *all* sweep steps; which one COMSOL 6.3 needs is found
+    # at run time by checking that the VF list comes back complete (_reader).
+    READ_MODES = {
+        "default": {},
+        "inner_all": {"innerinput": "all"},
+        "looplevel_all": {"looplevelinput": ["all"]},
+        "solnum_all": {"solnum": "all"},
+    }
 
-    def _numerical(self, ftype: str, study: str, exprs: list[str], units, parametric=False, outer=None):
-        """Evaluate through a temporary COMSOL Numerical feature on the dataset *tag* (not its label,
-        which MPh could not resolve in COMSOL 6.3). EvalGlobal -> [inner][expr]; Eval -> [expr][inner][pt]."""
+    def _numerical(self, ftype: str, dset: str, exprs: list[str], units, mode: str = "default", outer=None):
+        """Evaluate through a temporary COMSOL Numerical feature on a dataset *tag*.
+        EvalGlobal -> computeResult()[0]; Eval -> getData() [expr][inner][point]."""
         PinPeltierBuilder._eval_count += 1
         tag = f"pp_ev{PinPeltierBuilder._eval_count}"
         num = self.j.result().numerical()
         ev = num.create(tag, ftype)
         try:
-            ev.set("data", self.dataset_of(study, parametric))
+            ev.set("data", dset)
             ev.set("expr", list(exprs))
             if units:
                 ev.set("unit", list(units))
             if outer is not None:
                 ev.set("outersolnum", _jint(outer))
+            for k, v in self.READ_MODES[mode].items():
+                ev.set(k, v)            # may raise: that mode is then not available
             if ftype == "EvalGlobal":
                 return np.array(ev.computeResult()[0], dtype=float)
             return np.array(ev.getData(), dtype=float)
         finally:
             num.remove(tag)
 
+    @staticmethod
+    def _one_row(r) -> np.ndarray:
+        r = np.atleast_2d(np.asarray(r, dtype=float))
+        # one expression: [inner][expr] or [expr][inner]; both reduce to one row
+        return r[0] if r.shape[0] == 1 else r[:, 0]
+
+    def expected_vf(self, study: str):
+        tags = [str(t) for t in self.j.study(study).feature().tags()]
+        if "stat" not in tags:
+            return None
+        st = self.j.study(study).feature("stat")
+        if not st.getBoolean("useparam"):
+            return None
+        return parse_range(str(st.getStringArray("plistarr")[0]))
+
+    def _reader(self, study: str, parametric: bool = False):
+        """(dataset tag, read mode, kind) that returns every sweep step of `study`; cached per solve."""
+        key = (study, parametric)
+        cache = self.__dict__.setdefault("_readers", {})
+        if key in cache:
+            return cache[key]
+        expected = self.expected_vf(study)
+        dsets = [self.dataset_of(study, parametric)]
+        sols = set(self.solutions_of(study))
+        for d in [str(t) for t in self.j.result().dataset().tags()]:
+            try:
+                if str(self.j.result().dataset(d).getString("solution")) in sols and d not in dsets:
+                    dsets.append(d)
+            except Exception:
+                continue
+        outer = 1 if parametric else None
+        tried = []
+        for dset in dsets:
+            for kind in ("global", "field"):
+                for mode in self.READ_MODES:
+                    try:
+                        if kind == "global":
+                            VF = self._one_row(self._numerical("EvalGlobal", dset, ["VF"], None, mode, outer))
+                        else:
+                            VF = np.atleast_2d(self._numerical("Eval", dset, ["VF+0*x"], None, mode, outer)[0])[:, 0]
+                    except Exception as exc:
+                        tried.append(f"{dset}/{kind}/{mode}: error {' '.join(str(exc).split())[:80]}")
+                        continue
+                    ok = (VF.size >= 1 if expected is None else
+                          VF.size == expected.size and np.allclose(VF, expected, atol=1e-9))
+                    tried.append(f"{dset}/{kind}/{mode}: {VF.size} values {np.round(VF[:3], 4).tolist()}")
+                    if ok:
+                        cache[key] = (dset, mode, kind)
+                        if (dset, mode, kind) != (dsets[0], "default", "global"):
+                            LOG.info("reading %s results from dataset %s with %s/%s", study, dset, kind, mode)
+                        return cache[key]
+        raise RuntimeError(f"cannot read the complete VF sweep of {study} "
+                           f"(expected {expected.size if expected is not None else 1} values). Tried:\n    "
+                           + "\n    ".join(tried))
+
     def eval_global(self, expr: str, study: str, unit: str | None = None, parametric: bool = False,
                     outer: int | None = None) -> np.ndarray:
         """Global expression, one value per inner solution (aux-sweep step)."""
+        dset, mode, kind = self._reader(study, parametric)
+        outer = outer if outer is not None else (1 if parametric else None)
+
+        def read(u):
+            if kind == "global":
+                return self._one_row(self._numerical("EvalGlobal", dset, [expr], [u] if u else None, mode, outer))
+            data = self._numerical("Eval", dset, [f"({expr})+0*x"], [u] if u else None, mode, outer)
+            return np.atleast_2d(data[0])[:, 0]
         try:
-            r = self._numerical("EvalGlobal", study, [expr], [unit] if unit else None, parametric, outer)
+            return read(unit)
         except Exception:
             if unit is None:
                 raise
-            r = self._numerical("EvalGlobal", study, [expr], None, parametric, outer)  # unit rejected
-        r = np.atleast_2d(r)
-        # one expression: COMSOL returns [inner][expr] or [expr][inner]; both reduce to one row
-        return r[0] if r.shape[0] == 1 else r[:, 0]
+            return read(None)   # unit rejected: SI default
 
     def eval_field(self, expr, study: str, unit=None):
         """Field values at mesh nodes, shape (n_inner, n_points) (or a list for several exprs)."""
+        dset, mode, _ = self._reader(study)
         exprs = list(expr) if isinstance(expr, (list, tuple)) else [expr]
         units = (list(unit) if isinstance(unit, (list, tuple)) else [unit]) if unit else None
-        try:
-            r = self._numerical("Eval", study, exprs, units)
-        except Exception:
-            if units is None:
-                raise
-            r = self._numerical("Eval", study, exprs, None)
-        out = [np.atleast_2d(a) for a in r]
-        return out if isinstance(expr, (list, tuple)) else out[0]
+        expected = self.expected_vf(study)
+        modes = [mode] + [m for m in self.READ_MODES if m != mode]
+        last = None
+        for m in modes:
+            for u in ([units, None] if units else [None]):
+                try:
+                    r = self._numerical("Eval", dset, exprs, u, m)
+                except Exception as exc:
+                    last = exc
+                    continue
+                out = [np.atleast_2d(a) for a in r]
+                if expected is None or out[0].shape[0] == expected.size:
+                    return out if isinstance(expr, (list, tuple)) else out[0]
+                last = RuntimeError(f"field read gave {out[0].shape[0]} sweep steps, expected {expected.size}")
+        raise RuntimeError(f"cannot read field {exprs} of {study}: {last}")
 
 
 def _jint(v: int):

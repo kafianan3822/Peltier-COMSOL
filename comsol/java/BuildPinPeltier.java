@@ -185,7 +185,7 @@ public class BuildPinPeltier {
   };
   /** Property names with alternatives tried in order: {KEY, default, alternatives...}. */
   static final String[][] PROP_CANDIDATES = {
-      {"FEAT_AUGER", "AugerRecombination", "Auger", "AugerRecombinationModel", "AugerModel"},
+      {"FEAT_AUGER", "AugerRecombination", "Auger", "AugerRecombinationModel", "AugerModel", "AugerRec", "AugerRecombinationFeature", "SemiconductorAugerRecombination", "AugerGenerationRecombination"},
   };
   /** Variables needed only for optional outputs (may stay unresolved). */
   static final String[] OPTIONAL_VARIABLES = {"EC", "EV", "EFN", "EFP", "U_TOT", "ND_TOT", "NA_TOT", "NC_VAR", "NV_VAR"};
@@ -536,6 +536,7 @@ public class BuildPinPeltier {
 
   /** Run a study; on failure apply the spec §4.6 fallback (segregated, then half VF step). */
   static void solve(Model m, String study) {
+    DSET_MODE.clear();   // datasets may change with a new solution
     m.study(study).createAutoSequences("all");
     setSolverTolerance(m, study);
     long t0 = System.currentTimeMillis();
@@ -626,7 +627,40 @@ public class BuildPinPeltier {
     }
   }
 
+  /** Ways to request all sweep steps; the one returning the most VF values is used per dataset. */
+  static final String[][] READ_MODES = {{"default", "", ""}, {"inner_all", "innerinput", "all"},
+      {"looplevel_all", "looplevelinput", "all"}, {"solnum_all", "solnum", "all"}};
+  static Map<String, Integer> DSET_MODE = new HashMap<>();
+
+  static void applyMode(NumericalFeature ev, int mode) {
+    String[] r = READ_MODES[mode];
+    if (r[1].isEmpty()) return;
+    if (r[1].equals("looplevelinput")) ev.set(r[1], new String[]{r[2]});
+    else ev.set(r[1], r[2]);
+  }
+
+  static int modeFor(Model m, String dset, int outer) {
+    String key = dset + "#" + outer;
+    if (DSET_MODE.containsKey(key)) return DSET_MODE.get(key);
+    int best = 0, bestN = -1;
+    for (int k = 0; k < READ_MODES.length; k++) {
+      try {
+        int n = evalGlobalRaw(m, "VF", null, dset, outer, k).length;
+        if (n > bestN) { bestN = n; best = k; }
+      } catch (Exception ignored) {
+        // mode not available
+      }
+    }
+    if (best != 0) log("dataset " + dset + ": reading all sweep steps with " + READ_MODES[best][0]);
+    DSET_MODE.put(key, best);
+    return best;
+  }
+
   static double[] evalGlobalOnce(Model m, String expr, String unit, String dset, int outer) {
+    return evalGlobalRaw(m, expr, unit, dset, outer, modeFor(m, dset, outer));
+  }
+
+  static double[] evalGlobalRaw(Model m, String expr, String unit, String dset, int outer, int mode) {
     String tag = "pp_eg" + (evalCounter++);
     NumericalFeature ev = m.result().numerical().create(tag, "EvalGlobal");
     try {
@@ -634,6 +668,7 @@ public class BuildPinPeltier {
       ev.set("expr", new String[]{expr});
       if (unit != null) ev.set("unit", new String[]{unit});
       if (outer > 0) ev.set("outersolnum", outer);
+      applyMode(ev, mode);
       double[][] r = ev.getReal();
       // layout is [inner][expr]; tolerate [expr][inner]
       if (r.length == 1 && r[0].length > 1) return r[0];
@@ -653,6 +688,7 @@ public class BuildPinPeltier {
       ev.set("data", dset);
       ev.set("expr", exprs);
       if (units != null) ev.set("unit", units);
+      applyMode(ev, modeFor(m, dset, 0));
       return ev.getData();
     } finally {
       m.result().numerical().remove(tag);
