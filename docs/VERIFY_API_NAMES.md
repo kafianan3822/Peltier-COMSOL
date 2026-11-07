@@ -45,12 +45,13 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`SEMI_TREF_PROP`](#semi_tref_prop) | property | `T0` | semi > Settings > Reference temperature for energy levels (Tref); OPTIONAL: not shown in COMSOL 6.3, the builder skips it if rejected |
 | [`SEMI_DISC_GROUP`](#semi_disc_group) | property | `ShapeProperty` | semi > Settings > Discretization |
 | [`SMM_TAG`](#smm_tag) | tag | `smm1` | semi > Semiconductor Material Model 1 (default node) |
-| [`SMM_TEMP_SRC`](#smm_temp_src) | property | `minput_temperature_src` | smm1 > Model Input > Temperature = User defined |
-| [`SMM_TEMP`](#smm_temp) | property | `minput_temperature` | smm1 > Model Input > Temperature value |
-| [`SMM_BGN_PROP`](#smm_bgn_prop) | property | `BandGapNarrowing` | smm1 > Band-Gap Narrowing |
-| [`SMM_BGN_OFF`](#smm_bgn_off) | value | `Off` | Band-gap narrowing = Off |
-| [`SMM_BGN_SLOTBOOM`](#smm_bgn_slotboom) | value | `Slotboom` | Band-gap narrowing = Slotboom |
-| [`SMM_INCION_PROP`](#smm_incion_prop) | property | `IncompleteIonization` | smm1 > Dopant Ionization = Complete |
+| [`SMM_TEMP_SRC`](#smm_temp_src) | property | `minput_temperature_src` | smm1 > Model Input > Temperature = User defined (only offered once ht exists: check it in stage5.mph) |
+| [`SMM_TEMP`](#smm_temp) | property | `minput_temperature` | smm1 > Model Input > Temperature value (confirmed by COMSOL 6.3) |
+| [`SMM_BGN_PROP`](#smm_bgn_prop) | property | `BandGapNarrowing` | smm1 > Band-Gap Narrowing (confirmed by COMSOL 6.3) |
+| [`SMM_BGN_OFF`](#smm_bgn_off) | value | `none` | Band-gap narrowing = None/Off (COMSOL default; unconfirmed value) |
+| [`SMM_BGN_SLOTBOOM`](#smm_bgn_slotboom) | value | `slotboom` | Band-gap narrowing = Slotboom (confirmed by COMSOL 6.3) |
+| [`SMM_INCION_PROP`](#smm_incion_prop) | property | `Ionization` | smm1 > Dopant Ionization (confirmed by COMSOL 6.3) |
+| [`SMM_ION_COMPLETE`](#smm_ion_complete) | value | `complete` | Dopant Ionization = Complete ionization (COMSOL default; 'incomplete' confirmed) |
 | [`SMM_MUN_SEL`](#smm_mun_sel) | property | `mun_mob` | smm1 > Mobility Model > Electron mobility (select model node) |
 | [`SMM_MUP_SEL`](#smm_mup_sel) | property | `mup_mob` | smm1 > Mobility Model > Hole mobility (select model node) |
 | [`SMM_MUN_USER`](#smm_mun_user) | property | `mun` | smm1 > Electron mobility (user defined, M2) |
@@ -297,7 +298,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 <a id="smm_temp_src"></a>
 
 - **Current value:** `minput_temperature_src` (property)
-- **GUI action:** smm1 > Model Input > Temperature = User defined
+- **GUI action:** smm1 > Model Input > Temperature = User defined (only offered once ht exists: check it in stage5.mph)
 - **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "userdef")`
 
 ### SMM_TEMP
@@ -305,7 +306,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 <a id="smm_temp"></a>
 
 - **Current value:** `minput_temperature` (property)
-- **GUI action:** smm1 > Model Input > Temperature value
+- **GUI action:** smm1 > Model Input > Temperature value (confirmed by COMSOL 6.3)
 - **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "T0")`
 
 ### SMM_BGN_PROP
@@ -313,32 +314,40 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 <a id="smm_bgn_prop"></a>
 
 - **Current value:** `BandGapNarrowing` (property)
-- **GUI action:** smm1 > Band-Gap Narrowing
-- **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "Slotboom")`
+- **GUI action:** smm1 > Band-Gap Narrowing (confirmed by COMSOL 6.3)
+- **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "slotboom")`
 
 ### SMM_BGN_OFF
 
 <a id="smm_bgn_off"></a>
 
-- **Current value:** `Off` (value)
-- **GUI action:** Band-gap narrowing = Off
+- **Current value:** `none` (value)
+- **GUI action:** Band-gap narrowing = None/Off (COMSOL default; unconfirmed value)
 - **Java pattern in Save-as-Java output:** `set("BandGapNarrowing", "<HERE>")`
 
 ### SMM_BGN_SLOTBOOM
 
 <a id="smm_bgn_slotboom"></a>
 
-- **Current value:** `Slotboom` (value)
-- **GUI action:** Band-gap narrowing = Slotboom
+- **Current value:** `slotboom` (value)
+- **GUI action:** Band-gap narrowing = Slotboom (confirmed by COMSOL 6.3)
 - **Java pattern in Save-as-Java output:** `set("BandGapNarrowing", "<HERE>")`
 
 ### SMM_INCION_PROP
 
 <a id="smm_incion_prop"></a>
 
-- **Current value:** `IncompleteIonization` (property)
-- **GUI action:** smm1 > Dopant Ionization = Complete
-- **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", false)`
+- **Current value:** `Ionization` (property)
+- **GUI action:** smm1 > Dopant Ionization (confirmed by COMSOL 6.3)
+- **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "complete")`
+
+### SMM_ION_COMPLETE
+
+<a id="smm_ion_complete"></a>
+
+- **Current value:** `complete` (value)
+- **GUI action:** Dopant Ionization = Complete ionization (COMSOL default; 'incomplete' confirmed)
+- **Java pattern in Save-as-Java output:** `set("Ionization", "<HERE>")`
 
 ### SMM_MUN_SEL
 

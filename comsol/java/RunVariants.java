@@ -47,12 +47,13 @@ public class RunVariants {
   static final String SEMI_TREF_PROP = "T0";  // property: semi > Settings > Reference temperature for energy levels (Tref); OPTIONAL: not shown in COMSOL 6.3, the builder skips it if rejected
   static final String SEMI_DISC_GROUP = "ShapeProperty";  // property: semi > Settings > Discretization
   static final String SMM_TAG = "smm1";  // tag: semi > Semiconductor Material Model 1 (default node)
-  static final String SMM_TEMP_SRC = "minput_temperature_src";  // property: smm1 > Model Input > Temperature = User defined
-  static final String SMM_TEMP = "minput_temperature";  // property: smm1 > Model Input > Temperature value
-  static final String SMM_BGN_PROP = "BandGapNarrowing";  // property: smm1 > Band-Gap Narrowing
-  static final String SMM_BGN_OFF = "Off";  // value: Band-gap narrowing = Off
-  static final String SMM_BGN_SLOTBOOM = "Slotboom";  // value: Band-gap narrowing = Slotboom
-  static final String SMM_INCION_PROP = "IncompleteIonization";  // property: smm1 > Dopant Ionization = Complete
+  static final String SMM_TEMP_SRC = "minput_temperature_src";  // property: smm1 > Model Input > Temperature = User defined (only offered once ht exists: check it in stage5.mph)
+  static final String SMM_TEMP = "minput_temperature";  // property: smm1 > Model Input > Temperature value (confirmed by COMSOL 6.3)
+  static final String SMM_BGN_PROP = "BandGapNarrowing";  // property: smm1 > Band-Gap Narrowing (confirmed by COMSOL 6.3)
+  static final String SMM_BGN_OFF = "none";  // value: Band-gap narrowing = None/Off (COMSOL default; unconfirmed value)
+  static final String SMM_BGN_SLOTBOOM = "slotboom";  // value: Band-gap narrowing = Slotboom (confirmed by COMSOL 6.3)
+  static final String SMM_INCION_PROP = "Ionization";  // property: smm1 > Dopant Ionization (confirmed by COMSOL 6.3)
+  static final String SMM_ION_COMPLETE = "complete";  // value: Dopant Ionization = Complete ionization (COMSOL default; 'incomplete' confirmed)
   static final String SMM_MUN_SEL = "mun_mob";  // property: smm1 > Mobility Model > Electron mobility (select model node)
   static final String SMM_MUP_SEL = "mup_mob";  // property: smm1 > Mobility Model > Hole mobility (select model node)
   static final String SMM_MUN_USER = "mun";  // property: smm1 > Electron mobility (user defined, M2)
@@ -357,9 +358,27 @@ public class RunVariants {
   }
 
   static void setBgn(Model m, String bgn) {
-    String v = bgn.equals("slotboom") ? SMM_BGN_SLOTBOOM : SMM_BGN_OFF;
-    verify("SMM_BGN_PROP", SMM_BGN_PROP,
-        () -> m.component(COMP).physics(SEMI).feature(SMM_TAG).set(SMM_BGN_PROP, v));
+    boolean strict = bgn.equals("slotboom");          // off is COMSOL's default
+    String v = strict ? SMM_BGN_SLOTBOOM : SMM_BGN_OFF;
+    try {
+      verify(strict ? "SMM_BGN_PROP" : "SMM_BGN_OFF", v,
+          () -> m.component(COMP).physics(SEMI).feature(SMM_TAG).set(SMM_BGN_PROP, v));
+    } catch (ApiNameError e) {
+      if (strict) throw e;
+      log("WARNING band-gap narrowing 'off' not set explicitly (default is off): " + firstLine(e));
+    }
+  }
+
+  /** One-way coupling: semi temperature = user-defined T0 (strict once ht exists). */
+  static void setUserTemperature(Model m, boolean strict) {
+    PhysicsFeature smm = m.component(COMP).physics(SEMI).feature(SMM_TAG);
+    try {
+      verify("SMM_TEMP_SRC", SMM_TEMP_SRC, () -> smm.set(SMM_TEMP_SRC, "userdef"));
+    } catch (ApiNameError e) {
+      if (strict) throw e;
+      log("temperature source selector not offered yet (no ht); default is user defined");
+    }
+    verify("SMM_TEMP", SMM_TEMP, () -> smm.set(SMM_TEMP, "T0"));
   }
 
   static void setMobility(Model m, String mode, boolean fletcher) {

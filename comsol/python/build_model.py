@@ -357,13 +357,14 @@ class PinPeltierBuilder:
             LOG.warning("no reference-temperature setting on semi; skipped (energy reference only; "
                         "the semiconductor temperature is still the user-defined T0 in smm1)")
         smm = semi.feature(api.name("SMM_TAG"))
-        with verify("SMM_TEMP_SRC", "one-way coupling: semi temperature must be the user-defined T0"):
-            smm.set(api.name("SMM_TEMP_SRC"), "userdef")
-        with verify("SMM_TEMP"):
-            smm.set(api.name("SMM_TEMP"), "T0")
-        self.set_bgn("off")
-        with verify("SMM_INCION_PROP"):
-            smm.set(api.name("SMM_INCION_PROP"), False)
+        self.set_user_temperature(strict=False)       # enforced again in stage 5, once ht exists
+        self.set_bgn("off", strict=False)             # off and complete ionization are COMSOL's defaults
+        try:
+            with verify("SMM_INCION_PROP"):
+                smm.set(api.name("SMM_INCION_PROP"), api.name("SMM_ION_COMPLETE"))
+        except ApiNameError as e:
+            LOG.warning("could not set complete ionization explicitly (COMSOL default is complete): %s",
+                        str(e).splitlines()[-1])
         self.mobility_base = "M1" if self.material_used == "library" else "M2"
         if self.mobility_base == "M2":
             LOG.warning("fallback material has no Arora parameters -> base mobility = M2 "
@@ -421,10 +422,34 @@ class PinPeltierBuilder:
             self.semi.prop(api.name("SEMI_MODEL_GROUP")).set(
                 api.name("SEMI_STATS_PROP"), api.name("SEMI_STATS_MB" if stats == "MB" else "SEMI_STATS_FD"))
 
-    def set_bgn(self, bgn: str) -> None:
+    def set_user_temperature(self, strict: bool = True) -> None:
+        """One-way coupling: semi temperature = user-defined T0, never ht.T (spec §0 rule 3).
+        Without ht, COMSOL offers only 'User defined' and may not have the source selector, so
+        stage 3 tolerates a rejection; stage 5 (ht present) does not."""
         smm = self.semi.feature(api.name("SMM_TAG"))
-        with verify("SMM_BGN_PROP"):
-            smm.set(api.name("SMM_BGN_PROP"), api.name("SMM_BGN_SLOTBOOM" if bgn == "slotboom" else "SMM_BGN_OFF"))
+        try:
+            with verify("SMM_TEMP_SRC", "one-way coupling: the semiconductor temperature must be the "
+                        "user-defined T0. Open stage4.mph, add Heat Transfer in Solids, then check "
+                        "Semiconductor Material Model 1 > Model Input > Temperature."):
+                smm.set(api.name("SMM_TEMP_SRC"), "userdef")
+        except ApiNameError:
+            if strict:
+                raise
+            LOG.info("temperature source selector not offered yet (no ht); default is user defined")
+        with verify("SMM_TEMP"):
+            smm.set(api.name("SMM_TEMP"), "T0")
+
+    def set_bgn(self, bgn: str, strict: bool = True) -> None:
+        smm = self.semi.feature(api.name("SMM_TAG"))
+        try:
+            with verify("SMM_BGN_PROP" if bgn == "slotboom" else "SMM_BGN_OFF"):
+                smm.set(api.name("SMM_BGN_PROP"),
+                        api.name("SMM_BGN_SLOTBOOM" if bgn == "slotboom" else "SMM_BGN_OFF"))
+        except ApiNameError as e:
+            if strict:
+                raise
+            LOG.warning("band-gap narrowing 'off' not set explicitly (COMSOL default is off). If COMSOL "
+                        "listed allowed values, put the 'off' one into SMM_BGN_OFF: %s", e)
 
     def set_mobility(self, mode: str, fletcher: bool) -> None:
         """M1 = Arora (library parameters), M2 = user-defined Caughey-Thomas; optional Fletcher."""
@@ -563,6 +588,7 @@ class PinPeltierBuilder:
             ht.prop(api.name("HT_BFLUX_GROUP")).set(api.name("HT_BFLUX_PROP"), True)
         with verify("HT_INIT_T"):
             ht.feature(api.name("HT_INIT_TAG")).set(api.name("HT_INIT_T"), "T_room")
+        self.set_user_temperature(strict=True)        # ht now exists: never let semi use ht.T
         with verify("FEAT_HS"):
             hs = ht.create(T["hs1"], api.name("FEAT_HS"), 1)
         hs.selection().all()

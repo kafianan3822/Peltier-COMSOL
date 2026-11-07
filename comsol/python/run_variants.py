@@ -55,7 +55,7 @@ def apply_variant(b, run: dict) -> None:
     for name, expr in run.get("params", {}).items():
         b.model.parameter(name, str(expr))
     b.set_statistics(run.get("stats", "MB"))
-    b.set_bgn(run.get("bgn", "off"))
+    b.set_bgn(run.get("bgn", "off"), strict=run.get("bgn", "off") == "slotboom")
     b.set_mobility(run.get("mobility", b.mobility_base), bool(run.get("fletcher", False)))
     b.set_heat_source(run.get("qsrc", "builtin"))
     b.comp.geom(T["geom"]).run()

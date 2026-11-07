@@ -48,12 +48,13 @@ public class BuildPinPeltier {
   static final String SEMI_TREF_PROP = "T0";  // property: semi > Settings > Reference temperature for energy levels (Tref); OPTIONAL: not shown in COMSOL 6.3, the builder skips it if rejected
   static final String SEMI_DISC_GROUP = "ShapeProperty";  // property: semi > Settings > Discretization
   static final String SMM_TAG = "smm1";  // tag: semi > Semiconductor Material Model 1 (default node)
-  static final String SMM_TEMP_SRC = "minput_temperature_src";  // property: smm1 > Model Input > Temperature = User defined
-  static final String SMM_TEMP = "minput_temperature";  // property: smm1 > Model Input > Temperature value
-  static final String SMM_BGN_PROP = "BandGapNarrowing";  // property: smm1 > Band-Gap Narrowing
-  static final String SMM_BGN_OFF = "Off";  // value: Band-gap narrowing = Off
-  static final String SMM_BGN_SLOTBOOM = "Slotboom";  // value: Band-gap narrowing = Slotboom
-  static final String SMM_INCION_PROP = "IncompleteIonization";  // property: smm1 > Dopant Ionization = Complete
+  static final String SMM_TEMP_SRC = "minput_temperature_src";  // property: smm1 > Model Input > Temperature = User defined (only offered once ht exists: check it in stage5.mph)
+  static final String SMM_TEMP = "minput_temperature";  // property: smm1 > Model Input > Temperature value (confirmed by COMSOL 6.3)
+  static final String SMM_BGN_PROP = "BandGapNarrowing";  // property: smm1 > Band-Gap Narrowing (confirmed by COMSOL 6.3)
+  static final String SMM_BGN_OFF = "none";  // value: Band-gap narrowing = None/Off (COMSOL default; unconfirmed value)
+  static final String SMM_BGN_SLOTBOOM = "slotboom";  // value: Band-gap narrowing = Slotboom (confirmed by COMSOL 6.3)
+  static final String SMM_INCION_PROP = "Ionization";  // property: smm1 > Dopant Ionization (confirmed by COMSOL 6.3)
+  static final String SMM_ION_COMPLETE = "complete";  // value: Dopant Ionization = Complete ionization (COMSOL default; 'incomplete' confirmed)
   static final String SMM_MUN_SEL = "mun_mob";  // property: smm1 > Mobility Model > Electron mobility (select model node)
   static final String SMM_MUP_SEL = "mup_mob";  // property: smm1 > Mobility Model > Hole mobility (select model node)
   static final String SMM_MUN_USER = "mun";  // property: smm1 > Electron mobility (user defined, M2)
@@ -358,9 +359,27 @@ public class BuildPinPeltier {
   }
 
   static void setBgn(Model m, String bgn) {
-    String v = bgn.equals("slotboom") ? SMM_BGN_SLOTBOOM : SMM_BGN_OFF;
-    verify("SMM_BGN_PROP", SMM_BGN_PROP,
-        () -> m.component(COMP).physics(SEMI).feature(SMM_TAG).set(SMM_BGN_PROP, v));
+    boolean strict = bgn.equals("slotboom");          // off is COMSOL's default
+    String v = strict ? SMM_BGN_SLOTBOOM : SMM_BGN_OFF;
+    try {
+      verify(strict ? "SMM_BGN_PROP" : "SMM_BGN_OFF", v,
+          () -> m.component(COMP).physics(SEMI).feature(SMM_TAG).set(SMM_BGN_PROP, v));
+    } catch (ApiNameError e) {
+      if (strict) throw e;
+      log("WARNING band-gap narrowing 'off' not set explicitly (default is off): " + firstLine(e));
+    }
+  }
+
+  /** One-way coupling: semi temperature = user-defined T0 (strict once ht exists). */
+  static void setUserTemperature(Model m, boolean strict) {
+    PhysicsFeature smm = m.component(COMP).physics(SEMI).feature(SMM_TAG);
+    try {
+      verify("SMM_TEMP_SRC", SMM_TEMP_SRC, () -> smm.set(SMM_TEMP_SRC, "userdef"));
+    } catch (ApiNameError e) {
+      if (strict) throw e;
+      log("temperature source selector not offered yet (no ht); default is user defined");
+    }
+    verify("SMM_TEMP", SMM_TEMP, () -> smm.set(SMM_TEMP, "T0"));
   }
 
   static void setMobility(Model m, String mode, boolean fletcher) {
@@ -721,10 +740,13 @@ public class BuildPinPeltier {
       log("WARNING no reference-temperature setting on semi; skipped (energy reference only)");
     }
     PhysicsFeature smm = semi.feature(SMM_TAG);
-    verify("SMM_TEMP_SRC", SMM_TEMP_SRC, () -> smm.set(SMM_TEMP_SRC, "userdef"));   // one-way coupling
-    verify("SMM_TEMP", SMM_TEMP, () -> smm.set(SMM_TEMP, "T0"));
+    setUserTemperature(m, false);   // enforced again in stage 5, once ht exists
     setBgn(m, "off");
-    verify("SMM_INCION_PROP", SMM_INCION_PROP, () -> smm.set(SMM_INCION_PROP, false));
+    try {
+      verify("SMM_INCION_PROP", SMM_INCION_PROP, () -> smm.set(SMM_INCION_PROP, SMM_ION_COMPLETE));
+    } catch (ApiNameError e) {
+      log("WARNING complete ionization not set explicitly (default is complete): " + firstLine(e));
+    }
     MOBILITY_BASE = MATERIAL_USED.equals("library") ? "M1" : "M2";
     if (MOBILITY_BASE.equals("M2")) log("WARNING: fallback material has no Arora parameters -> base mobility M2 (see CHANGES.md)");
     setMobility(m, MOBILITY_BASE, false);
@@ -847,6 +869,7 @@ public class BuildPinPeltier {
     verify("HT_AREA_PROP", HT_AREA_PROP, () -> ht.prop(HT_AREA_GROUP).set(HT_AREA_PROP, "Ac"));
     verify("HT_BFLUX_PROP", HT_BFLUX_PROP, () -> ht.prop(HT_BFLUX_GROUP).set(HT_BFLUX_PROP, true));
     verify("HT_INIT_T", HT_INIT_T, () -> ht.feature(HT_INIT_TAG).set(HT_INIT_T, "T_room"));
+    setUserTemperature(m, true);    // ht now exists: never let semi use ht.T
     verify("FEAT_HS", FEAT_HS, () -> ht.create("hs1", FEAT_HS, 1));
     ht.feature("hs1").selection().all();
     setHeatSource(m, "builtin");
