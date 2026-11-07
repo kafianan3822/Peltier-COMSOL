@@ -69,6 +69,10 @@ def verify(key: str, extra: str = ""):
         raise ApiNameError(key, exc, extra) from exc
 
 
+class SweepReadError(RuntimeError):
+    """The study's results do not contain the complete VF sweep."""
+
+
 def full_message(exc) -> str:
     """Whole COMSOL error text (all lines), indented for the log."""
     text = str(exc).strip() or type(exc).__name__
@@ -701,6 +705,8 @@ class PinPeltierBuilder:
                     self.eval_global(expr, study)
                     ok = cand
                     break
+                except SweepReadError:
+                    raise                     # not a naming problem: report it as it is
                 except Exception as exc:
                     errors.append(f"{cand}: {' '.join(str(exc).split())[:160]}")
             if ok is None:
@@ -952,7 +958,7 @@ class PinPeltierBuilder:
         """Run a study; on failure apply the spec §4.6 fallback (segregated, then half VF step)."""
         std = self.j.study(study)
         self.__dict__.setdefault("_readers", {}).clear()   # datasets may change with a new solution
-        std.createAutoSequences("all")
+        self.reset_solver(study)
         self.set_solver_tolerance(study)
         t0 = time.time()
         try:
@@ -977,11 +983,38 @@ class PinPeltierBuilder:
         a, d, b = re.fullmatch(r"\s*range\(([^,]+),([^,]+),([^,]+)\)\s*",
                                str(st.getStringArray("plistarr")[0])).groups()
         st.set("plistarr", [f"range({a},{float(d)/2:g},{b})"])
-        std.createAutoSequences("all")
+        self.reset_solver(study)
         self.set_solver_tolerance(study)
         self.make_segregated(study)
         std.run()
         LOG.info("solved %s with half VF step", study)
+
+    def reset_solver(self, study: str) -> None:
+        """Delete the study's old solver sequences, then let COMSOL generate fresh ones. In COMSOL 6.3,
+        createAutoSequences kept the equilibrium-only sequence from stage 3 after the sweep step was
+        added in stage 4, so the VF sweep never ran (user's run: one solution, VF = 0.7)."""
+        for sol in self.solutions_of(study):
+            try:
+                self.j.sol().remove(sol)
+            except Exception as exc:
+                LOG.warning("could not remove old solution %s: %s", sol, " ".join(str(exc).split())[:120])
+        self.j.study(study).createAutoSequences("all")
+
+    def describe_solutions(self, study: str) -> str:
+        """Solver-sequence structure of a study, for diagnostics."""
+        lines = []
+        for sol in self.solutions_of(study):
+            so = self.j.sol(sol)
+            feats = []
+            for f in [str(t) for t in so.feature().tags()]:
+                try:
+                    kids = ",".join(f"{c}:{so.feature(f).feature(c).getType()}" for c in
+                                    [str(t) for t in so.feature(f).feature().tags()])
+                    feats.append(f"{f}:{so.feature(f).getType()}" + (f"[{kids}]" if kids else ""))
+                except Exception:
+                    feats.append(f)
+            lines.append(f"{sol} '{so.label()}': " + " ".join(feats))
+        return "\n    ".join(lines) or "(no solutions)"
 
     def solver_fields(self, sol: str) -> set[str]:
         """Dependent-variable field tags of a solver sequence (children of its Variables nodes)."""
@@ -1118,9 +1151,9 @@ class PinPeltierBuilder:
                         if (dset, mode, kind) != (dsets[0], "default", "global"):
                             LOG.info("reading %s results from dataset %s with %s/%s", study, dset, kind, mode)
                         return cache[key]
-        raise RuntimeError(f"cannot read the complete VF sweep of {study} "
-                           f"(expected {expected.size if expected is not None else 1} values). Tried:\n    "
-                           + "\n    ".join(tried))
+        raise SweepReadError(f"cannot read the complete VF sweep of {study} "
+                             f"(expected {expected.size if expected is not None else 1} values). Tried:\n    "
+                             + "\n    ".join(tried) + "\n  Solver sequences:\n    " + self.describe_solutions(study))
 
     def eval_global(self, expr: str, study: str, unit: str | None = None, parametric: bool = False,
                     outer: int | None = None) -> np.ndarray:

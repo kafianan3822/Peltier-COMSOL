@@ -428,6 +428,10 @@ class FakeModel:
                 s = FakeEntity(st, "Solution")
                 s.study = (lambda t=study.tag: t)
                 s._label = "Parametric Solutions 1" if par else f"Solution {study.tag}"
+                # like COMSOL 6.3: the sequence keeps the study configuration it was generated from
+                stat_ = study.children.get("stat")
+                s.snapshot = (stat_.getString("plistarr")
+                              if stat_ is not None and stat_.props.get("useparam") else None)
                 v1 = s.create("v1", "Variables")
                 fields = ["comp1_V", "comp1_Ne", "comp1_Ph"]
                 if "ht" in self.java._comp.children["physics"].children:
@@ -461,10 +465,11 @@ class FakeModel:
     def _vf(self, study):
         if study == "__store__":
             return np.array([0.7])     # equilibrium store: one solution, parameter value VF = 0.7
-        s = self.java._study.children[study]
-        if "stat" not in s.children:
-            return np.array([0.0])
-        return parse_range(s.children["stat"].getString("plistarr"))
+        sol = self.java._sol.children.get(f"sol_{study}")
+        snap = getattr(sol, "snapshot", None) if sol is not None else None
+        if snap is None:
+            return np.array([0.7])     # equilibrium-only sequence: one solution at the parameter value
+        return parse_range(snap)
 
     def _ref(self, col, VF):
         g = self.ref_glob

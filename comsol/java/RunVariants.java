@@ -533,10 +533,23 @@ public class RunVariants {
     return applied;
   }
 
+  /** Delete the study's old solver sequences and generate fresh ones (COMSOL 6.3 kept the
+   *  equilibrium-only sequence after the sweep step was added, so the sweep never ran). */
+  static void resetSolver(Model m, String study) {
+    for (String s : solutionsOf(m, study)) {
+      try {
+        m.sol().remove(s);
+      } catch (Exception e) {
+        log("could not remove old solution " + s + ": " + firstLine(e));
+      }
+    }
+    m.study(study).createAutoSequences("all");
+  }
+
   /** Run a study; on failure apply the spec §4.6 fallback (segregated, then half VF step). */
   static void solve(Model m, String study) {
     DSET_MODE.clear();   // datasets may change with a new solution
-    m.study(study).createAutoSequences("all");
+    resetSolver(m, study);
     setSolverTolerance(m, study);
     long t0 = System.currentTimeMillis();
     String firstError;
@@ -566,7 +579,7 @@ public class RunVariants {
     Matcher mm = Pattern.compile("\\s*range\\(([^,]+),([^,]+),([^,]+)\\)\\s*").matcher(st.getStringArray("plistarr")[0]);
     if (!mm.matches()) throw new RuntimeException(study + ": cannot parse VF list");
     st.set("plistarr", new String[]{"range(" + mm.group(1) + "," + Double.parseDouble(mm.group(2)) / 2 + "," + mm.group(3) + ")"});
-    m.study(study).createAutoSequences("all");
+    resetSolver(m, study);
     setSolverTolerance(m, study);
     makeSegregated(m, study);
     m.study(study).run();
