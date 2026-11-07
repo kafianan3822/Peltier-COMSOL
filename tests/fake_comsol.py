@@ -71,8 +71,12 @@ class FakeEntity:
     def getBoolean(self, name):
         return bool(self.props.get(name, False))
 
+    def addInput(self, name):
+        self.props.setdefault("_inputs", []).append(name)
+        return self
+
     def properties(self):
-        return list(self.props)
+        return [k for k in self.props if not k.startswith("_")]
 
     def getType(self):
         return self.ftype

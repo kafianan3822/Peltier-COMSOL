@@ -300,7 +300,34 @@ class PinPeltierBuilder:
                           ("MAT_NV", "Nv"), ("MAT_MUN", "mun"), ("MAT_MUP", "mup")):
             with verify(key):
                 g.set(api.name(key), fb[prop])
+        self.declare_temperature_inputs(mat)
         LOG.info("material: explicit fallback properties (spec §4.2 table)")
+
+    def declare_temperature_inputs(self, mat) -> None:
+        """Property groups whose expressions use T must declare temperature as a model input
+        (GUI-generated code: propertyGroup(...).addInput("temperature")). Otherwise COMSOL 6.3 reports
+        'Undefined variable T' (user's run). The semiconductor then evaluates the material at its
+        own model-input temperature, the user-defined T0 (one-way coupling)."""
+        added = []
+        for gtag in [str(t) for t in mat.propertyGroup().tags()]:
+            g = mat.propertyGroup(gtag)
+            uses_T = False
+            for prop in [str(p) for p in g.properties()]:
+                try:
+                    vals = [str(v) for v in g.getStringArray(prop)]
+                except Exception:
+                    try:
+                        vals = [str(g.getString(prop))]
+                    except Exception:
+                        continue
+                if any(re.search(r"\bT\b", v) for v in vals):
+                    uses_T = True
+                    break
+            if uses_T:
+                with verify("MAT_ADD_INPUT", f"property group {gtag}"):
+                    g.addInput(api.name("MAT_INPUT_TEMPERATURE"))
+                added.append(gtag)
+        LOG.info("material: temperature declared as model input for groups: %s", ", ".join(added) or "none")
 
     def _copy_library_material(self, mat) -> None:
         """Copy every property group of the library Si material saved by the user in
@@ -323,6 +350,7 @@ class PinPeltierBuilder:
                     except Exception:
                         dg.set(prop, str(sg.getString(prop)))
             mat.label(str(sm.label()))
+            self.declare_temperature_inputs(mat)
             LOG.info("material: copied library material '%s' (%d groups)", sm.label(),
                      len(list(sm.propertyGroup().tags())))
         finally:

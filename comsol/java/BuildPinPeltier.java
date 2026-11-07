@@ -102,6 +102,8 @@ public class BuildPinPeltier {
   static final String HT_INIT_TAG = "init1";  // tag: ht > Initial Values 1 (default)
   static final String HT_INIT_T = "Tinit";  // property: Initial Values > Temperature
   static final String MAT_SEMI_GROUP = "SemicondMaterial";  // tag: Material > Semiconductor material property group
+  static final String MAT_ADD_INPUT = "addInput";  // feature: Material > property group > Model Inputs > + Temperature
+  static final String MAT_INPUT_TEMPERATURE = "temperature";  // value: Model input name for temperature
   static final String MAT_RELPERM = "relpermittivity";  // property: Material > Relative permittivity
   static final String MAT_EG0 = "Eg0";  // property: Semiconductor material > Band gap
   static final String MAT_CHI0 = "chi0";  // property: Semiconductor material > Electron affinity
@@ -766,6 +768,23 @@ public class BuildPinPeltier {
       for (String[] p : props) verify(p[0], p[1], () -> mat.propertyGroup(MAT_SEMI_GROUP).set(p[1], CFG.get("mat." + p[2])));
       MATERIAL_USED = "fallback";
       log("material: explicit fallback properties (spec §4.2)");
+    }
+    // groups whose expressions use T must declare temperature as a model input (COMSOL 6.3:
+    // otherwise 'Undefined variable T'); semi then evaluates them at its user-defined T0
+    for (String gt : mat.propertyGroup().tags()) {
+      boolean usesT = false;
+      for (String p : mat.propertyGroup(gt).properties()) {
+        try {
+          for (String v : mat.propertyGroup(gt).getStringArray(p)) if (v.matches(".*\\bT\\b.*")) usesT = true;
+        } catch (Exception ignored) {
+          // non-string property
+        }
+      }
+      if (usesT) {
+        final String g = gt;
+        verify("MAT_ADD_INPUT", MAT_ADD_INPUT, () -> mat.propertyGroup(g).addInput(MAT_INPUT_TEMPERATURE));
+        log("material: temperature declared as model input for group " + gt);
+      }
     }
     mat.propertyGroup("def").set("thermalconductivity", diag3("k_Si"));
     mat.propertyGroup("def").set("density", "rho_Si");

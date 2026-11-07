@@ -201,6 +201,10 @@ VERIFY: dict[str, V] = {
     # ---------------------------------------------------------------- material
     "MAT_SEMI_GROUP": V("SemicondMaterial", "tag", "Material > Semiconductor material property group",
                         'material("mat1").propertyGroup().create("<HERE>", "Semiconductor material")'),
+    "MAT_ADD_INPUT": V("addInput", "feature", "Material > property group > Model Inputs > + Temperature",
+                       'material("mat1").propertyGroup("SemicondMaterial").<HERE>("temperature")'),
+    "MAT_INPUT_TEMPERATURE": V("temperature", "value", "Model input name for temperature",
+                               'propertyGroup("SemicondMaterial").addInput("<HERE>")'),
     "MAT_RELPERM": V("relpermittivity", "property", "Material > Relative permittivity",
                      'propertyGroup("def").set("<HERE>", ...)'),
     "MAT_EG0": V("Eg0", "property", "Semiconductor material > Band gap", 'propertyGroup("SemicondMaterial").set("<HERE>", ...)'),

@@ -99,6 +99,8 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`HT_INIT_TAG`](#ht_init_tag) | tag | `init1` | ht > Initial Values 1 (default) |
 | [`HT_INIT_T`](#ht_init_t) | property | `Tinit` | Initial Values > Temperature |
 | [`MAT_SEMI_GROUP`](#mat_semi_group) | tag | `SemicondMaterial` | Material > Semiconductor material property group |
+| [`MAT_ADD_INPUT`](#mat_add_input) | feature | `addInput` | Material > property group > Model Inputs > + Temperature |
+| [`MAT_INPUT_TEMPERATURE`](#mat_input_temperature) | value | `temperature` | Model input name for temperature |
 | [`MAT_RELPERM`](#mat_relperm) | property | `relpermittivity` | Material > Relative permittivity |
 | [`MAT_EG0`](#mat_eg0) | property | `Eg0` | Semiconductor material > Band gap |
 | [`MAT_CHI0`](#mat_chi0) | property | `chi0` | Semiconductor material > Electron affinity |
@@ -729,6 +731,22 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `SemicondMaterial` (tag)
 - **GUI action:** Material > Semiconductor material property group
 - **Java pattern in Save-as-Java output:** `material("mat1").propertyGroup().create("<HERE>", "Semiconductor material")`
+
+### MAT_ADD_INPUT
+
+<a id="mat_add_input"></a>
+
+- **Current value:** `addInput` (feature)
+- **GUI action:** Material > property group > Model Inputs > + Temperature
+- **Java pattern in Save-as-Java output:** `material("mat1").propertyGroup("SemicondMaterial").<HERE>("temperature")`
+
+### MAT_INPUT_TEMPERATURE
+
+<a id="mat_input_temperature"></a>
+
+- **Current value:** `temperature` (value)
+- **GUI action:** Model input name for temperature
+- **Java pattern in Save-as-Java output:** `propertyGroup("SemicondMaterial").addInput("<HERE>")`
 
 ### MAT_RELPERM
 

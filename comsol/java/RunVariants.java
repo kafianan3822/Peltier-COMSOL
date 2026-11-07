@@ -101,6 +101,8 @@ public class RunVariants {
   static final String HT_INIT_TAG = "init1";  // tag: ht > Initial Values 1 (default)
   static final String HT_INIT_T = "Tinit";  // property: Initial Values > Temperature
   static final String MAT_SEMI_GROUP = "SemicondMaterial";  // tag: Material > Semiconductor material property group
+  static final String MAT_ADD_INPUT = "addInput";  // feature: Material > property group > Model Inputs > + Temperature
+  static final String MAT_INPUT_TEMPERATURE = "temperature";  // value: Model input name for temperature
   static final String MAT_RELPERM = "relpermittivity";  // property: Material > Relative permittivity
   static final String MAT_EG0 = "Eg0";  // property: Semiconductor material > Band gap
   static final String MAT_CHI0 = "chi0";  // property: Semiconductor material > Electron affinity
