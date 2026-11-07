@@ -350,8 +350,12 @@ class PinPeltierBuilder:
         with verify("SEMI_AREA_PROP"):
             semi.prop(api.name("SEMI_AREA_GROUP")).set(api.name("SEMI_AREA_PROP"), "Ac")
         self.set_statistics("MB")
-        with verify("SEMI_TREF_PROP"):
-            semi.prop(api.name("SEMI_MODEL_GROUP")).set(api.name("SEMI_TREF_PROP"), "T0")
+        try:  # optional: COMSOL 6.3 shows no reference-temperature setting on semi (CHANGES.md M15)
+            with verify("SEMI_TREF_PROP"):
+                semi.prop(api.name("SEMI_MODEL_GROUP")).set(api.name("SEMI_TREF_PROP"), "T0")
+        except ApiNameError:
+            LOG.warning("no reference-temperature setting on semi; skipped (energy reference only; "
+                        "the semiconductor temperature is still the user-defined T0 in smm1)")
         smm = semi.feature(api.name("SMM_TAG"))
         with verify("SMM_TEMP_SRC", "one-way coupling: semi temperature must be the user-defined T0"):
             smm.set(api.name("SMM_TEMP_SRC"), "userdef")

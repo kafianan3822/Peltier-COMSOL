@@ -42,7 +42,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`SEMI_STATS_PROP`](#semi_stats_prop) | property | `CarrierStatistics` | semi > Settings > Carrier statistics |
 | [`SEMI_STATS_MB`](#semi_stats_mb) | value | `Boltzmann` | Carrier statistics = Maxwell-Boltzmann (confirmed by COMSOL 6.3) |
 | [`SEMI_STATS_FD`](#semi_stats_fd) | value | `FermiDirac` | Carrier statistics = Fermi-Dirac (confirmed by COMSOL 6.3) |
-| [`SEMI_TREF_PROP`](#semi_tref_prop) | property | `T0` | semi > Settings > Reference temperature for energy levels (Tref) |
+| [`SEMI_TREF_PROP`](#semi_tref_prop) | property | `T0` | semi > Settings > Reference temperature for energy levels (Tref); OPTIONAL: not shown in COMSOL 6.3, the builder skips it if rejected |
 | [`SEMI_DISC_GROUP`](#semi_disc_group) | property | `ShapeProperty` | semi > Settings > Discretization |
 | [`SMM_TAG`](#smm_tag) | tag | `smm1` | semi > Semiconductor Material Model 1 (default node) |
 | [`SMM_TEMP_SRC`](#smm_temp_src) | property | `minput_temperature_src` | smm1 > Model Input > Temperature = User defined |
@@ -115,7 +115,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`SEG_STEP`](#seg_step) | feature | `SegregatedStep` | Segregated > right-click > Segregated Step |
 | [`SEG_VARS`](#seg_vars) | property | `segvar` | Segregated Step > Variables |
 | [`SEG_DEFAULT_STEP`](#seg_default_step) | tag | `ssDef` | Segregated 1 > default Segregated Step node |
-| [`DEPVARS_SEMI`](#depvars_semi) | value | `comp1_V,comp1_N,comp1_P` | Dependent variables of semi (FV formulation) |
+| [`DEPVARS_SEMI`](#depvars_semi) | value | `comp1_V,comp1_Ne,comp1_Ph` | Dependent variables of semi: V, Ne, Ph (seen in the COMSOL 6.3 GUI) |
 | [`DEPVAR_T`](#depvar_t) | value | `comp1_T` | Dependent variable of ht |
 | [`GEOM_INTERVAL`](#geom_interval) | feature | `Interval` | Geometry 1 > right-click > Interval |
 | [`INT_SPECIFY_PROP`](#int_specify_prop) | property | `intervals` | Interval > Number of intervals = Many |
@@ -273,7 +273,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 <a id="semi_tref_prop"></a>
 
 - **Current value:** `T0` (property)
-- **GUI action:** semi > Settings > Reference temperature for energy levels (Tref)
+- **GUI action:** semi > Settings > Reference temperature for energy levels (Tref); OPTIONAL: not shown in COMSOL 6.3, the builder skips it if rejected
 - **Java pattern in Save-as-Java output:** `prop("ModelProperties").set("<HERE>", "T0")`
 
 ### SEMI_DISC_GROUP
@@ -856,8 +856,8 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="depvars_semi"></a>
 
-- **Current value:** `comp1_V,comp1_N,comp1_P` (value)
-- **GUI action:** Dependent variables of semi (FV formulation)
+- **Current value:** `comp1_V,comp1_Ne,comp1_Ph` (value)
+- **GUI action:** Dependent variables of semi: V, Ne, Ph (seen in the COMSOL 6.3 GUI)
 - **Java pattern in Save-as-Java output:** `set("segvar", new String[]{<HERE>})`
 
 ### DEPVAR_T
@@ -1108,7 +1108,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `semi.N` (variable)
 - **GUI action:** Semiconductor > Electron concentration
 - **Java pattern:** variable, not present in Save-as-Java output; see 'variable' above
-- **Candidates probed at run time:** `semi.N`, `semi.n`, `N`
+- **Candidates probed at run time:** `semi.N`, `semi.n`, `Ne`, `N`
 
 ### P_H
 
@@ -1117,7 +1117,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `semi.P` (variable)
 - **GUI action:** Semiconductor > Hole concentration
 - **Java pattern:** variable, not present in Save-as-Java output; see 'variable' above
-- **Candidates probed at run time:** `semi.P`, `semi.p`, `P`
+- **Candidates probed at run time:** `semi.P`, `semi.p`, `Ph`, `P`
 
 ### NDOP
 

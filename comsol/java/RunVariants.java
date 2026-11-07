@@ -44,7 +44,7 @@ public class RunVariants {
   static final String SEMI_STATS_PROP = "CarrierStatistics";  // property: semi > Settings > Carrier statistics
   static final String SEMI_STATS_MB = "Boltzmann";  // value: Carrier statistics = Maxwell-Boltzmann (confirmed by COMSOL 6.3)
   static final String SEMI_STATS_FD = "FermiDirac";  // value: Carrier statistics = Fermi-Dirac (confirmed by COMSOL 6.3)
-  static final String SEMI_TREF_PROP = "T0";  // property: semi > Settings > Reference temperature for energy levels (Tref)
+  static final String SEMI_TREF_PROP = "T0";  // property: semi > Settings > Reference temperature for energy levels (Tref); OPTIONAL: not shown in COMSOL 6.3, the builder skips it if rejected
   static final String SEMI_DISC_GROUP = "ShapeProperty";  // property: semi > Settings > Discretization
   static final String SMM_TAG = "smm1";  // tag: semi > Semiconductor Material Model 1 (default node)
   static final String SMM_TEMP_SRC = "minput_temperature_src";  // property: smm1 > Model Input > Temperature = User defined
@@ -117,7 +117,7 @@ public class RunVariants {
   static final String SEG_STEP = "SegregatedStep";  // feature: Segregated > right-click > Segregated Step
   static final String SEG_VARS = "segvar";  // property: Segregated Step > Variables
   static final String SEG_DEFAULT_STEP = "ssDef";  // tag: Segregated 1 > default Segregated Step node
-  static final String DEPVARS_SEMI = "comp1_V,comp1_N,comp1_P";  // value: Dependent variables of semi (FV formulation)
+  static final String DEPVARS_SEMI = "comp1_V,comp1_Ne,comp1_Ph";  // value: Dependent variables of semi: V, Ne, Ph (seen in the COMSOL 6.3 GUI)
   static final String DEPVAR_T = "comp1_T";  // value: Dependent variable of ht
   static final String GEOM_INTERVAL = "Interval";  // feature: Geometry 1 > right-click > Interval
   static final String INT_SPECIFY_PROP = "intervals";  // property: Interval > Number of intervals = Many
@@ -166,8 +166,8 @@ public class RunVariants {
       {"EV", "semi.Ev", "semi.Ev_e"},
       {"EFN", "semi.Efn", "semi.Efn_e"},
       {"EFP", "semi.Efp", "semi.Efp_e"},
-      {"N_E", "semi.N", "semi.n", "N"},
-      {"P_H", "semi.P", "semi.p", "P"},
+      {"N_E", "semi.N", "semi.n", "Ne", "N"},
+      {"P_H", "semi.P", "semi.p", "Ph", "P"},
       {"NDOP", "semi.Ndoping", "semi.Nd_net", "semi.Ndop"},
       {"ND_TOT", "semi.Nd", "semi.Nd_plus", "semi.Ndplus"},
       {"NA_TOT", "semi.Na", "semi.Na_minus", "semi.Naminus"},
