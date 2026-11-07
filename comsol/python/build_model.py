@@ -565,11 +565,38 @@ class PinPeltierBuilder:
         var.selection().all()
         var.set("ni_x", "sqrt(semi.Nc*semi.Nv)*exp(-Eg0_si/(2*k_B_const*T0/e_const))",
                 "intrinsic density (no BGN), for U_x")
-        u = f"({n}*{p}-ni_x^2)/(tau_x*({n}+{p}+2*ni_x))"
+        # COMSOL 6.3 has no Auger feature under any ID tried. Auger is then folded EXACTLY into the
+        # trap-assisted lifetime: with tau_n = tau_p and a midgap trap,
+        #   (np-ni^2)/(tau_ax (n+p+2ni)) = (np-ni^2)/(tau_x (n+p+2ni)) + (Cn n + Cp p)(np-ni^2)
+        # for 1/tau_ax = 1/tau_x + (Cn n + Cp p)(n + p + 2 ni).  (CHANGES.md M17)
+        var.set("tau_ax", f"1/(1/tau_x+(Cn_aug*{n}+Cp_aug*{p})*({n}+{p}+2*ni_x))",
+                "SRH lifetime with Auger folded in (used when no Auger feature exists)")
         if getattr(self, "auger", False):
-            u += f"+(Cn_aug*{n}+Cp_aug*{p})*({n}*{p}-ni_x^2)"
-        var.set("U_x", u, "total net recombination rate (SRH" + (" + Auger)" if self.auger else ")"))
+            u = f"({n}*{p}-ni_x^2)/(tau_x*({n}+{p}+2*ni_x))+(Cn_aug*{n}+Cp_aug*{p})*({n}*{p}-ni_x^2)"
+        else:
+            u = f"({n}*{p}-ni_x^2)/(tau_ax*({n}+{p}+2*ni_x))"
+        var.set("U_x", u, "total net recombination rate (SRH + Auger)")
         LOG.info("U_x = %s", u)
+
+    def contact_heat_exprs(self) -> tuple[str, str]:
+        """Boundary heat sources (W/m^2) at the n-contact (x = 0) and p-contact (x = L), signed.
+
+        Spec form (crec_on = 0): Q_b = J_x * Pi  (= -|J| Pi in forward bias; correct sign in reverse).
+        Carrier-resolved form (crec_on = 1, CHANGES.md M19): majority carriers entering from the metal
+        absorb Pi_nc / Pi_pc, and minority carriers that reach the ideal ohmic contact and recombine
+        there release Pi_rn = Eg - kT ln(Nc/Nd) + 2kT (holes at the n-contact) or Pi_rp (electrons at
+        the p-contact). COMSOL's ideal ohmic contacts release no heat at all, and with a diffusion
+        length longer than W_i (V0) much of the current recombines at the contacts (user's V0 run:
+        eta_E = 0.65 without this term).  In forward bias J_x, Jn_x, Jp_x < 0."""
+        jx, jn, jp = self.var("J_X"), self.var("JN_X"), self.var("JP_X")
+        spec_n, spec_p = f"{jx}*Pi_nc", f"{jx}*Pi_pc"
+        if not (jn and jp):
+            LOG.warning("electron/hole current components not available: contact heat uses the spec form "
+                        "J*Pi only (no minority-carrier recombination heat at the contacts)")
+            return spec_n, spec_p
+        res_n = f"{jn}*Pi_nc-{jp}*Pi_rn"
+        res_p = f"{jp}*Pi_pc-{jn}*Pi_rp"
+        return (f"(1-crec_on)*{spec_n}+crec_on*({res_n})", f"(1-crec_on)*{spec_p}+crec_on*({res_p})")
 
     def define_m2_variables(self) -> None:
         """mun_CT, mup_CT (option M2) in their own Variables node, created only when M2 is used:
@@ -647,6 +674,11 @@ class PinPeltierBuilder:
             LOG.warning("trap level not set explicitly (COMSOL default is midgap): %s", e)
         self.auger = self.add_auger()
         self.define_recombination_variable()
+        if not self.auger:
+            # Auger folded exactly into the trap-assisted lifetime (see define_recombination_variable)
+            self.set_userdef(srh, api.name("SRH_TAUN"), "tau_ax", "SRH_TAUN")
+            self.set_userdef(srh, api.name("SRH_TAUP"), "tau_ax", "SRH_TAUP")
+            LOG.info("Auger included through the trap-assisted lifetime tau_ax (exact for n = p, midgap trap)")
         for tag, pt, v in ((T["mc_n"], 1, "0[V]"), (T["mc_p"], 5, "VF")):
             with verify("FEAT_CONTACT"):
                 mc = semi.create(tag, api.name("FEAT_CONTACT"), 0)
@@ -743,13 +775,14 @@ class PinPeltierBuilder:
             hs = ht.create(T["hs1"], api.name("FEAT_HS"), 1)
         hs.selection().all()
         self.set_heat_source("builtin")
-        jx = self.var("J_X")
-        for tag, pt, pi in ((T["bhs_n"], 1, "Pi_nc"), (T["bhs_p"], 5, "Pi_pc")):
+        self.qb_n, self.qb_p = self.contact_heat_exprs()
+        for tag, pt, expr in ((T["bhs_n"], 1, self.qb_n), (T["bhs_p"], 5, self.qb_p)):
             with verify("FEAT_BHS"):
                 b = ht.create(tag, api.name("FEAT_BHS"), 0)
             b.selection().set([pt])
             with verify("BHS_QB"):
-                b.set(api.name("BHS_QB"), f"-abs({jx})*{pi}")
+                b.set(api.name("BHS_QB"), expr)
+        LOG.info("contact heat: Q_b,n = %s ; Q_b,p = %s", self.qb_n, self.qb_p)
         self._temp_node(T["temp_sinkB"], [3], "T_room")
         st = self.j.study(T["std_eq_iv"]).feature("stat")
         self.set_activate(st, semi=True, ht=True)
@@ -874,7 +907,8 @@ class PinPeltierBuilder:
     def write_build_info(self) -> None:
         import json
         info = dict(material=self.material_used, mobility_base=self.mobility_base, names=self.names,
-                    auger=getattr(self, "auger", None),
+                    auger=getattr(self, "auger", None), qb_n=getattr(self, "qb_n", None),
+                    qb_p=getattr(self, "qb_p", None),
                     hs_expr=self.hs_expr, Pi=getattr(self, "Pi", None))
         self.stage_dir.mkdir(parents=True, exist_ok=True)
         (self.stage_dir / "build_info.json").write_text(json.dumps(info, indent=1), encoding="utf-8")

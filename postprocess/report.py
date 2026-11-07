@@ -77,11 +77,14 @@ def conclusion(res: dict) -> str:
     if "V0" not in d or "V1" not in d:
         return "No V0/V1 results are available yet. Run `python reference/reference_model.py` first."
     v0, v1 = d["V0"], d["V1"]
+    room0 = ("Recombination heat flows back to the ends, so the room is heated."
+             if v0["Q_room"] < 0 else
+             "The room is cooled slightly even with uniform lifetime.")
     s = [f"In the {src} results at VF = 0.7 V, the device as drawn (V0, uniform lifetime) "
          f"{'heats' if v0['dT_end_B'] > 0 else 'cools'} its junction ends by "
          f"{abs(v0['dT_end_B'])*1e3:.3f} mK relative to the sink in Config B. "
          f"Config A gives Q_room = {v0['Q_room']*1e3:.3f} mW and dT_max = {v0.get('dT_max_text', '-')}. "
-         "Recombination heat flows back to the ends, so the room is heated."]
+         + room0]
     s.append(f"With the engineered central recombination zone (V1) the ends cool by "
              f"{-v1['dT_end_B']*1e3:.3f} mK. Config A gives Q_room(dT=0) = {v1['Q_room']*1e3:.3f} mW, "
              f"COP = {f(v1.get('cop0'), fmt='{:.2f}')} and dT_max = {v1.get('dT_max_text', '-')}")

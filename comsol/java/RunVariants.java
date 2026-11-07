@@ -161,6 +161,8 @@ public class RunVariants {
   static final String NA_TOT = "semi.Na";  // variable: Semiconductor > Acceptor concentration (for M2 N_tot)
   static final String NC_VAR = "semi.Nc";  // variable: Semiconductor > Effective DOS, conduction band
   static final String NV_VAR = "semi.Nv";  // variable: Semiconductor > Effective DOS, valence band
+  static final String JN_X = "semi.JnX";  // variable: Semiconductor > Electron current density, x component
+  static final String JP_X = "semi.JpX";  // variable: Semiconductor > Hole current density, x component
   static final String TFLUX_X = "ht.tfluxX";  // variable: Heat Transfer > Total heat flux, x component
   /** Variable names probed after the first solve: {KEY, default, alternatives...}. */
   static final String[][] CANDIDATES = {
@@ -180,6 +182,8 @@ public class RunVariants {
       {"NA_TOT", "semi.Na", "semi.Na_minus", "semi.Naminus"},
       {"NC_VAR", "semi.Nc", "semi.Nc_eff"},
       {"NV_VAR", "semi.Nv", "semi.Nv_eff"},
+      {"JN_X", "semi.JnX", "semi.Jnx", "semi.Jn_x", "semi.JnxX"},
+      {"JP_X", "semi.JpX", "semi.Jpx", "semi.Jp_x", "semi.JpxX"},
       {"TFLUX_X", "ht.tfluxX", "ht.tfluxx", "ht.dfluxX", "ht.dfluxx", "-k_Si*d(T,x)"},
   };
   /** Property names with alternatives tried in order: {KEY, default, alternatives...}. */
@@ -187,7 +191,7 @@ public class RunVariants {
       {"FEAT_AUGER", "AugerRecombination", "Auger", "AugerRecombinationModel", "AugerModel", "AugerRec", "AugerRecombinationFeature", "SemiconductorAugerRecombination", "AugerGenerationRecombination"},
   };
   /** Variables needed only for optional outputs (may stay unresolved). */
-  static final String[] OPTIONAL_VARIABLES = {"EC", "EV", "EFN", "EFP", "U_TOT", "ND_TOT", "NA_TOT", "NC_VAR", "NV_VAR"};
+  static final String[] OPTIONAL_VARIABLES = {"EC", "EV", "EFN", "EFP", "U_TOT", "ND_TOT", "NA_TOT", "NC_VAR", "NV_VAR", "JN_X", "JP_X"};
   /** Last-resort formulas; {J_X} is replaced by the resolved current-density name. */
   static final String[][] COMPUTED_FALLBACKS = {{"I_TERMINAL", "Ac*abs(pt_p({J_X}))"}};
   // END API_NAMES
@@ -455,6 +459,20 @@ public class RunVariants {
       throw new ApiNameError(key, c[1], new RuntimeException("no candidate accepted: " + err));
     }
     throw new IllegalArgumentException("no PROP_CANDIDATES entry for " + key);
+  }
+
+  /** Signed contact heat sources {n-contact, p-contact} in W/m^2 (CHANGES.md M19): majority carriers
+   *  absorb Pi_nc/Pi_pc, minority carriers recombining at the ideal ohmic contact release Pi_rn/Pi_rp;
+   *  crec_on = 0 gives the spec form J*Pi. Falls back to J*Pi if Jn/Jp are not available. */
+  static String[] contactHeatExprs() {
+    String jx = var("J_X"), jn = var("JN_X"), jp = var("JP_X");
+    String sn = jx + "*Pi_nc", sp = jx + "*Pi_pc";
+    if (jn == null || jp == null) {
+      log("WARNING Jn/Jp not available: contact heat uses the spec form J*Pi only");
+      return new String[]{sn, sp};
+    }
+    return new String[]{"(1-crec_on)*" + sn + "+crec_on*(" + jn + "*Pi_nc-" + jp + "*Pi_rn)",
+                        "(1-crec_on)*" + sp + "+crec_on*(" + jp + "*Pi_pc-" + jn + "*Pi_rp)"};
   }
 
   static String heatSourceExpr(String qsrc) {
@@ -827,8 +845,10 @@ public class RunVariants {
       "qx_0", "qx_L", "T_P1", "T_P5", "T_P3", "Q_room", "eta_E", "V_ifield"};
 
   static double[][] globalTable(Model m, String ds) {
-    double Ac = pval(m, "Ac"), Pi = pval(m, "Pi_nc+Pi_pc");
+    double Ac = pval(m, "Ac");
     String hs = HS_EXPR, tf = var("TFLUX_X");
+    String[] qb = contactHeatExprs();
+    double[] Qc = evalGlobal(m, "pt_n(" + qb[0] + ")+pt_p(" + qb[1] + ")", "W/m^2", ds, 0);
     double[] VF = evalGlobal(m, "VF", "V", ds, 0);
     int n = VF.length;
     double[] I = evalGlobal(m, "abs(" + var("I_TERMINAL") + ")", "A", ds, 0);
@@ -837,16 +857,17 @@ public class RunVariants {
     double[] Qp = evalGlobal(m, "intop_all((" + hs + ")*(x>Ltot-Wp-5[um]))", "W/m^2", ds, 0);
     double[] q0 = evalGlobal(m, "pt_n(" + tf + ")", "W/m^2", ds, 0);
     double[] qL = evalGlobal(m, "pt_p(" + tf + ")", "W/m^2", ds, 0);
-    double[] Vi = evalGlobal(m, "intop_i(" + var("E_X") + ")", "V", ds, 0);
+    // ohmic drop of the neutral i-region only (5 um next to each junction excluded)
+    double[] Vi = evalGlobal(m, "intop_i(" + var("E_X") + "*(abs(x-Xc)<Wi/2-5[um]))", "V", ds, 0);
     double[][] out = new double[GLOBAL_COLS.length][n];
     for (int i = 0; i < n; i++) {
       double J = I[i] / Ac, P = I[i] * VF[i];
       out[0][i] = VF[i]; out[1][i] = I[i]; out[2][i] = J; out[3][i] = P;
       out[4][i] = Ac * Qt[i]; out[5][i] = Ac * Qn[i]; out[6][i] = Ac * Qp[i];
-      out[7][i] = -J * Ac * Pi;
+      out[7][i] = Ac * Qc[i];
       out[8][i] = q0[i]; out[9][i] = qL[i];
       out[10][i] = Double.NaN; out[11][i] = Double.NaN; out[12][i] = Double.NaN;
-      out[13][i] = Ac * (q0[i] - qL[i] + J * Pi);
+      out[13][i] = Ac * (q0[i] - qL[i]) - out[7][i];
       out[14][i] = P > 0 ? (out[4][i] + out[7][i]) / P : Double.NaN;
       out[15][i] = -Vi[i];
     }
@@ -949,7 +970,8 @@ public class RunVariants {
   static double[][] roomSweep(Model m) {
     double[] dTs = parseRange(CFG.get("sweep.dT_sink"));
     String tf = var("TFLUX_X");
-    String expr = "Ac*(pt_n(" + tf + ")-pt_p(" + tf + "))+abs(" + var("I_TERMINAL") + ")*(Pi_nc+Pi_pc)";
+    String[] qb = contactHeatExprs();
+    String expr = "Ac*(pt_n(" + tf + ")-pt_p(" + tf + ")-pt_n(" + qb[0] + ")-pt_p(" + qb[1] + "))";
     List<double[]> rows = new ArrayList<>();
     try {
       String ds = datasetOf(m, STD_ROOM, true);

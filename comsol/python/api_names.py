@@ -318,6 +318,10 @@ VERIFY: dict[str, V] = {
                 ["semi.Nc", "semi.Nc_eff"]),
     "NV_VAR": V("semi.Nv", "variable", "Semiconductor > Effective DOS, valence band", "",
                 ["semi.Nv", "semi.Nv_eff"]),
+    "JN_X": V("semi.JnX", "variable", "Semiconductor > Electron current density, x component", "",
+              ["semi.JnX", "semi.Jnx", "semi.Jn_x", "semi.JnxX"]),
+    "JP_X": V("semi.JpX", "variable", "Semiconductor > Hole current density, x component", "",
+              ["semi.JpX", "semi.Jpx", "semi.Jp_x", "semi.JpxX"]),
     "TFLUX_X": V("ht.tfluxX", "variable", "Heat Transfer > Total heat flux, x component", "",
                  ["ht.tfluxX", "ht.tfluxx", "ht.dfluxX", "ht.dfluxx", "-k_Si*d(T,x)"]),
 }
@@ -335,7 +339,7 @@ TAGS = dict(
 
 # Variables that are only needed for optional outputs: if no candidate evaluates, the build continues
 # and the affected outputs are NaN (EC..EFP: band diagram) or skipped (U_TOT: qsrc=corrected variants).
-OPTIONAL_VARIABLES = ("EC", "EV", "EFN", "EFP", "U_TOT", "ND_TOT", "NA_TOT", "NC_VAR", "NV_VAR")
+OPTIONAL_VARIABLES = ("EC", "EV", "EFN", "EFP", "U_TOT", "ND_TOT", "NA_TOT", "NC_VAR", "NV_VAR", "JN_X", "JP_X")
 # Last-resort expressions built from other (already resolved) names; '{J_X}' is filled in at run time.
 COMPUTED_FALLBACKS = {"I_TERMINAL": "Ac*abs(pt_p({J_X}))"}
 

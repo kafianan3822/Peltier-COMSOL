@@ -73,8 +73,13 @@ def _synthetic(vid="V0", eta=0.96, qjn=-1e-4, qsrc="builtin"):
 
 def test_C2_pass_and_fail():
     assert an.check_C2(_synthetic(eta=0.96)).status == "PASS"
-    assert an.check_C2(_synthetic(eta=1.00)).status == "FAIL"
+    assert an.check_C2(_synthetic(eta=1.05)).status == "FAIL"
     assert an.check_C2(_synthetic(eta=1.00, qsrc="corrected")).status == "PASS"
+    # contact recombination counted (crec_on = 1, default): eta up to 1 is allowed
+    assert an.check_C2(_synthetic(eta=1.00)).status == "PASS"
+    spec_form = _synthetic(eta=1.00)
+    spec_form.run["params"] = {"crec_on": "0"}
+    assert an.check_C2(spec_form).status == "FAIL"
 
 
 def test_C3():

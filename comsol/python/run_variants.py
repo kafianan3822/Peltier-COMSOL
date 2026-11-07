@@ -34,7 +34,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(HERE))
 
-from api_names import TAGS as T, ApiNameError  # noqa: E402
+from api_names import TAGS as T, ApiNameError, name as api_name  # noqa: E402
 from common.csvio import write_csv  # noqa: E402
 from common.params import Q_E, expand_variants, load_base, parse_range  # noqa: E402
 
@@ -78,7 +78,7 @@ def global_table(b, study: str) -> pd.DataFrame:
     g = lambda e, **kw: b.eval_global(e, study, **kw)  # noqa: E731
     hs, tf = b.hs_expr, b.var("TFLUX_X")
     Ac = b.param_value("Ac")
-    Pi_sum = b.param_value("Pi_nc+Pi_pc")
+    qbn, qbp = b.qb_n, b.qb_p
     VF = b.vf_values(study)
     I = np.abs(g(b.var("I_TERMINAL"), unit="A"))
     J = I / Ac
@@ -86,17 +86,20 @@ def global_table(b, study: str) -> pd.DataFrame:
     df["Qtot_int"] = Ac * g(f"intop_all({hs})", unit="W/m^2")
     df["Qjn_n"] = Ac * g(f"intop_all(({hs})*(x<Wn+5[um]))", unit="W/m^2")
     df["Qjn_p"] = Ac * g(f"intop_all(({hs})*(x>Ltot-Wp-5[um]))", unit="W/m^2")
-    df["Qc_contacts"] = -J * Ac * Pi_sum
+    # contact heat = the boundary heat sources actually in the model (signed; < 0 = absorbed)
+    df["Qc_contacts"] = Ac * g(f"pt_n({qbn})+pt_p({qbp})", unit="W/m^2")
     try:
         df["qx_0"] = g(f"pt_n({tf})", unit="W/m^2")
         df["qx_L"] = g(f"pt_p({tf})", unit="W/m^2")
         df["T_P1"], df["T_P5"], df["T_P3"] = (g(f"{p}(T)", unit="K") for p in ("pt_n", "pt_p", "pt_c"))
-        df["Q_room"] = Ac * (df.qx_0 - df.qx_L + J * Pi_sum)
+        # heat taken from the room = conduction away from both ends + heat absorbed at the contacts
+        df["Q_room"] = Ac * (df.qx_0 - df.qx_L) - df.Qc_contacts
     except Exception as exc:  # semi-only study
         LOG.debug("no ht quantities in %s: %s", study, exc)
     with np.errstate(divide="ignore", invalid="ignore"):
         df["eta_E"] = np.where(df.P_el > 0, (df.Qtot_int + df.Qc_contacts) / df.P_el, np.nan)
-    df["V_ifield"] = -g(f"intop_i({b.var('E_X')})", unit="V")
+    # ohmic drop of the neutral i-region only: 5 um next to each junction (depletion) excluded
+    df["V_ifield"] = -g(f"intop_i({b.var('E_X')}*(abs(x-Xc)<Wi/2-5[um]))", unit="V")
     return df
 
 
@@ -181,8 +184,8 @@ def room_sweep(b) -> pd.DataFrame:
     """Q_room(VF, dT_sink) from the Parametric Sweep of std_room; driver-loop fallback."""
     base = load_base()
     dTs = parse_range(base["sweeps"]["dT_sink"])
-    tf, I_t = b.var("TFLUX_X"), b.var("I_TERMINAL")
-    expr = f"Ac*(pt_n({tf})-pt_p({tf}))+abs({I_t})*(Pi_nc+Pi_pc)"
+    tf = b.var("TFLUX_X")
+    expr = f"Ac*(pt_n({tf})-pt_p({tf})-pt_n({b.qb_n})-pt_p({b.qb_p}))"
     rows = []
     try:
         for k, d in enumerate(dTs, start=1):
@@ -273,6 +276,10 @@ def load_builder(client, path: Path = BASE_MPH):
     info = json.loads((MODELS / "build_info.json").read_text(encoding="utf-8"))
     b.material_used, b.mobility_base, b.names = info["material"], info["mobility_base"], info["names"]
     b.hs_expr = info["hs_expr"]
+    b.auger = info.get("auger")
+    jx = b.names.get("J_X") or api_name("J_X")
+    b.qb_n = info.get("qb_n") or f"{jx}*Pi_nc"
+    b.qb_p = info.get("qb_p") or f"{jx}*Pi_pc"
     b._dists = {t: b.comp.mesh(T["mesh"]).feature("edg1").feature(t) for t in ("dis_n", "dis_p", "dis_iL", "dis_iR")}
     return b
 

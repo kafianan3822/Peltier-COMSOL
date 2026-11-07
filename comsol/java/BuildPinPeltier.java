@@ -162,6 +162,8 @@ public class BuildPinPeltier {
   static final String NA_TOT = "semi.Na";  // variable: Semiconductor > Acceptor concentration (for M2 N_tot)
   static final String NC_VAR = "semi.Nc";  // variable: Semiconductor > Effective DOS, conduction band
   static final String NV_VAR = "semi.Nv";  // variable: Semiconductor > Effective DOS, valence band
+  static final String JN_X = "semi.JnX";  // variable: Semiconductor > Electron current density, x component
+  static final String JP_X = "semi.JpX";  // variable: Semiconductor > Hole current density, x component
   static final String TFLUX_X = "ht.tfluxX";  // variable: Heat Transfer > Total heat flux, x component
   /** Variable names probed after the first solve: {KEY, default, alternatives...}. */
   static final String[][] CANDIDATES = {
@@ -181,6 +183,8 @@ public class BuildPinPeltier {
       {"NA_TOT", "semi.Na", "semi.Na_minus", "semi.Naminus"},
       {"NC_VAR", "semi.Nc", "semi.Nc_eff"},
       {"NV_VAR", "semi.Nv", "semi.Nv_eff"},
+      {"JN_X", "semi.JnX", "semi.Jnx", "semi.Jn_x", "semi.JnxX"},
+      {"JP_X", "semi.JpX", "semi.Jpx", "semi.Jp_x", "semi.JpxX"},
       {"TFLUX_X", "ht.tfluxX", "ht.tfluxx", "ht.dfluxX", "ht.dfluxx", "-k_Si*d(T,x)"},
   };
   /** Property names with alternatives tried in order: {KEY, default, alternatives...}. */
@@ -188,7 +192,7 @@ public class BuildPinPeltier {
       {"FEAT_AUGER", "AugerRecombination", "Auger", "AugerRecombinationModel", "AugerModel", "AugerRec", "AugerRecombinationFeature", "SemiconductorAugerRecombination", "AugerGenerationRecombination"},
   };
   /** Variables needed only for optional outputs (may stay unresolved). */
-  static final String[] OPTIONAL_VARIABLES = {"EC", "EV", "EFN", "EFP", "U_TOT", "ND_TOT", "NA_TOT", "NC_VAR", "NV_VAR"};
+  static final String[] OPTIONAL_VARIABLES = {"EC", "EV", "EFN", "EFP", "U_TOT", "ND_TOT", "NA_TOT", "NC_VAR", "NV_VAR", "JN_X", "JP_X"};
   /** Last-resort formulas; {J_X} is replaced by the resolved current-density name. */
   static final String[][] COMPUTED_FALLBACKS = {{"I_TERMINAL", "Ac*abs(pt_p({J_X}))"}};
   // END API_NAMES
@@ -456,6 +460,20 @@ public class BuildPinPeltier {
       throw new ApiNameError(key, c[1], new RuntimeException("no candidate accepted: " + err));
     }
     throw new IllegalArgumentException("no PROP_CANDIDATES entry for " + key);
+  }
+
+  /** Signed contact heat sources {n-contact, p-contact} in W/m^2 (CHANGES.md M19): majority carriers
+   *  absorb Pi_nc/Pi_pc, minority carriers recombining at the ideal ohmic contact release Pi_rn/Pi_rp;
+   *  crec_on = 0 gives the spec form J*Pi. Falls back to J*Pi if Jn/Jp are not available. */
+  static String[] contactHeatExprs() {
+    String jx = var("J_X"), jn = var("JN_X"), jp = var("JP_X");
+    String sn = jx + "*Pi_nc", sp = jx + "*Pi_pc";
+    if (jn == null || jp == null) {
+      log("WARNING Jn/Jp not available: contact heat uses the spec form J*Pi only");
+      return new String[]{sn, sp};
+    }
+    return new String[]{"(1-crec_on)*" + sn + "+crec_on*(" + jn + "*Pi_nc-" + jp + "*Pi_rn)",
+                        "(1-crec_on)*" + sp + "+crec_on*(" + jp + "*Pi_pc-" + jn + "*Pi_rp)"};
   }
 
   static String heatSourceExpr(String qsrc) {
@@ -1010,9 +1028,20 @@ public class BuildPinPeltier {
     m.component(COMP).variable("var_rec").selection().geom(GEOM, 1);
     m.component(COMP).variable("var_rec").selection().all();
     m.component(COMP).variable("var_rec").set("ni_x", "sqrt(semi.Nc*semi.Nv)*exp(-Eg0_si/(2*k_B_const*T0/e_const))", "intrinsic density (no BGN)");
-    String u = "(" + N_E + "*" + P_H + "-ni_x^2)/(tau_x*(" + N_E + "+" + P_H + "+2*ni_x))";
-    if (AUGER) u += "+(Cn_aug*" + N_E + "+Cp_aug*" + P_H + ")*(" + N_E + "*" + P_H + "-ni_x^2)";
-    m.component(COMP).variable("var_rec").set("U_x", u, "total net recombination rate");
+    // no Auger feature in COMSOL 6.3: Auger folded exactly into the trap-assisted lifetime (CHANGES.md M17)
+    m.component(COMP).variable("var_rec").set("tau_ax", "1/(1/tau_x+(Cn_aug*" + N_E + "+Cp_aug*" + P_H + ")*("
+        + N_E + "+" + P_H + "+2*ni_x))", "SRH lifetime with Auger folded in");
+    String u;
+    if (AUGER) {
+      u = "(" + N_E + "*" + P_H + "-ni_x^2)/(tau_x*(" + N_E + "+" + P_H + "+2*ni_x))"
+          + "+(Cn_aug*" + N_E + "+Cp_aug*" + P_H + ")*(" + N_E + "*" + P_H + "-ni_x^2)";
+    } else {
+      u = "(" + N_E + "*" + P_H + "-ni_x^2)/(tau_ax*(" + N_E + "+" + P_H + "+2*ni_x))";
+      setUserdef(semi.feature("srh1"), SRH_TAUN, "tau_ax", "SRH_TAUN");
+      setUserdef(semi.feature("srh1"), SRH_TAUP, "tau_ax", "SRH_TAUP");
+      log("Auger included through the trap-assisted lifetime tau_ax");
+    }
+    m.component(COMP).variable("var_rec").set("U_x", u, "total net recombination rate (SRH + Auger)");
     String[][] mcs = {{"mc_n", "1", "0[V]"}, {"mc_p", "5", "VF"}};
     for (String[] c : mcs) {
       verify("FEAT_CONTACT", FEAT_CONTACT, () -> semi.create(c[0], FEAT_CONTACT, 0));
@@ -1101,12 +1130,14 @@ public class BuildPinPeltier {
     verify("FEAT_HS", FEAT_HS, () -> ht.create("hs1", FEAT_HS, 1));
     ht.feature("hs1").selection().all();
     setHeatSource(m, "builtin");
-    String[][] bhs = {{"bhs_n", "1", "Pi_nc"}, {"bhs_p", "5", "Pi_pc"}};
+    String[] qb = contactHeatExprs();
+    String[][] bhs = {{"bhs_n", "1", qb[0]}, {"bhs_p", "5", qb[1]}};
     for (String[] b : bhs) {
       verify("FEAT_BHS", FEAT_BHS, () -> ht.create(b[0], FEAT_BHS, 0));
       ht.feature(b[0]).selection().set(new int[]{Integer.parseInt(b[1])});
-      verify("BHS_QB", BHS_QB, () -> ht.feature(b[0]).set(BHS_QB, "-abs(" + var("J_X") + ")*" + b[2]));
+      verify("BHS_QB", BHS_QB, () -> ht.feature(b[0]).set(BHS_QB, b[2]));
     }
+    log("contact heat: Q_b,n = " + qb[0] + " ; Q_b,p = " + qb[1]);
     tempNode(m, "temp_sinkB", new int[]{3}, "T_room");
     setActivate(m.study(STD_EQ_IV).feature("stat"), true, true);
     setActivate(m.study(STD_EQ_IV).feature("sseq"), true, false);

@@ -47,8 +47,11 @@ def test_staged_build_smoke_tests(built):
     smm = b.semi.feature("smm1")
     assert smm.props["minput_temperature_src"] == "userdef" and smm.props["minput_temperature"] == "T0"
     # contact Peltier sinks
-    assert b.ht.feature("bhs_n").props["Qb_input"] == "-abs(semi.JX)*Pi_nc"
-    assert b.ht.feature("bhs_p").props["Qb_input"] == "-abs(semi.JX)*Pi_pc"
+    # contact heat: spec form J*Pi (crec_on = 0) or carrier-resolved incl. minority recombination
+    assert b.ht.feature("bhs_n").props["Qb_input"] == (
+        "(1-crec_on)*semi.JX*Pi_nc+crec_on*(semi.JnX*Pi_nc-semi.JpX*Pi_rn)")
+    assert b.ht.feature("bhs_p").props["Qb_input"] == (
+        "(1-crec_on)*semi.JX*Pi_pc+crec_on*(semi.JpX*Pi_pc-semi.JnX*Pi_rp)")
     assert b.Pi[0] == pytest.approx(0.0789, abs=1e-3)
     # the equilibrium 'Solution Store' of Study 1 must not be mistaken for the sweep results
     assert "store" not in b.dataset_of("std_eq_iv")

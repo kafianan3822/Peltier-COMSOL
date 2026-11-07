@@ -159,6 +159,8 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`NA_TOT`](#na_tot) | variable | `semi.Na` | Semiconductor > Acceptor concentration (for M2 N_tot) |
 | [`NC_VAR`](#nc_var) | variable | `semi.Nc` | Semiconductor > Effective DOS, conduction band |
 | [`NV_VAR`](#nv_var) | variable | `semi.Nv` | Semiconductor > Effective DOS, valence band |
+| [`JN_X`](#jn_x) | variable | `semi.JnX` | Semiconductor > Electron current density, x component |
+| [`JP_X`](#jp_x) | variable | `semi.JpX` | Semiconductor > Hole current density, x component |
 | [`TFLUX_X`](#tflux_x) | variable | `ht.tfluxX` | Heat Transfer > Total heat flux, x component |
 
 ## Entries
@@ -1227,6 +1229,24 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **GUI action:** Semiconductor > Effective DOS, valence band
 - **Java pattern:** variable, not present in Save-as-Java output; see 'variable' above
 - **Candidates probed at run time:** `semi.Nv`, `semi.Nv_eff`
+
+### JN_X
+
+<a id="jn_x"></a>
+
+- **Current value:** `semi.JnX` (variable)
+- **GUI action:** Semiconductor > Electron current density, x component
+- **Java pattern:** variable, not present in Save-as-Java output; see 'variable' above
+- **Candidates probed at run time:** `semi.JnX`, `semi.Jnx`, `semi.Jn_x`, `semi.JnxX`
+
+### JP_X
+
+<a id="jp_x"></a>
+
+- **Current value:** `semi.JpX` (variable)
+- **GUI action:** Semiconductor > Hole current density, x component
+- **Java pattern:** variable, not present in Save-as-Java output; see 'variable' above
+- **Candidates probed at run time:** `semi.JpX`, `semi.Jpx`, `semi.Jp_x`, `semi.JpxX`
 
 ### TFLUX_X
 
