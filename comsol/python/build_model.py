@@ -336,7 +336,9 @@ class PinPeltierBuilder:
         self.j.param().set("Nc_si", f"{vals['MAT_NC'][1]:.6g}[1/m^3]", "Nc read back from material at T0")
         self.j.param().set("Nv_si", f"{vals['MAT_NV'][1]:.6g}[1/m^3]", "Nv read back from material at T0")
         pin, pip = self.param_value("Pi_nc"), self.param_value("Pi_pc")
-        LOG.info("Pi_nc = %.5f V, Pi_pc = %.5f V (spec: ~0.079 / ~0.081 V)", pin, pip)
+        LOG.info("Pi_nc = %.5f V, Pi_pc = %.5f V from the read-back Nc, Nv (the spec's ~0.079 / ~0.081 V "
+                 "assume Nc = 2.86e19, Nv = 3.10e19 cm^-3; library values differ, which is intended, spec §4.2)",
+                 pin, pip)
         self.Pi = (pin, pip)
 
     # ================================================================= STAGE 3

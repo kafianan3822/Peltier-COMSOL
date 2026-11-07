@@ -40,8 +40,8 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`SEMI_AREA_PROP`](#semi_area_prop) | property | `A` | semi > Settings > Cross-Sectional Area > A (value Ac) |
 | [`SEMI_MODEL_GROUP`](#semi_model_group) | property | `ModelProperties` | semi > Settings > Model Properties (carrier statistics) |
 | [`SEMI_STATS_PROP`](#semi_stats_prop) | property | `CarrierStatistics` | semi > Settings > Carrier statistics |
-| [`SEMI_STATS_MB`](#semi_stats_mb) | value | `MaxwellBoltzmann` | Carrier statistics = Maxwell-Boltzmann |
-| [`SEMI_STATS_FD`](#semi_stats_fd) | value | `FermiDirac` | Carrier statistics = Fermi-Dirac |
+| [`SEMI_STATS_MB`](#semi_stats_mb) | value | `Boltzmann` | Carrier statistics = Maxwell-Boltzmann (confirmed by COMSOL 6.3) |
+| [`SEMI_STATS_FD`](#semi_stats_fd) | value | `FermiDirac` | Carrier statistics = Fermi-Dirac (confirmed by COMSOL 6.3) |
 | [`SEMI_TREF_PROP`](#semi_tref_prop) | property | `T0` | semi > Settings > Reference temperature for energy levels (Tref) |
 | [`SEMI_DISC_GROUP`](#semi_disc_group) | property | `ShapeProperty` | semi > Settings > Discretization |
 | [`SMM_TAG`](#smm_tag) | tag | `smm1` | semi > Semiconductor Material Model 1 (default node) |
@@ -256,8 +256,8 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="semi_stats_mb"></a>
 
-- **Current value:** `MaxwellBoltzmann` (value)
-- **GUI action:** Carrier statistics = Maxwell-Boltzmann
+- **Current value:** `Boltzmann` (value)
+- **GUI action:** Carrier statistics = Maxwell-Boltzmann (confirmed by COMSOL 6.3)
 - **Java pattern in Save-as-Java output:** `set("CarrierStatistics", "<HERE>")`
 
 ### SEMI_STATS_FD
@@ -265,7 +265,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 <a id="semi_stats_fd"></a>
 
 - **Current value:** `FermiDirac` (value)
-- **GUI action:** Carrier statistics = Fermi-Dirac
+- **GUI action:** Carrier statistics = Fermi-Dirac (confirmed by COMSOL 6.3)
 - **Java pattern in Save-as-Java output:** `set("CarrierStatistics", "<HERE>")`
 
 ### SEMI_TREF_PROP

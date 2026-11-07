@@ -42,8 +42,8 @@ public class RunVariants {
   static final String SEMI_AREA_PROP = "A";  // property: semi > Settings > Cross-Sectional Area > A (value Ac)
   static final String SEMI_MODEL_GROUP = "ModelProperties";  // property: semi > Settings > Model Properties (carrier statistics)
   static final String SEMI_STATS_PROP = "CarrierStatistics";  // property: semi > Settings > Carrier statistics
-  static final String SEMI_STATS_MB = "MaxwellBoltzmann";  // value: Carrier statistics = Maxwell-Boltzmann
-  static final String SEMI_STATS_FD = "FermiDirac";  // value: Carrier statistics = Fermi-Dirac
+  static final String SEMI_STATS_MB = "Boltzmann";  // value: Carrier statistics = Maxwell-Boltzmann (confirmed by COMSOL 6.3)
+  static final String SEMI_STATS_FD = "FermiDirac";  // value: Carrier statistics = Fermi-Dirac (confirmed by COMSOL 6.3)
   static final String SEMI_TREF_PROP = "T0";  // property: semi > Settings > Reference temperature for energy levels (Tref)
   static final String SEMI_DISC_GROUP = "ShapeProperty";  // property: semi > Settings > Discretization
   static final String SMM_TAG = "smm1";  // tag: semi > Semiconductor Material Model 1 (default node)

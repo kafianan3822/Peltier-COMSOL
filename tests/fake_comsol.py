@@ -49,6 +49,8 @@ class FakeEntity:
         if isinstance(value, int) and not isinstance(value, bool):
             # JPype: a Python int matches both set(String,int) and set(String,boolean)
             raise RuntimeError("Ambiguous overloads found for PropFeatureClient.set(str,int)")
+        if name == "CarrierStatistics" and value not in ("Boltzmann", "FermiDirac"):
+            raise RuntimeError("Invalid parameter value. CarrierStatistics: \"Boltzmann\", \"FermiDirac\"")
         if name == "growthrate" and value not in ("linear", "exponential"):
             raise RuntimeError("Invalid property value. 'Growth rate': \"linear\", \"exponential\"")
         self.props[name] = value

@@ -43,8 +43,8 @@ public class BuildPinPeltier {
   static final String SEMI_AREA_PROP = "A";  // property: semi > Settings > Cross-Sectional Area > A (value Ac)
   static final String SEMI_MODEL_GROUP = "ModelProperties";  // property: semi > Settings > Model Properties (carrier statistics)
   static final String SEMI_STATS_PROP = "CarrierStatistics";  // property: semi > Settings > Carrier statistics
-  static final String SEMI_STATS_MB = "MaxwellBoltzmann";  // value: Carrier statistics = Maxwell-Boltzmann
-  static final String SEMI_STATS_FD = "FermiDirac";  // value: Carrier statistics = Fermi-Dirac
+  static final String SEMI_STATS_MB = "Boltzmann";  // value: Carrier statistics = Maxwell-Boltzmann (confirmed by COMSOL 6.3)
+  static final String SEMI_STATS_FD = "FermiDirac";  // value: Carrier statistics = Fermi-Dirac (confirmed by COMSOL 6.3)
   static final String SEMI_TREF_PROP = "T0";  // property: semi > Settings > Reference temperature for energy levels (Tref)
   static final String SEMI_DISC_GROUP = "ShapeProperty";  // property: semi > Settings > Discretization
   static final String SMM_TAG = "smm1";  // tag: semi > Semiconductor Material Model 1 (default node)
@@ -705,7 +705,7 @@ public class BuildPinPeltier {
     }
     m.param().set("Nc_si", String.format(Locale.ROOT, "%.6g[1/m^3]", val[1]), "Nc read back from material at T0");
     m.param().set("Nv_si", String.format(Locale.ROOT, "%.6g[1/m^3]", val[2]), "Nv read back from material at T0");
-    log(String.format(Locale.ROOT, "Pi_nc = %.5f V, Pi_pc = %.5f V (spec ~0.079 / ~0.081)", pval(m, "Pi_nc"), pval(m, "Pi_pc")));
+    log(String.format(Locale.ROOT, "Pi_nc = %.5f V, Pi_pc = %.5f V from the read-back Nc, Nv (spec ~0.079 / ~0.081 V assume Nc = 2.86e19, Nv = 3.10e19 cm^-3)", pval(m, "Pi_nc"), pval(m, "Pi_pc")));
   }
 
   /** Stage 3: semi interface + doping; equilibrium solve; net-doping smoke test. */
