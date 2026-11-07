@@ -195,6 +195,7 @@ class PinPeltierBuilder:
         mesh = self.comp.mesh().create(T["mesh"])
         with verify("MESH_EDGE"):
             edg = mesh.create("edg1", api.name("MESH_EDGE"))
+        edg.selection().geom(T["geom"], 1)          # 1D: Edge acts on domains (dimension 1)
         edg.selection().all()
         specs = [  # (tag, domain, kind, reverse)
             ("dis_n", 1, "fixed", False), ("dis_p", 4, "fixed", False),
@@ -204,6 +205,7 @@ class PinPeltierBuilder:
         for tag, dom, kind, rev in specs:
             with verify("MESH_DIST"):
                 d = edg.create(tag, api.name("MESH_DIST"))
+            d.selection().geom(T["geom"], 1)
             d.selection().set([dom])
             if kind == "fixed":
                 with verify("DIST_NUMELEM"):

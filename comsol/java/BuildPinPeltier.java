@@ -271,6 +271,7 @@ public class BuildPinPeltier {
     if (Arrays.asList(m.component(COMP).mesh().tags()).contains(MESH)) m.component(COMP).mesh().remove(MESH);
     MeshSequence mesh = m.component(COMP).mesh().create(MESH);
     verify("MESH_EDGE", MESH_EDGE, () -> mesh.create("edg1", MESH_EDGE));
+    mesh.feature("edg1").selection().geom(GEOM, 1);   // 1D: Edge acts on domains (dimension 1)
     mesh.feature("edg1").selection().all();
     Object[][] specs = {{"dis_n", 1, false, false}, {"dis_p", 4, false, false},
                         {"dis_iL", 2, true, false}, {"dis_iR", 3, true, true}};
@@ -281,6 +282,7 @@ public class BuildPinPeltier {
       boolean rev = REVERSE.getOrDefault(tag, (Boolean) s[3]);
       verify("MESH_DIST", MESH_DIST, () -> mesh.feature("edg1").create(tag, MESH_DIST));
       MeshFeature d = mesh.feature("edg1").feature(tag);
+      d.selection().geom(GEOM, 1);
       d.selection().set(new int[]{dom});
       if (!graded) {
         verify("DIST_NUMELEM", DIST_NUMELEM, () -> d.set(DIST_NUMELEM, nd));

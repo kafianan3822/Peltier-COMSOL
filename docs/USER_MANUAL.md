@@ -93,6 +93,8 @@ In the rest of this manual, **project folder** means `C:\pin_peltier` (or wherev
 
 1. Open File Explorer and go to `C:\pin_peltier`.
 2. Click into the address bar at the top, type `cmd`, press **Enter**.
+   (Windows PowerShell or Windows Terminal works just as well: right-click inside the folder >
+   *Open in Terminal*. The commands in this manual are the same in both.)
    A black window opens whose prompt ends with `C:\pin_peltier>`. This is the **Command Prompt**.
    All commands in this manual are typed there, followed by **Enter**.
 
@@ -152,10 +154,14 @@ and tests.
    once, then close it.
 4. Test that Python can talk to COMSOL:
    ```bat
-   python -c "import mph; c = mph.start(cores=1); print('COMSOL', c.version)"
+   python comsol/python/check_comsol.py
    ```
-   After 10-60 seconds it should print `COMSOL 6.3...`. If it fails, see
+   After 10-60 seconds (longer the very first time) it should end with
+   `OK: COMSOL 6.3... started`. If it fails, see
    [Troubleshooting](#14-troubleshooting), "MPh cannot start COMSOL".
+
+   > If you type a command and the window shows `>>` (PowerShell) or `More?` (Command Prompt)
+   > instead of running it, a quote is missing. Press **Ctrl+C** and type the command again.
 
 ---
 
@@ -580,7 +586,8 @@ Use this if Python cannot connect to COMSOL. It does the same work with COMSOL's
 |---|---|
 | `'python' is not recognized` | Python is not on PATH. Reinstall with "Add python.exe to PATH" ticked, or use `py` instead of `python`. Open a new Command Prompt afterwards. |
 | `No module named mph` (or numpy, ...) | The environment is not active. Run `.venv\Scripts\activate` (prompt shows `(.venv)`), then repeat the command. |
-| MPh cannot start COMSOL / "Could not locate COMSOL" | Set `COMSOL63_PATH` (section 3), open a new window. Check that COMSOL starts from the Start menu. Try `python -c "import mph; print(mph.discovery.backend())"` to see what MPh finds. |
+| MPh cannot start COMSOL / "Could not locate COMSOL" | Set `COMSOL63_PATH` (section 3), open a new window. Check that COMSOL starts from the Start menu. `python comsol/python/check_comsol.py` lists the COMSOL installations MPh can see. |
+| The window shows `>>` or `More?` and waits | A quote or bracket is missing in what you typed. Press **Ctrl+C** and retype the command. |
 | Licence error (`License error -...`) | Close other COMSOL sessions (a licence may be used up); check that the Semiconductor Module is licensed: in COMSOL, *Help > Licensed and Used Products*. |
 | `COMSOL rejected API name ...` | Section 7. |
 | Solver does not converge (all fallbacks failed) | In `config/params_base.yaml` raise `l_dec` to `"0.3[um]"`, or in `sweeps` use a VF step of `0.01`. Rebuild. Record the change in `CHANGES.md`. |

@@ -19,11 +19,16 @@ from common.params import eval_expr, parse_range
 class FakeSelection:
     def __init__(self):
         self.entities, self.dim, self.is_all = [], None, False
+        self.require_dim = False   # COMSOL: features created without a dimension need geom() first
 
     def all(self):
+        if self.require_dim and self.dim is None:
+            raise RuntimeError("No entity dimension specified.")
         self.is_all = True
 
     def set(self, ents):
+        if self.require_dim and self.dim is None:
+            raise RuntimeError("No entity dimension specified.")
         self.entities = list(ents)
 
     def geom(self, g, dim):
@@ -79,6 +84,8 @@ class FakeEntity:
         child = FakeEntity(tag, ftype, self)
         if ftype == "Common":                       # materials come with the 'def' group
             child.children["def"] = FakeEntity("def", "group", child)
+        if ftype in ("Edge", "Distribution"):       # mesh features: no dimension at creation
+            child._sel.require_dim = True
         if ftype == "Segregated":                   # default segregated step
             child.children["ssDef"] = FakeEntity("ssDef", "SegregatedStep", child)
         self.children[tag] = child
