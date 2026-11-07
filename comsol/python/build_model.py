@@ -60,6 +60,9 @@ def verify(key: str, extra: str = ""):
     except ApiNameError:
         raise
     except Exception as exc:  # JPype wraps com.comsol.util.exceptions.FlException
+        if "Ambiguous overloads" in str(exc):
+            raise RuntimeError(f"Python/Java type problem in the script while setting {key} (not a wrong "
+                               f"COMSOL name; please report it): {exc}") from exc
         raise ApiNameError(key, exc, extra) from exc
 
 
@@ -195,6 +198,7 @@ class PinPeltierBuilder:
         mesh = self.comp.mesh().create(T["mesh"])
         with verify("MESH_EDGE"):
             edg = mesh.create("edg1", api.name("MESH_EDGE"))
+        edg.selection().geom(T["geom"], 1)          # 1D: Edge acts on domains (dimension 1)
         edg.selection().all()
         specs = [  # (tag, domain, kind, reverse)
             ("dis_n", 1, "fixed", False), ("dis_p", 4, "fixed", False),
@@ -204,19 +208,20 @@ class PinPeltierBuilder:
         for tag, dom, kind, rev in specs:
             with verify("MESH_DIST"):
                 d = edg.create(tag, api.name("MESH_DIST"))
+            d.selection().geom(T["geom"], 1)
             d.selection().set([dom])
             if kind == "fixed":
                 with verify("DIST_NUMELEM"):
-                    d.set(api.name("DIST_NUMELEM"), nd)
+                    d.set(api.name("DIST_NUMELEM"), str(nd))   # str: a Python int is ambiguous (int/boolean) in JPype
             else:
                 with verify("DIST_TYPE"):
-                    d.set(api.name("DIST_TYPE"), "predefined")
+                    d.set(api.name("DIST_TYPE"), api.name("DIST_PREDEFINED"))
                 with verify("DIST_ELEMCOUNT"):
-                    d.set(api.name("DIST_ELEMCOUNT"), ni)
+                    d.set(api.name("DIST_ELEMCOUNT"), str(ni))   # str: a Python int is ambiguous (int/boolean) in JPype
                 with verify("DIST_ELEMRATIO"):
-                    d.set(api.name("DIST_ELEMRATIO"), ratio)
+                    d.set(api.name("DIST_ELEMRATIO"), str(ratio))   # str: a Python int is ambiguous (int/boolean) in JPype
                 with verify("DIST_GROWTH"):
-                    d.set(api.name("DIST_GROWTH"), "geometric")
+                    d.set(api.name("DIST_GROWTH"), api.name("DIST_GEOMETRIC"))
                 with verify("DIST_REVERSE"):
                     d.set(api.name("DIST_REVERSE"), rev)
             self._dists[tag] = d
@@ -382,7 +387,7 @@ class PinPeltierBuilder:
                 with verify("DOP_PROFILE"):
                     d.set(api.name("DOP_PROFILE"), api.name("DOP_GAUSS"))
                 with verify("DOP_LSCALE_SRC"):
-                    d.set(api.name("DOP_LSCALE_SRC"), "length")
+                    d.set(api.name("DOP_LSCALE_SRC"), api.name("DOP_LSCALE_LENGTH"))
                 with verify("DOP_LSCALE"):
                     d.set(api.name("DOP_LSCALE"), "l_dec")
             else:
@@ -647,7 +652,7 @@ class PinPeltierBuilder:
         step.set("punit", ["V"])
         try:
             with verify("STEP_CONTINUATION"):
-                step.set(api.name("STEP_CONTINUATION"), "manual")
+                step.set(api.name("STEP_CONTINUATION"), api.name("STEP_CONT_MANUAL"))
             with verify("STEP_CONT_PARAM"):
                 step.set(api.name("STEP_CONT_PARAM"), "VF")
         except ApiNameError as e:

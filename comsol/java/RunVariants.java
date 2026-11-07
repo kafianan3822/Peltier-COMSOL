@@ -73,6 +73,7 @@ public class RunVariants {
   static final String DOP_GAUSS = "gaussian";  // value: Profile = Gaussian
   static final String DOP_NONE = "none";  // value: Profile = none / step (background box)
   static final String DOP_LSCALE_SRC = "pspec";  // property: Specify profile length scale (vs junction depth)
+  static final String DOP_LSCALE_LENGTH = "length";  // value: Specify profile length scale (option value)
   static final String DOP_LSCALE = "l";  // property: Profile length scale (decay length)
   static final String SRH_TAUN = "taun";  // property: Trap-Assisted Recombination > Electron lifetime, SRH
   static final String SRH_TAUP = "taup";  // property: Trap-Assisted Recombination > Hole lifetime, SRH
@@ -109,6 +110,7 @@ public class RunVariants {
   static final String STEP_USEDISABLE = "useadvanceddisable";  // property: Study step > Modify model configuration for study step (check box)
   static final String STEP_DISABLED = "disabledphysics";  // property: Study step > disable physics features list
   static final String STEP_CONTINUATION = "pcontinuationmode";  // property: Study step > Study Extensions > Auxiliary sweep > Run continuation for
+  static final String STEP_CONT_MANUAL = "manual";  // value: Run continuation for = a chosen parameter (option value)
   static final String STEP_CONT_PARAM = "pcontinuation";  // property: Study step > Auxiliary sweep > Run continuation for = VF
   static final String SOLVER_STOL = "stol";  // property: Solver Configurations > Stationary Solver 1 > Relative tolerance
   static final String SOLVER_SEGREGATED = "Segregated";  // feature: Stationary Solver > right-click > Segregated
@@ -129,6 +131,8 @@ public class RunVariants {
   static final String MESH_EDGE = "Edge";  // feature: Mesh > Edge (1D)
   static final String MESH_DIST = "Distribution";  // feature: Edge > right-click > Distribution
   static final String DIST_TYPE = "type";  // property: Distribution > Distribution type
+  static final String DIST_PREDEFINED = "predefined";  // value: Distribution type = Predefined
+  static final String DIST_GEOMETRIC = "exponential";  // value: Distribution method = Geometric (stored as 'exponential'; confirmed by COMSOL 6.3)
   static final String DIST_NUMELEM = "numelem";  // property: Distribution (Fixed number) > Number of elements
   static final String DIST_ELEMCOUNT = "elemcount";  // property: Distribution (Predefined) > Number of elements
   static final String DIST_ELEMRATIO = "elemratio";  // property: Distribution (Predefined) > Element ratio
@@ -270,6 +274,7 @@ public class RunVariants {
     if (Arrays.asList(m.component(COMP).mesh().tags()).contains(MESH)) m.component(COMP).mesh().remove(MESH);
     MeshSequence mesh = m.component(COMP).mesh().create(MESH);
     verify("MESH_EDGE", MESH_EDGE, () -> mesh.create("edg1", MESH_EDGE));
+    mesh.feature("edg1").selection().geom(GEOM, 1);   // 1D: Edge acts on domains (dimension 1)
     mesh.feature("edg1").selection().all();
     Object[][] specs = {{"dis_n", 1, false, false}, {"dis_p", 4, false, false},
                         {"dis_iL", 2, true, false}, {"dis_iR", 3, true, true}};
@@ -280,14 +285,15 @@ public class RunVariants {
       boolean rev = REVERSE.getOrDefault(tag, (Boolean) s[3]);
       verify("MESH_DIST", MESH_DIST, () -> mesh.feature("edg1").create(tag, MESH_DIST));
       MeshFeature d = mesh.feature("edg1").feature(tag);
+      d.selection().geom(GEOM, 1);
       d.selection().set(new int[]{dom});
       if (!graded) {
         verify("DIST_NUMELEM", DIST_NUMELEM, () -> d.set(DIST_NUMELEM, nd));
       } else {
-        verify("DIST_TYPE", DIST_TYPE, () -> d.set(DIST_TYPE, "predefined"));
+        verify("DIST_TYPE", DIST_TYPE, () -> d.set(DIST_TYPE, DIST_PREDEFINED));
         verify("DIST_ELEMCOUNT", DIST_ELEMCOUNT, () -> d.set(DIST_ELEMCOUNT, ni));
         verify("DIST_ELEMRATIO", DIST_ELEMRATIO, () -> d.set(DIST_ELEMRATIO, ratio));
-        verify("DIST_GROWTH", DIST_GROWTH, () -> d.set(DIST_GROWTH, "geometric"));
+        verify("DIST_GROWTH", DIST_GROWTH, () -> d.set(DIST_GROWTH, DIST_GEOMETRIC));
         verify("DIST_REVERSE", DIST_REVERSE, () -> d.set(DIST_REVERSE, rev));
       }
     }
@@ -556,7 +562,7 @@ public class RunVariants {
     step.set("plistarr", new String[]{plist});
     step.set("punit", new String[]{"V"});
     try {
-      step.set(STEP_CONTINUATION, "manual");
+      step.set(STEP_CONTINUATION, STEP_CONT_MANUAL);
       step.set(STEP_CONT_PARAM, "VF");
     } catch (Exception e) {
       log("could not set continuation explicitly (default is ON): " + firstLine(e));
