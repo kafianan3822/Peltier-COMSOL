@@ -406,11 +406,6 @@ class PinPeltierBuilder:
                     d.set(api.name("DOP_LSCALE_SRC"), api.name("DOP_LSCALE_LENGTH"))
                 with verify("DOP_LSCALE"):
                     d.set(api.name("DOP_LSCALE"), "l_dec")
-            else:
-                try:
-                    d.set(api.name("DOP_PROFILE"), api.name("DOP_NONE"))
-                except Exception:
-                    LOG.debug("background box: profile 'none' not settable (box covers the whole bar)")
 
         std = self.j.study().create(T["std_eq_iv"])
         std.label("Study 1: I-V and heat-source map")
@@ -424,6 +419,19 @@ class PinPeltierBuilder:
         LOG.info("net doping range: %.3g .. %.3g 1/m^3", ndop.min(), ndop.max())
         if not (abs(ndop.max() / Nd - 1) < 0.05 and abs(-ndop.min() / Na - 1) < 0.05):
             raise RuntimeError("stage 3 smoke test failed: net doping not within -1e19..+1e19 cm^-3 (+-5%)")
+        # positions: centre of n+, centre of the bar, centre of p+ (checks box base/width names)
+        x = self.eval_field("x", T["std_eq_iv"])[-1]
+        o = np.argsort(x)
+        Wn, Xc, Lt, Wp, Nbg = (self.param_value(n) for n in ("Wn", "Xc", "Ltot", "Wp", "N_bg"))
+        at = lambda xx: float(np.interp(xx, x[o], ndop[o]))  # noqa: E731
+        checks = [(Wn / 2, Nd), (Xc, -Nbg), (Lt - Wp / 2, -Na)]
+        LOG.info("net doping at n+ centre / bar centre / p+ centre: %.3g / %.3g / %.3g 1/m^3",
+                 *(at(xx) for xx, _ in checks))
+        for xx, want in checks:
+            if abs(at(xx) / want - 1) > 0.05:
+                raise RuntimeError(f"stage 3 smoke test failed: net doping at x = {xx:.4g} m is {at(xx):.3g} "
+                                   f"1/m^3, expected {want:.3g} (check DOP_X0 = '{api.name('DOP_X0')}', "
+                                   f"DOP_W = '{api.name('DOP_W')}')")
 
     # ----------------------------------------------------------------- semi switches (variants)
     def set_statistics(self, stats: str) -> None:
@@ -471,7 +479,6 @@ class PinPeltierBuilder:
             if T["mob_arora"] not in existing:
                 with verify("FEAT_MOB_ARORA"):
                     smm.create(T["mob_arora"], api.name("FEAT_MOB_ARORA"), 1)
-            top = T["mob_arora"]
             if fletcher:
                 if T["mob_fletcher"] not in existing:
                     with verify("FEAT_MOB_FLETCHER"):
@@ -479,25 +486,56 @@ class PinPeltierBuilder:
                 else:
                     f = smm.feature(T["mob_fletcher"])
                 with verify("MOB_INPUT_N"):
-                    f.set(api.name("MOB_INPUT_N"), T["mob_arora"])
+                    f.set(api.name("MOB_INPUT_N"), api.name("MOB_ARORA_N"))
                 with verify("MOB_INPUT_P"):
-                    f.set(api.name("MOB_INPUT_P"), T["mob_arora"])
-                top = T["mob_fletcher"]
-            for key in ("SMM_MUN_SEL", "SMM_MUP_SEL"):
-                self.set_first(smm, key, top)
+                    f.set(api.name("MOB_INPUT_P"), api.name("MOB_ARORA_P"))
+                sel_n, sel_p = api.name("MOB_FLETCHER_N"), api.name("MOB_FLETCHER_P")
+            else:
+                sel_n, sel_p = api.name("MOB_ARORA_N"), api.name("MOB_ARORA_P")
+                if T["mob_fletcher"] in existing:
+                    smm.feature(T["mob_fletcher"]).active(False)
+            smm.feature(T["mob_arora"]).active(True)
+            with verify("SMM_MUN_SEL"):
+                smm.set(api.name("SMM_MUN_SEL"), sel_n)
+            with verify("SMM_MUP_SEL"):
+                smm.set(api.name("SMM_MUP_SEL"), sel_p)
         else:
             if fletcher:
                 raise RuntimeError("Fletcher add-on is defined on top of Arora (M1) only")
             for tag in (T["mob_arora"], T["mob_fletcher"]):
                 if tag in existing:
                     smm.feature(tag).active(False)
-            try:
-                smm.set(api.name("SMM_MUN_SEL"), "userdef")
-                smm.set(api.name("SMM_MUP_SEL"), "userdef")
-            except Exception:
-                LOG.debug("mobility selector does not take 'userdef'; setting user-defined values only")
             self.set_userdef(smm, api.name("SMM_MUN_USER"), "mun_CT", "SMM_MUN_USER")
             self.set_userdef(smm, api.name("SMM_MUP_USER"), "mup_CT", "SMM_MUP_USER")
+
+    def add_auger(self) -> bool:
+        """Auger recombination (Cn_aug, Cp_aug). COMSOL 6.3 rejected the type 'AugerRecombination'
+        (api_dump), so candidate types are tried; if none works the build continues WITHOUT Auger,
+        loudly logged and recorded in build_info.json (CHANGES.md M17)."""
+        item = api.VERIFY["FEAT_AUGER"]
+        errors = []
+        for ftype in [item.value] + [c for c in item.candidates if c != item.value]:
+            try:
+                aug = self.semi.create(T["auger"], ftype, 1)
+            except Exception as exc:
+                errors.append(f"{ftype}: {' '.join(str(exc).split())[:300]}")
+                continue
+            try:
+                aug.selection().all()
+                self.set_userdef(aug, api.name("AUG_CN"), "Cn_aug", "AUG_CN")
+                self.set_userdef(aug, api.name("AUG_CP"), "Cp_aug", "AUG_CP")
+            except ApiNameError as exc:
+                self.semi.feature().remove(T["auger"])
+                errors.append(f"{ftype}: created, but coefficients rejected: {' '.join(str(exc).split())[:300]}")
+                break
+            LOG.info("Auger recombination added (type '%s')", ftype)
+            item.value = ftype
+            return True
+        LOG.warning("!! AUGER RECOMBINATION NOT INCLUDED -- COMSOL rejected every attempt:\n   %s",
+                    "\n   ".join(errors))
+        LOG.warning("!! Continuing with SRH only. Auger matters mainly above VF ~ 0.75 V. Please send these "
+                    "lines to the script maintainer (CHANGES.md M17).")
+        return False
 
     def set_first(self, feat, key: str, value) -> str:
         """Set `value` on the first property name of api key `key` that COMSOL accepts
@@ -531,11 +569,7 @@ class PinPeltierBuilder:
             self.set_userdef(srh, api.name("SRH_ET"), "0[V]", "SRH_ET")
         except ApiNameError as e:
             LOG.warning("trap level not set explicitly (COMSOL default is midgap): %s", e)
-        with verify("FEAT_AUGER"):
-            aug = semi.create(T["auger"], api.name("FEAT_AUGER"), 1)
-        aug.selection().all()
-        self.set_userdef(aug, api.name("AUG_CN"), "Cn_aug", "AUG_CN")
-        self.set_userdef(aug, api.name("AUG_CP"), "Cp_aug", "AUG_CP")
+        self.auger = self.add_auger()
         for tag, pt, v in ((T["mc_n"], 1, "0[V]"), (T["mc_p"], 5, "VF")):
             with verify("FEAT_CONTACT"):
                 mc = semi.create(tag, api.name("FEAT_CONTACT"), 0)
@@ -741,6 +775,7 @@ class PinPeltierBuilder:
     def write_build_info(self) -> None:
         import json
         info = dict(material=self.material_used, mobility_base=self.mobility_base, names=self.names,
+                    auger=getattr(self, "auger", None),
                     hs_expr=self.hs_expr, Pi=getattr(self, "Pi", None))
         self.stage_dir.mkdir(parents=True, exist_ok=True)
         (self.stage_dir / "build_info.json").write_text(json.dumps(info, indent=1), encoding="utf-8")
@@ -819,11 +854,21 @@ class PinPeltierBuilder:
                 f = s.feature(ftag)
                 if str(f.getType()) != "Stationary":
                     continue
+                tags = [str(t) for t in f.feature().tags()]
+                if "se1" in tags:
+                    # COMSOL 6.3 generates a segregated solver (se1: ss1, ss2, ...) for semi + ht
+                    # by default (api_dump); use its own variable groups.
+                    se = f.feature("se1")
+                    for t in tags:
+                        if t.startswith("fc"):
+                            f.feature(t).active(False)
+                    se.active(True)
+                    continue
                 with verify("SOLVER_SEGREGATED"):
-                    tags = [str(t) for t in f.feature().tags()]
-                    se = f.feature("se1") if "se1" in tags else f.create("se1", api.name("SOLVER_SEGREGATED"))
+                    se = f.create("se1", api.name("SOLVER_SEGREGATED"))
+                kids = [str(t) for t in se.feature().tags()]
                 with verify("SEG_DEFAULT_STEP"):
-                    ss1 = se.feature(api.name("SEG_DEFAULT_STEP"))
+                    ss1 = se.feature(api.name("SEG_DEFAULT_STEP") if api.name("SEG_DEFAULT_STEP") in kids else kids[0])
                 with verify("SEG_VARS"):
                     ss1.set(api.name("SEG_VARS"), semi_vars)
                 if "ss_T" not in [str(t) for t in se.feature().tags()]:

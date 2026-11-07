@@ -32,7 +32,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`PHYS_HT`](#phys_ht) | feature | `HeatTransfer` | Add Physics > Heat Transfer > Heat Transfer in Solids (ht) |
 | [`FEAT_DOPING`](#feat_doping) | feature | `AnalyticDopingModel` | semi > right-click > Analytic Doping Model |
 | [`FEAT_SRH`](#feat_srh) | feature | `TrapAssistedRecombination` | semi > right-click > Trap-Assisted Recombination |
-| [`FEAT_AUGER`](#feat_auger) | feature | `AugerRecombination` | semi > right-click > Auger Recombination |
+| [`FEAT_AUGER`](#feat_auger) | feature | `AugerRecombination` | semi > right-click > Auger Recombination; 'AugerRecombination' REJECTED by COMSOL 6.3 (api_dump), alternatives tried, else the build continues without Auger (CHANGES.md M17) |
 | [`FEAT_CONTACT`](#feat_contact) | feature | `MetalContact` | semi > right-click > Metal Contact (select point) |
 | [`FEAT_MOB_ARORA`](#feat_mob_arora) | feature | `AroraMobilityModel` | semi > Semiconductor Material Model 1 > right-click > Arora Mobility Model (LI) |
 | [`FEAT_MOB_FLETCHER`](#feat_mob_fletcher) | feature | `FletcherMobilityModel` | semi > Semiconductor Material Model 1 > right-click > Fletcher Mobility Model (C) |
@@ -52,31 +52,35 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`SMM_BGN_SLOTBOOM`](#smm_bgn_slotboom) | value | `slotboom` | Band-gap narrowing = Slotboom (confirmed by COMSOL 6.3) |
 | [`SMM_INCION_PROP`](#smm_incion_prop) | property | `Ionization` | smm1 > Dopant Ionization (confirmed by COMSOL 6.3) |
 | [`SMM_ION_COMPLETE`](#smm_ion_complete) | value | `complete` | Dopant Ionization = Complete ionization (COMSOL default; 'incomplete' confirmed) |
-| [`SMM_MUN_SEL`](#smm_mun_sel) | property | `mun_mob` | smm1 > Mobility Model > Electron mobility (select model node); 'mun_mob' rejected by COMSOL 6.3, alternatives are tried, else the build falls back to M2 |
-| [`SMM_MUP_SEL`](#smm_mup_sel) | property | `mup_mob` | smm1 > Mobility Model > Hole mobility (select model node); see SMM_MUN_SEL |
+| [`SMM_MUN_SEL`](#smm_mun_sel) | property | `mun_mat` | smm1 > Electron mobility source: from_mat | root.comp1.semi.mun_ar (Arora) | userdef (confirmed by COMSOL 6.3 api_dump) |
+| [`SMM_MUP_SEL`](#smm_mup_sel) | property | `mup_mat` | smm1 > Hole mobility source (confirmed by COMSOL 6.3 api_dump) |
 | [`SMM_MUN_USER`](#smm_mun_user) | property | `mun` | smm1 > Electron mobility (user defined, M2) |
 | [`SMM_MUP_USER`](#smm_mup_user) | property | `mup` | smm1 > Hole mobility (user defined, M2) |
-| [`MOB_INPUT_N`](#mob_input_n) | property | `mun_in` | Fletcher node > Input electron mobility = Arora |
-| [`MOB_INPUT_P`](#mob_input_p) | property | `mup_in` | Fletcher node > Input hole mobility = Arora |
+| [`MOB_ARORA_N`](#mob_arora_n) | value | `root.comp1.semi.mun_ar` | smm1 electron mobility = Arora (confirmed by api_dump) |
+| [`MOB_ARORA_P`](#mob_arora_p) | value | `root.comp1.semi.mup_ar` | smm1 hole mobility = Arora (confirmed by api_dump) |
+| [`MOB_FLETCHER_N`](#mob_fletcher_n) | value | `root.comp1.semi.mun_fl` | smm1 electron mobility = Fletcher (confirmed) |
+| [`MOB_FLETCHER_P`](#mob_fletcher_p) | value | `root.comp1.semi.mup_fl` | smm1 hole mobility = Fletcher (confirmed) |
+| [`MOB_INPUT_N`](#mob_input_n) | property | `mun_in_src` | Fletcher node > Input electron mobility = Arora |
+| [`MOB_INPUT_P`](#mob_input_p) | property | `mup_in_src` | Fletcher node > Input hole mobility = Arora |
 | [`USERDEF_SUFFIX`](#userdef_suffix) | property | `_mat` | any 'From material / User defined' combo box |
-| [`DOP_TYPE`](#dop_type) | property | `dopantType` | Analytic Doping Model > Impurity type |
+| [`DOP_TYPE`](#dop_type) | property | `impurityType` | Analytic Doping Model > Impurity type |
 | [`DOP_DONOR`](#dop_donor) | value | `donor` | Impurity type = Donor doping |
 | [`DOP_ACCEPTOR`](#dop_acceptor) | value | `acceptor` | Impurity type = Acceptor doping |
-| [`DOP_DIST`](#dop_dist) | property | `dopingDistribution` | Analytic Doping Model > Distribution = Box |
+| [`DOP_DIST`](#dop_dist) | property | `impurityDistribution` | Analytic Doping Model > Distribution = Box |
 | [`DOP_BOX`](#dop_box) | value | `box` | Distribution = Box |
 | [`DOP_NA`](#dop_na) | property | `NAc` | Acceptor concentration N_A0 |
 | [`DOP_ND`](#dop_nd) | property | `NDc` | Donor concentration N_D0 |
-| [`DOP_X0`](#dop_x0) | property | `x0` | Box > Base position (1D) |
-| [`DOP_W`](#dop_w) | property | `W` | Box > Width (1D) |
-| [`DOP_PROFILE`](#dop_profile) | property | `profile` | Profile away from uniform region = Gaussian |
+| [`DOP_X0`](#dop_x0) | property | `rb` | Box > Base position (1D) |
+| [`DOP_W`](#dop_w) | property | `jwidth` | Box > Width (1D) |
+| [`DOP_PROFILE`](#dop_profile) | property | `dropoff_profile` | Profile away from uniform region = Gaussian |
 | [`DOP_GAUSS`](#dop_gauss) | value | `gaussian` | Profile = Gaussian |
 | [`DOP_NONE`](#dop_none) | value | `none` | Profile = none / step (background box) |
-| [`DOP_LSCALE_SRC`](#dop_lscale_src) | property | `pspec` | Specify profile length scale (vs junction depth) |
-| [`DOP_LSCALE_LENGTH`](#dop_lscale_length) | value | `length` | Specify profile length scale (option value) |
-| [`DOP_LSCALE`](#dop_lscale) | property | `l` | Profile length scale (decay length) |
+| [`DOP_LSCALE_SRC`](#dop_lscale_src) | property | `JunctionOrLength` | Specify profile length scale (vs junction depth) |
+| [`DOP_LSCALE_LENGTH`](#dop_lscale_length) | value | `decay_length` | Specify profile length scale (option value) |
+| [`DOP_LSCALE`](#dop_lscale) | property | `l_1D` | Profile length scale (decay length) |
 | [`SRH_TAUN`](#srh_taun) | property | `taun` | Trap-Assisted Recombination > Electron lifetime, SRH |
 | [`SRH_TAUP`](#srh_taup) | property | `taup` | Trap-Assisted Recombination > Hole lifetime, SRH |
-| [`SRH_ET`](#srh_et) | property | `Et` | Trap energy level (relative to midgap = 0) |
+| [`SRH_ET`](#srh_et) | property | `Delta_Et` | Trap energy level (relative to midgap = 0) |
 | [`AUG_CN`](#aug_cn) | property | `Cn` | Auger > Electron Auger coefficient |
 | [`AUG_CP`](#aug_cp) | property | `Cp` | Auger > Hole Auger coefficient |
 | [`MC_TERMTYPE`](#mc_termtype) | property | `TerminalType` | Metal Contact > Terminal type = Voltage |
@@ -86,9 +90,9 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`FEAT_BHS`](#feat_bhs) | feature | `BoundaryHeatSource` | ht > right-click > Boundary Heat Source (point in 1D) |
 | [`FEAT_TEMP`](#feat_temp) | feature | `TemperatureBoundary` | ht > right-click > Temperature (point in 1D) |
 | [`HS_Q0`](#hs_q0) | property | `Q0` | Heat Source > General source Q |
-| [`BHS_QB`](#bhs_qb) | property | `Qb` | Boundary Heat Source > Q_b |
+| [`BHS_QB`](#bhs_qb) | property | `Qb_input` | Boundary Heat Source > Q_b |
 | [`TEMP_T0`](#temp_t0) | property | `T0` | Temperature > T_0 |
-| [`HT_AREA_GROUP`](#ht_area_group) | property | `d` | ht > Settings > Cross-Sectional Area (1D) |
+| [`HT_AREA_GROUP`](#ht_area_group) | property | `PhysicalModelProperty` | ht > Settings > Cross-Sectional Area (1D) |
 | [`HT_AREA_PROP`](#ht_area_prop) | property | `Ac` | ht > Settings > Cross-Sectional Area > A_c (value Ac) |
 | [`HT_BFLUX_GROUP`](#ht_bflux_group) | property | `ShapeProperty` | ht > Discretization > Compute boundary fluxes |
 | [`HT_BFLUX_PROP`](#ht_bflux_prop) | property | `boundaryFlux_temperature` | ht > Discretization > Compute boundary fluxes (check box) |
@@ -194,8 +198,9 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 <a id="feat_auger"></a>
 
 - **Current value:** `AugerRecombination` (feature)
-- **GUI action:** semi > right-click > Auger Recombination
+- **GUI action:** semi > right-click > Auger Recombination; 'AugerRecombination' REJECTED by COMSOL 6.3 (api_dump), alternatives tried, else the build continues without Auger (CHANGES.md M17)
 - **Java pattern in Save-as-Java output:** `physics("semi").create("auger1", "<HERE>", 1)`
+- **Candidates probed at run time:** `AugerRecombination`, `Auger`, `AugerRecombinationModel`, `AugerModel`
 
 ### FEAT_CONTACT
 
@@ -353,19 +358,17 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="smm_mun_sel"></a>
 
-- **Current value:** `mun_mob` (property)
-- **GUI action:** smm1 > Mobility Model > Electron mobility (select model node); 'mun_mob' rejected by COMSOL 6.3, alternatives are tried, else the build falls back to M2
+- **Current value:** `mun_mat` (property)
+- **GUI action:** smm1 > Electron mobility source: from_mat | root.comp1.semi.mun_ar (Arora) | userdef (confirmed by COMSOL 6.3 api_dump)
 - **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "mmal1")`
-- **Candidates probed at run time:** `mun_mob`, `ElectronMobility`, `mun_src`, `mun_model`, `MobilityModelElectrons`
 
 ### SMM_MUP_SEL
 
 <a id="smm_mup_sel"></a>
 
-- **Current value:** `mup_mob` (property)
-- **GUI action:** smm1 > Mobility Model > Hole mobility (select model node); see SMM_MUN_SEL
+- **Current value:** `mup_mat` (property)
+- **GUI action:** smm1 > Hole mobility source (confirmed by COMSOL 6.3 api_dump)
 - **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "mmal1")`
-- **Candidates probed at run time:** `mup_mob`, `HoleMobility`, `mup_src`, `mup_model`, `MobilityModelHoles`
 
 ### SMM_MUN_USER
 
@@ -383,11 +386,43 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **GUI action:** smm1 > Hole mobility (user defined, M2)
 - **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "mup_CT")`
 
+### MOB_ARORA_N
+
+<a id="mob_arora_n"></a>
+
+- **Current value:** `root.comp1.semi.mun_ar` (value)
+- **GUI action:** smm1 electron mobility = Arora (confirmed by api_dump)
+- **Java pattern in Save-as-Java output:** `feature("smm1").set("mun_mat", "<HERE>")`
+
+### MOB_ARORA_P
+
+<a id="mob_arora_p"></a>
+
+- **Current value:** `root.comp1.semi.mup_ar` (value)
+- **GUI action:** smm1 hole mobility = Arora (confirmed by api_dump)
+- **Java pattern in Save-as-Java output:** `feature("smm1").set("mup_mat", "<HERE>")`
+
+### MOB_FLETCHER_N
+
+<a id="mob_fletcher_n"></a>
+
+- **Current value:** `root.comp1.semi.mun_fl` (value)
+- **GUI action:** smm1 electron mobility = Fletcher (confirmed)
+- **Java pattern in Save-as-Java output:** `feature("smm1").set("mun_mat", "<HERE>")`
+
+### MOB_FLETCHER_P
+
+<a id="mob_fletcher_p"></a>
+
+- **Current value:** `root.comp1.semi.mup_fl` (value)
+- **GUI action:** smm1 hole mobility = Fletcher (confirmed)
+- **Java pattern in Save-as-Java output:** `feature("smm1").set("mup_mat", "<HERE>")`
+
 ### MOB_INPUT_N
 
 <a id="mob_input_n"></a>
 
-- **Current value:** `mun_in` (property)
+- **Current value:** `mun_in_src` (property)
 - **GUI action:** Fletcher node > Input electron mobility = Arora
 - **Java pattern in Save-as-Java output:** `feature("mmfc1").set("<HERE>", "mmal1")`
 
@@ -395,7 +430,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="mob_input_p"></a>
 
-- **Current value:** `mup_in` (property)
+- **Current value:** `mup_in_src` (property)
 - **GUI action:** Fletcher node > Input hole mobility = Arora
 - **Java pattern in Save-as-Java output:** `feature("mmfc1").set("<HERE>", "mmal1")`
 
@@ -411,7 +446,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_type"></a>
 
-- **Current value:** `dopantType` (property)
+- **Current value:** `impurityType` (property)
 - **GUI action:** Analytic Doping Model > Impurity type
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "donor")`
 
@@ -435,7 +470,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_dist"></a>
 
-- **Current value:** `dopingDistribution` (property)
+- **Current value:** `impurityDistribution` (property)
 - **GUI action:** Analytic Doping Model > Distribution = Box
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "box")`
 
@@ -467,7 +502,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_x0"></a>
 
-- **Current value:** `x0` (property)
+- **Current value:** `rb` (property)
 - **GUI action:** Box > Base position (1D)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "0")`
 
@@ -475,7 +510,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_w"></a>
 
-- **Current value:** `W` (property)
+- **Current value:** `jwidth` (property)
 - **GUI action:** Box > Width (1D)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "Wn")`
 
@@ -483,7 +518,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_profile"></a>
 
-- **Current value:** `profile` (property)
+- **Current value:** `dropoff_profile` (property)
 - **GUI action:** Profile away from uniform region = Gaussian
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "gaussian")`
 
@@ -507,7 +542,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_lscale_src"></a>
 
-- **Current value:** `pspec` (property)
+- **Current value:** `JunctionOrLength` (property)
 - **GUI action:** Specify profile length scale (vs junction depth)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "length")`
 
@@ -515,7 +550,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_lscale_length"></a>
 
-- **Current value:** `length` (value)
+- **Current value:** `decay_length` (value)
 - **GUI action:** Specify profile length scale (option value)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("pspec", "<HERE>")`
 
@@ -523,7 +558,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_lscale"></a>
 
-- **Current value:** `l` (property)
+- **Current value:** `l_1D` (property)
 - **GUI action:** Profile length scale (decay length)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "l_dec")`
 
@@ -547,7 +582,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="srh_et"></a>
 
-- **Current value:** `Et` (property)
+- **Current value:** `Delta_Et` (property)
 - **GUI action:** Trap energy level (relative to midgap = 0)
 - **Java pattern in Save-as-Java output:** `feature("tar1").set("<HERE>", "0")`
 
@@ -627,7 +662,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="bhs_qb"></a>
 
-- **Current value:** `Qb` (property)
+- **Current value:** `Qb_input` (property)
 - **GUI action:** Boundary Heat Source > Q_b
 - **Java pattern in Save-as-Java output:** `feature("bhs1").set("<HERE>", ...)`
 
@@ -643,7 +678,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="ht_area_group"></a>
 
-- **Current value:** `d` (property)
+- **Current value:** `PhysicalModelProperty` (property)
 - **GUI action:** ht > Settings > Cross-Sectional Area (1D)
 - **Java pattern in Save-as-Java output:** `physics("ht").prop("<HERE>").set("Ac", "Ac")`
 

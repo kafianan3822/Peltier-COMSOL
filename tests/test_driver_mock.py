@@ -47,8 +47,8 @@ def test_staged_build_smoke_tests(built):
     smm = b.semi.feature("smm1")
     assert smm.props["minput_temperature_src"] == "userdef" and smm.props["minput_temperature"] == "T0"
     # contact Peltier sinks
-    assert b.ht.feature("bhs_n").props["Qb"] == "-abs(semi.JX)*Pi_nc"
-    assert b.ht.feature("bhs_p").props["Qb"] == "-abs(semi.JX)*Pi_pc"
+    assert b.ht.feature("bhs_n").props["Qb_input"] == "-abs(semi.JX)*Pi_nc"
+    assert b.ht.feature("bhs_p").props["Qb_input"] == "-abs(semi.JX)*Pi_pc"
     assert b.Pi[0] == pytest.approx(0.0789, abs=1e-3)
 
 
@@ -122,15 +122,25 @@ def test_stage7_and_stage8(built, tmp_path, monkeypatch):
     assert (built.stage_dir / "build_info.json").exists()
 
 
-def test_set_first_tries_alternatives_and_mobility_needs_a_name(built, monkeypatch):
+def test_auger_type_alternatives_and_fallback(built, monkeypatch):
     import api_names as api
     from fake_comsol import FakeEntity
-    smm = built.semi.feature("smm1")
-    monkeypatch.setattr(api.VERIFY["SMM_MUN_SEL"], "value", "mun_mob")
-    monkeypatch.setattr(FakeEntity, "REJECT", {"mun_mob"})
-    assert built.set_first(smm, "SMM_MUN_SEL", "mmal1") == "ElectronMobility"
-    assert api.VERIFY["SMM_MUN_SEL"].value == "ElectronMobility"
-    monkeypatch.setattr(FakeEntity, "REJECT", set(api.VERIFY["SMM_MUP_SEL"].candidates))
+    built.semi.feature().remove("auger1")
+    monkeypatch.setattr(api.VERIFY["FEAT_AUGER"], "value", "AugerRecombination")
+    monkeypatch.setattr(FakeEntity, "REJECT_TYPES", {"AugerRecombination"})
+    assert built.add_auger() is True
+    assert built.semi.feature("auger1").ftype == "Auger"
+    built.semi.feature().remove("auger1")
+    monkeypatch.setattr(FakeEntity, "REJECT_TYPES", set(api.VERIFY["FEAT_AUGER"].candidates) | {"Auger"})
+    assert built.add_auger() is False
+    assert "auger1" not in built.semi.tags()
+
+
+def test_mobility_m1_selects_arora_by_variable(built):
     built.material_used = "library"
-    with pytest.raises(bm.ApiNameError):
-        built.set_mobility("M1", fletcher=False)
+    built.set_mobility("M1", fletcher=False)
+    smm = built.semi.feature("smm1")
+    assert smm.props["mun_mat"] == "root.comp1.semi.mun_ar"
+    built.set_mobility("M1", fletcher=True)
+    assert smm.props["mun_mat"] == "root.comp1.semi.mun_fl"
+    assert smm.feature("mmfc1").props["mun_in_src"] == "root.comp1.semi.mun_ar"

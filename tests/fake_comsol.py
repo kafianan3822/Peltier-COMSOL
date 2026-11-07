@@ -91,7 +91,11 @@ class FakeEntity:
         return self._sel
 
     # children
+    REJECT_TYPES = frozenset()   # feature types the fake COMSOL refuses to create (tests)
+
     def create(self, tag, ftype="", *dims):
+        if ftype in FakeEntity.REJECT_TYPES:
+            raise RuntimeError(f"Unknown feature type {ftype}.")
         child = FakeEntity(tag, ftype, self)
         if ftype == "Common":                       # materials come with the 'def' group
             child.children["def"] = FakeEntity("def", "group", child)

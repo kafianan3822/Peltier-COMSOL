@@ -34,7 +34,7 @@ public class RunVariants {
   static final String PHYS_HT = "HeatTransfer";  // feature: Add Physics > Heat Transfer > Heat Transfer in Solids (ht)
   static final String FEAT_DOPING = "AnalyticDopingModel";  // feature: semi > right-click > Analytic Doping Model
   static final String FEAT_SRH = "TrapAssistedRecombination";  // feature: semi > right-click > Trap-Assisted Recombination
-  static final String FEAT_AUGER = "AugerRecombination";  // feature: semi > right-click > Auger Recombination
+  static final String FEAT_AUGER = "AugerRecombination";  // feature: semi > right-click > Auger Recombination; 'AugerRecombination' REJECTED by COMSOL 6.3 (api_dump), alternatives tried, else the build continues without Auger (CHANGES.md M17)
   static final String FEAT_CONTACT = "MetalContact";  // feature: semi > right-click > Metal Contact (select point)
   static final String FEAT_MOB_ARORA = "AroraMobilityModel";  // feature: semi > Semiconductor Material Model 1 > right-click > Arora Mobility Model (LI)
   static final String FEAT_MOB_FLETCHER = "FletcherMobilityModel";  // feature: semi > Semiconductor Material Model 1 > right-click > Fletcher Mobility Model (C)
@@ -54,31 +54,35 @@ public class RunVariants {
   static final String SMM_BGN_SLOTBOOM = "slotboom";  // value: Band-gap narrowing = Slotboom (confirmed by COMSOL 6.3)
   static final String SMM_INCION_PROP = "Ionization";  // property: smm1 > Dopant Ionization (confirmed by COMSOL 6.3)
   static final String SMM_ION_COMPLETE = "complete";  // value: Dopant Ionization = Complete ionization (COMSOL default; 'incomplete' confirmed)
-  static final String SMM_MUN_SEL = "mun_mob";  // property: smm1 > Mobility Model > Electron mobility (select model node); 'mun_mob' rejected by COMSOL 6.3, alternatives are tried, else the build falls back to M2
-  static final String SMM_MUP_SEL = "mup_mob";  // property: smm1 > Mobility Model > Hole mobility (select model node); see SMM_MUN_SEL
+  static final String SMM_MUN_SEL = "mun_mat";  // property: smm1 > Electron mobility source: from_mat | root.comp1.semi.mun_ar (Arora) | userdef (confirmed by COMSOL 6.3 api_dump)
+  static final String SMM_MUP_SEL = "mup_mat";  // property: smm1 > Hole mobility source (confirmed by COMSOL 6.3 api_dump)
   static final String SMM_MUN_USER = "mun";  // property: smm1 > Electron mobility (user defined, M2)
   static final String SMM_MUP_USER = "mup";  // property: smm1 > Hole mobility (user defined, M2)
-  static final String MOB_INPUT_N = "mun_in";  // property: Fletcher node > Input electron mobility = Arora
-  static final String MOB_INPUT_P = "mup_in";  // property: Fletcher node > Input hole mobility = Arora
+  static final String MOB_ARORA_N = "root.comp1.semi.mun_ar";  // value: smm1 electron mobility = Arora (confirmed by api_dump)
+  static final String MOB_ARORA_P = "root.comp1.semi.mup_ar";  // value: smm1 hole mobility = Arora (confirmed by api_dump)
+  static final String MOB_FLETCHER_N = "root.comp1.semi.mun_fl";  // value: smm1 electron mobility = Fletcher (confirmed)
+  static final String MOB_FLETCHER_P = "root.comp1.semi.mup_fl";  // value: smm1 hole mobility = Fletcher (confirmed)
+  static final String MOB_INPUT_N = "mun_in_src";  // property: Fletcher node > Input electron mobility = Arora
+  static final String MOB_INPUT_P = "mup_in_src";  // property: Fletcher node > Input hole mobility = Arora
   static final String USERDEF_SUFFIX = "_mat";  // property: any 'From material / User defined' combo box
-  static final String DOP_TYPE = "dopantType";  // property: Analytic Doping Model > Impurity type
+  static final String DOP_TYPE = "impurityType";  // property: Analytic Doping Model > Impurity type
   static final String DOP_DONOR = "donor";  // value: Impurity type = Donor doping
   static final String DOP_ACCEPTOR = "acceptor";  // value: Impurity type = Acceptor doping
-  static final String DOP_DIST = "dopingDistribution";  // property: Analytic Doping Model > Distribution = Box
+  static final String DOP_DIST = "impurityDistribution";  // property: Analytic Doping Model > Distribution = Box
   static final String DOP_BOX = "box";  // value: Distribution = Box
   static final String DOP_NA = "NAc";  // property: Acceptor concentration N_A0
   static final String DOP_ND = "NDc";  // property: Donor concentration N_D0
-  static final String DOP_X0 = "x0";  // property: Box > Base position (1D)
-  static final String DOP_W = "W";  // property: Box > Width (1D)
-  static final String DOP_PROFILE = "profile";  // property: Profile away from uniform region = Gaussian
+  static final String DOP_X0 = "rb";  // property: Box > Base position (1D)
+  static final String DOP_W = "jwidth";  // property: Box > Width (1D)
+  static final String DOP_PROFILE = "dropoff_profile";  // property: Profile away from uniform region = Gaussian
   static final String DOP_GAUSS = "gaussian";  // value: Profile = Gaussian
   static final String DOP_NONE = "none";  // value: Profile = none / step (background box)
-  static final String DOP_LSCALE_SRC = "pspec";  // property: Specify profile length scale (vs junction depth)
-  static final String DOP_LSCALE_LENGTH = "length";  // value: Specify profile length scale (option value)
-  static final String DOP_LSCALE = "l";  // property: Profile length scale (decay length)
+  static final String DOP_LSCALE_SRC = "JunctionOrLength";  // property: Specify profile length scale (vs junction depth)
+  static final String DOP_LSCALE_LENGTH = "decay_length";  // value: Specify profile length scale (option value)
+  static final String DOP_LSCALE = "l_1D";  // property: Profile length scale (decay length)
   static final String SRH_TAUN = "taun";  // property: Trap-Assisted Recombination > Electron lifetime, SRH
   static final String SRH_TAUP = "taup";  // property: Trap-Assisted Recombination > Hole lifetime, SRH
-  static final String SRH_ET = "Et";  // property: Trap energy level (relative to midgap = 0)
+  static final String SRH_ET = "Delta_Et";  // property: Trap energy level (relative to midgap = 0)
   static final String AUG_CN = "Cn";  // property: Auger > Electron Auger coefficient
   static final String AUG_CP = "Cp";  // property: Auger > Hole Auger coefficient
   static final String MC_TERMTYPE = "TerminalType";  // property: Metal Contact > Terminal type = Voltage
@@ -88,9 +92,9 @@ public class RunVariants {
   static final String FEAT_BHS = "BoundaryHeatSource";  // feature: ht > right-click > Boundary Heat Source (point in 1D)
   static final String FEAT_TEMP = "TemperatureBoundary";  // feature: ht > right-click > Temperature (point in 1D)
   static final String HS_Q0 = "Q0";  // property: Heat Source > General source Q
-  static final String BHS_QB = "Qb";  // property: Boundary Heat Source > Q_b
+  static final String BHS_QB = "Qb_input";  // property: Boundary Heat Source > Q_b
   static final String TEMP_T0 = "T0";  // property: Temperature > T_0
-  static final String HT_AREA_GROUP = "d";  // property: ht > Settings > Cross-Sectional Area (1D)
+  static final String HT_AREA_GROUP = "PhysicalModelProperty";  // property: ht > Settings > Cross-Sectional Area (1D)
   static final String HT_AREA_PROP = "Ac";  // property: ht > Settings > Cross-Sectional Area > A_c (value Ac)
   static final String HT_BFLUX_GROUP = "ShapeProperty";  // property: ht > Discretization > Compute boundary fluxes
   static final String HT_BFLUX_PROP = "boundaryFlux_temperature";  // property: ht > Discretization > Compute boundary fluxes (check box)
@@ -178,8 +182,7 @@ public class RunVariants {
   };
   /** Property names with alternatives tried in order: {KEY, default, alternatives...}. */
   static final String[][] PROP_CANDIDATES = {
-      {"SMM_MUN_SEL", "mun_mob", "ElectronMobility", "mun_src", "mun_model", "MobilityModelElectrons"},
-      {"SMM_MUP_SEL", "mup_mob", "HoleMobility", "mup_src", "mup_model", "MobilityModelHoles"},
+      {"FEAT_AUGER", "AugerRecombination", "Auger", "AugerRecombinationModel", "AugerModel"},
   };
   // END API_NAMES
 
@@ -395,29 +398,25 @@ public class RunVariants {
       if (!existing.contains("mmal1"))
         verify("FEAT_MOB_ARORA", FEAT_MOB_ARORA, () -> smm.create("mmal1", FEAT_MOB_ARORA, 1));
       smm.feature("mmal1").active(true);
-      String top = "mmal1";
+      String selN = MOB_ARORA_N, selP = MOB_ARORA_P;
       if (fletcher) {
         if (!existing.contains("mmfc1"))
           verify("FEAT_MOB_FLETCHER", FEAT_MOB_FLETCHER, () -> smm.create("mmfc1", FEAT_MOB_FLETCHER, 1));
         PhysicsFeature f = smm.feature("mmfc1");
         f.active(true);
-        verify("MOB_INPUT_N", MOB_INPUT_N, () -> f.set(MOB_INPUT_N, "mmal1"));
-        verify("MOB_INPUT_P", MOB_INPUT_P, () -> f.set(MOB_INPUT_P, "mmal1"));
-        top = "mmfc1";
+        verify("MOB_INPUT_N", MOB_INPUT_N, () -> f.set(MOB_INPUT_N, MOB_ARORA_N));
+        verify("MOB_INPUT_P", MOB_INPUT_P, () -> f.set(MOB_INPUT_P, MOB_ARORA_P));
+        selN = MOB_FLETCHER_N;
+        selP = MOB_FLETCHER_P;
       } else if (existing.contains("mmfc1")) {
         smm.feature("mmfc1").active(false);
       }
-      setFirst(smm, "SMM_MUN_SEL", top);
-      setFirst(smm, "SMM_MUP_SEL", top);
+      final String sn = selN, sp = selP;
+      verify("SMM_MUN_SEL", SMM_MUN_SEL, () -> smm.set(SMM_MUN_SEL, sn));
+      verify("SMM_MUP_SEL", SMM_MUP_SEL, () -> smm.set(SMM_MUP_SEL, sp));
     } else {
       if (fletcher) throw new RuntimeException("Fletcher add-on is defined on top of Arora (M1) only");
       for (String t : new String[]{"mmal1", "mmfc1"}) if (existing.contains(t)) smm.feature(t).active(false);
-      try {
-        smm.set(SMM_MUN_SEL, "userdef");
-        smm.set(SMM_MUP_SEL, "userdef");
-      } catch (Exception ignored) {
-        // selector does not take userdef: values below are enough
-      }
       setUserdef(smm, SMM_MUN_USER, "mun_CT", "SMM_MUN_USER");
       setUserdef(smm, SMM_MUP_USER, "mup_CT", "SMM_MUP_USER");
     }
@@ -482,10 +481,17 @@ public class RunVariants {
         SolverFeature f = m.sol(s).feature(ft);
         if (!f.getType().equals("Stationary")) continue;
         List<String> tags = Arrays.asList(f.feature().tags());
-        if (!tags.contains("se1")) verify("SOLVER_SEGREGATED", SOLVER_SEGREGATED, () -> f.create("se1", SOLVER_SEGREGATED));
+        if (tags.contains("se1")) {
+          // COMSOL 6.3 generates a segregated solver for semi + ht by default (api_dump): use it
+          for (String t : tags) if (t.startsWith("fc")) f.feature(t).active(false);
+          f.feature("se1").active(true);
+          continue;
+        }
+        verify("SOLVER_SEGREGATED", SOLVER_SEGREGATED, () -> f.create("se1", SOLVER_SEGREGATED));
         SolverFeature se = f.feature("se1");
-        verify("SEG_DEFAULT_STEP", SEG_DEFAULT_STEP, () -> se.feature(SEG_DEFAULT_STEP).getType());
-        verify("SEG_VARS", SEG_VARS, () -> se.feature(SEG_DEFAULT_STEP).set(SEG_VARS, semiVars));
+        List<String> kids = Arrays.asList(se.feature().tags());
+        final String first = kids.contains(SEG_DEFAULT_STEP) || kids.isEmpty() ? SEG_DEFAULT_STEP : kids.get(0);
+        verify("SEG_VARS", SEG_VARS, () -> se.feature(first).set(SEG_VARS, semiVars));
         if (!Arrays.asList(se.feature().tags()).contains("ss_T")) {
           verify("SEG_STEP", SEG_STEP, () -> se.create("ss_T", SEG_STEP));
           se.feature("ss_T").set(SEG_VARS, new String[]{DEPVAR_T});
