@@ -365,6 +365,12 @@ class FakeModel:
                 s = FakeEntity(st, "Solution")
                 s.study = (lambda t=study.tag: t)
                 s._label = "Parametric Solutions 1" if par else f"Solution {study.tag}"
+                v1 = s.create("v1", "Variables")
+                fields = ["comp1_V", "comp1_Ne", "comp1_Ph"]
+                if "ht" in self.java._comp.children["physics"].children:
+                    fields.append("comp1_T")
+                for fld in fields:
+                    v1.create(fld, "Field")
                 stat = s.create("s1", "Stationary")
                 stat.create("fc1", "FullyCoupled")
                 sols[st] = s

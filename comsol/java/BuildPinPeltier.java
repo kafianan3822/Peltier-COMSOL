@@ -399,6 +399,8 @@ public class BuildPinPeltier {
       if (!existing.contains("mmal1"))
         verify("FEAT_MOB_ARORA", FEAT_MOB_ARORA, () -> smm.create("mmal1", FEAT_MOB_ARORA, 1));
       smm.feature("mmal1").active(true);
+      if (Arrays.asList(m.component(COMP).variable().tags()).contains("var_m2"))
+        m.component(COMP).variable("var_m2").active(false);
       String selN = MOB_ARORA_N, selP = MOB_ARORA_P;
       if (fletcher) {
         if (!existing.contains("mmfc1"))
@@ -418,6 +420,14 @@ public class BuildPinPeltier {
     } else {
       if (fletcher) throw new RuntimeException("Fletcher add-on is defined on top of Arora (M1) only");
       for (String t : new String[]{"mmal1", "mmfc1"}) if (existing.contains(t)) smm.feature(t).active(false);
+      if (!Arrays.asList(m.component(COMP).variable().tags()).contains("var_m2")) {
+        m.component(COMP).variable().create("var_m2");
+        m.component(COMP).variable("var_m2").selection().geom(GEOM, 1);
+        m.component(COMP).variable("var_m2").selection().all();
+        for (String k : new String[]{"mun_CT", "mup_CT"})
+          m.component(COMP).variable("var_m2").set(k, CFG.get("var." + k), CFG.getOrDefault("var." + k + ".desc", ""));
+      }
+      m.component(COMP).variable("var_m2").active(true);
       setUserdef(smm, SMM_MUN_USER, "mun_CT", "SMM_MUN_USER");
       setUserdef(smm, SMM_MUP_USER, "mup_CT", "SMM_MUP_USER");
     }
@@ -475,12 +485,23 @@ public class BuildPinPeltier {
     }
   }
 
-  static void makeSegregated(Model m, String study) {
+  /** Segregated solver (semi | T); false when it cannot apply (no temperature variable). */
+  static boolean makeSegregated(Model m, String study) {
     String[] semiVars = DEPVARS_SEMI.split(",");
+    boolean applied = false;
     for (String s : solutionsOf(m, study)) {
+      boolean hasT = false;
+      for (String ft : m.sol(s).feature().tags())
+        if (m.sol(s).feature(ft).getType().equals("Variables")
+            && Arrays.asList(m.sol(s).feature(ft).feature().tags()).contains(DEPVAR_T)) hasT = true;
+      if (!hasT) {
+        log("segregated fallback not applicable to " + study + " (no temperature variable)");
+        continue;
+      }
       for (String ft : m.sol(s).feature().tags()) {
         SolverFeature f = m.sol(s).feature(ft);
         if (!f.getType().equals("Stationary")) continue;
+        applied = true;
         List<String> tags = Arrays.asList(f.feature().tags());
         if (tags.contains("se1")) {
           // COMSOL 6.3 generates a segregated solver for semi + ht by default (api_dump): use it
@@ -501,6 +522,7 @@ public class BuildPinPeltier {
         se.active(true);
       }
     }
+    return applied;
   }
 
   /** Run a study; on failure apply the spec §4.6 fallback (segregated, then half VF step). */
@@ -508,21 +530,29 @@ public class BuildPinPeltier {
     m.study(study).createAutoSequences("all");
     setSolverTolerance(m, study);
     long t0 = System.currentTimeMillis();
+    String firstError;
     try {
       m.study(study).run();
       log("solved " + study + " in " + (System.currentTimeMillis() - t0) / 1000.0 + " s");
       return;
     } catch (Exception e) {
-      log(study + " failed (" + firstLine(e) + ") -> fallback 1: segregated solver");
+      firstError = String.valueOf(e.getMessage());
+      log(study + " failed. COMSOL said:\n" + firstError);
     }
-    makeSegregated(m, study);
-    try {
-      m.study(study).run();
-      log("solved " + study + " with segregated solver");
-      return;
-    } catch (Exception e) {
-      log(study + " failed again (" + firstLine(e) + ") -> fallback 2: halve the VF step");
+    if (makeSegregated(m, study)) {
+      log(study + " -> fallback 1: segregated solver");
+      try {
+        m.study(study).run();
+        log("solved " + study + " with segregated solver");
+        return;
+      } catch (Exception e) {
+        log(study + " failed again. COMSOL said:\n" + e.getMessage());
+      }
     }
+    if (!Arrays.asList(m.study(study).feature().tags()).contains("stat")
+        || !m.study(study).feature("stat").getBoolean("useparam"))
+      throw new RuntimeException(study + " did not solve and no fallback applies. COMSOL said:\n" + firstError);
+    log(study + " -> fallback 2: halve the VF step");
     StudyFeature st = m.study(study).feature("stat");
     Matcher mm = Pattern.compile("\\s*range\\(([^,]+),([^,]+),([^,]+)\\)\\s*").matcher(st.getStringArray("plistarr")[0]);
     if (!mm.matches()) throw new RuntimeException(study + ": cannot parse VF list");
@@ -531,7 +561,7 @@ public class BuildPinPeltier {
     setSolverTolerance(m, study);
     makeSegregated(m, study);
     m.study(study).run();
-    log("solved " + study + " with segregated solver and half VF step");
+    log("solved " + study + " with half VF step");
   }
 
   static String firstLine(Exception e) {
@@ -685,7 +715,7 @@ public class BuildPinPeltier {
     m.component(COMP).variable("var1").selection().geom(GEOM, 1);
     m.component(COMP).variable("var1").selection().all();
     for (String k : CFG.keySet()) {
-      if (k.startsWith("var.") && !k.endsWith(".desc"))
+      if (k.startsWith("var.") && !k.endsWith(".desc") && !k.endsWith("_CT"))   // M2 vars: only when used
         m.component(COMP).variable("var1").set(k.substring(4), CFG.get(k), CFG.getOrDefault(k + ".desc", ""));
     }
 

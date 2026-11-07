@@ -69,6 +69,12 @@ def verify(key: str, extra: str = ""):
         raise ApiNameError(key, exc, extra) from exc
 
 
+def full_message(exc) -> str:
+    """Whole COMSOL error text (all lines), indented for the log."""
+    text = str(exc).strip() or type(exc).__name__
+    return "\n".join("    " + line for line in text.splitlines() if line.strip())
+
+
 def diag3(expr: str) -> list[str]:
     return [expr, "0", "0", "0", expr, "0", "0", "0", expr]
 
@@ -166,9 +172,6 @@ class PinPeltierBuilder:
         var.selection().all()
         for vname, (expr, desc) in self.base["variables"].items():
             var.set(vname, expr, desc)
-        from write_params_txt import caughey_thomas_expr
-        for carrier, vname in (("electrons", "mun_CT"), ("holes", "mup_CT")):
-            var.set(vname, caughey_thomas_expr(carrier, self.base), f"Caughey-Thomas mobility ({carrier}), option M2")
 
         self._couplings()
         self.build_mesh(1)
@@ -498,6 +501,8 @@ class PinPeltierBuilder:
                 if T["mob_fletcher"] in existing:
                     smm.feature(T["mob_fletcher"]).active(False)
             smm.feature(T["mob_arora"]).active(True)
+            if "var_m2" in [str(t) for t in self.comp.variable().tags()]:
+                self.comp.variable("var_m2").active(False)
             with verify("SMM_MUN_SEL"):
                 smm.set(api.name("SMM_MUN_SEL"), sel_n)
             with verify("SMM_MUP_SEL"):
@@ -508,8 +513,22 @@ class PinPeltierBuilder:
             for tag in (T["mob_arora"], T["mob_fletcher"]):
                 if tag in existing:
                     smm.feature(tag).active(False)
+            self.define_m2_variables()
             self.set_userdef(smm, api.name("SMM_MUN_USER"), "mun_CT", "SMM_MUN_USER")
             self.set_userdef(smm, api.name("SMM_MUP_USER"), "mup_CT", "SMM_MUP_USER")
+
+    def define_m2_variables(self) -> None:
+        """mun_CT, mup_CT (option M2) in their own Variables node, created only when M2 is used:
+        COMSOL checks every defined variable at solve time, so unused ones must not exist."""
+        from write_params_txt import caughey_thomas_expr
+        if "var_m2" not in [str(t) for t in self.comp.variable().tags()]:
+            var = self.comp.variable().create("var_m2")
+            var.selection().geom(T["geom"], 1)
+            var.selection().all()
+            for carrier, vname in (("electrons", "mun_CT"), ("holes", "mup_CT")):
+                var.set(vname, caughey_thomas_expr(carrier, self.base),
+                        f"Caughey-Thomas mobility ({carrier}), option M2")
+        self.comp.variable("var_m2").active(True)
 
     def add_auger(self) -> bool:
         """Auger recombination (Cn_aug, Cp_aug). COMSOL 6.3 rejected the type 'AugerRecombination'
@@ -829,17 +848,20 @@ class PinPeltierBuilder:
             LOG.info("solved %s in %.1f s", study, time.time() - t0)
             return
         except Exception as exc:
-            LOG.warning("%s failed (%s) -> fallback 1: segregated solver", study, str(exc).splitlines()[0])
-        self.make_segregated(study)
-        try:
-            std.run()
-            LOG.info("solved %s with segregated solver in %.1f s", study, time.time() - t0)
-            return
-        except Exception as exc:
-            LOG.warning("%s failed again (%s) -> fallback 2: halve the VF step", study, str(exc).splitlines()[0])
+            first_error = full_message(exc)
+            LOG.warning("%s failed. COMSOL said:\n%s", study, first_error)
+        if self.make_segregated(study):
+            LOG.warning("%s -> fallback 1: segregated solver", study)
+            try:
+                std.run()
+                LOG.info("solved %s with segregated solver in %.1f s", study, time.time() - t0)
+                return
+            except Exception as exc:
+                LOG.warning("%s failed again. COMSOL said:\n%s", study, full_message(exc))
         st = std.feature("stat") if "stat" in [str(t) for t in std.feature().tags()] else None
-        if st is None:
-            raise RuntimeError(f"{study}: no stationary step to refine")
+        if st is None or not st.getBoolean("useparam"):
+            raise RuntimeError(f"{study} did not solve and no fallback applies. COMSOL said:\n{first_error}")
+        LOG.warning("%s -> fallback 2: halve the VF step", study)
         a, d, b = re.fullmatch(r"\s*range\(([^,]+),([^,]+),([^,]+)\)\s*",
                                str(st.getStringArray("plistarr")[0])).groups()
         st.set("plistarr", [f"range({a},{float(d)/2:g},{b})"])
@@ -847,16 +869,32 @@ class PinPeltierBuilder:
         self.set_solver_tolerance(study)
         self.make_segregated(study)
         std.run()
-        LOG.info("solved %s with segregated solver and half VF step", study)
+        LOG.info("solved %s with half VF step", study)
 
-    def make_segregated(self, study: str) -> None:
+    def solver_fields(self, sol: str) -> set[str]:
+        """Dependent-variable field tags of a solver sequence (children of its Variables nodes)."""
+        out = set()
+        s = self.j.sol(sol)
+        for ftag in s.feature().tags():
+            f = s.feature(ftag)
+            if str(f.getType()) == "Variables":
+                out |= {str(t) for t in f.feature().tags()}
+        return out
+
+    def make_segregated(self, study: str) -> bool:
+        """Segregated solver (semi | T). Returns False when it cannot apply (no T solved for)."""
         semi_vars = api.name("DEPVARS_SEMI").split(",")
+        applied = False
         for sol in self.solutions_of(study):
+            if api.name("DEPVAR_T") not in self.solver_fields(sol):
+                LOG.info("segregated fallback not applicable to %s (no temperature variable)", study)
+                continue
             s = self.j.sol(sol)
             for ftag in s.feature().tags():
                 f = s.feature(ftag)
                 if str(f.getType()) != "Stationary":
                     continue
+                applied = True
                 tags = [str(t) for t in f.feature().tags()]
                 if "se1" in tags:
                     # COMSOL 6.3 generates a segregated solver (se1: ss1, ss2, ...) for semi + ht
@@ -883,6 +921,7 @@ class PinPeltierBuilder:
                     if t.startswith("fc"):
                         f.feature(t).active(False)
                 se.active(True)
+        return applied
 
     def eval_global(self, expr: str, study: str, unit: str | None = None, parametric: bool = False,
                     outer: int | None = None) -> np.ndarray:
