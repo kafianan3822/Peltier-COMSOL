@@ -830,11 +830,11 @@ public class BuildPinPeltier {
       verify(d[1].equals("donor") ? "DOP_ND" : "DOP_NA", ck, () -> f.set(ck, d[4]));
       verify("DOP_X0", DOP_X0, () -> f.set(DOP_X0, new String[]{d[2], "0", "0"}));   // rb is a 3-vector even in 1D
       verify("DOP_W", DOP_W, () -> f.set(DOP_W, d[3]));
-      if (d[5].equals("gaussian")) {
-        verify("DOP_PROFILE", DOP_PROFILE, () -> f.set(DOP_PROFILE, DOP_GAUSS));
-        verify("DOP_LSCALE_SRC", DOP_LSCALE_SRC, () -> f.set(DOP_LSCALE_SRC, DOP_LSCALE_LENGTH));
-        verify("DOP_LSCALE", DOP_LSCALE, () -> f.set(DOP_LSCALE, "l_dec"));
-      }
+      // decay-length form for every box: the default junction-depth form is undefined for the
+      // 1e12 cm^-3 background box (sqrt of a negative number in COMSOL 6.3)
+      verify("DOP_PROFILE", DOP_PROFILE, () -> f.set(DOP_PROFILE, DOP_GAUSS));
+      verify("DOP_LSCALE_SRC", DOP_LSCALE_SRC, () -> f.set(DOP_LSCALE_SRC, DOP_LSCALE_LENGTH));
+      verify("DOP_LSCALE", DOP_LSCALE, () -> f.set(DOP_LSCALE, "l_dec"));
     }
     m.study().create(STD_EQ_IV);
     m.study(STD_EQ_IV).label("Study 1: I-V and heat-source map");

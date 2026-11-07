@@ -405,13 +405,16 @@ class PinPeltierBuilder:
                 d.set(api.name("DOP_X0"), [x0, "0", "0"])   # COMSOL 6.3: rb is a 3-vector even in 1D
             with verify("DOP_W"):
                 d.set(api.name("DOP_W"), w)
-            if profile == "gaussian":
-                with verify("DOP_PROFILE"):
-                    d.set(api.name("DOP_PROFILE"), api.name("DOP_GAUSS"))
-                with verify("DOP_LSCALE_SRC"):
-                    d.set(api.name("DOP_LSCALE_SRC"), api.name("DOP_LSCALE_LENGTH"))
-                with verify("DOP_LSCALE"):
-                    d.set(api.name("DOP_LSCALE"), "l_dec")
+            # Every box uses the decay-length form. COMSOL's default ('junction depth') derives the
+            # length from log(N_box/N_b) with N_b = 1e15 cm^-3, which is undefined for the 1e12 cm^-3
+            # background box (COMSOL 6.3: "real square root of negative number"). The background
+            # box spans the whole bar, so its drop-off profile has no effect.
+            with verify("DOP_PROFILE"):
+                d.set(api.name("DOP_PROFILE"), api.name("DOP_GAUSS"))
+            with verify("DOP_LSCALE_SRC"):
+                d.set(api.name("DOP_LSCALE_SRC"), api.name("DOP_LSCALE_LENGTH"))
+            with verify("DOP_LSCALE"):
+                d.set(api.name("DOP_LSCALE"), "l_dec")
 
         std = self.j.study().create(T["std_eq_iv"])
         std.label("Study 1: I-V and heat-source map")
