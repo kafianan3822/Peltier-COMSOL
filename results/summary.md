@@ -1,8 +1,8 @@
 # PIN-diode junction cooling: results summary
 
-_Generated 2026-10-29T08:33:48 by `postprocess/report.py`._
+_Generated 2026-11-07T16:15:30 by `postprocess/report.py`._
 
-Sign conventions: Q_room > 0 means the room is cooled. dT_max is the sink-minus-room temperature at which Q_room = 0 (Config A); 'none (room heated)' means Q_room < 0 already at dT_sink = 0. For Config-B-only runs (V5, V6), dT_max = T_room - T_end, which is exact for the symmetric 1D bar.
+Sign conventions: Q_room > 0 means the room is cooled. dT_max is the sink-minus-room temperature at which Q_room = 0 (Config A); 'none (room heated)' means Q_room < 0 already at dT_sink = 0. For Config-B-only runs (V5, V6), dT_max = T_room - T_end, which is exact for the symmetric 1D bar. Config-C-only runs (V7) are listed in their own table (1b).
 
 ## 1. COMSOL results
 
@@ -12,6 +12,31 @@ Sign conventions: Q_room > 0 means the room is cooled. dT_max is the sink-minus-
 |---|---|---|---|---|---|---|---|
 | V0 | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
 | V1 | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+
+### 1b. Config C: lateral sink (V7, reference model)
+
+Ends insulated, heat removed sideways from the i-region by h_lat·(P/A)·(T − T_out), except within w_wall of each junction. There is no reservoir colder than T_out, so the ends can only fall below ambient if the local Peltier dip is larger than the overall heating of the bar by P_el, which is about P_el/(h_lat·P·L_sink) (lumped column). T_end − T_out < 0 means the ends are below ambient. The Config A/B columns of the parent device (V0 for V7a, V1 for V7b) are in the table above.
+
+| Variant | device | h_lat (W/m²K) | w_wall (µm) | T_end − T_out @0.7 V | T_centre − T_out | dip = T_end − T_centre | lumped P_el/(h_lat·P·L_sink) | lowest T_end − T_out over VF | reference T_end − T_out |
+|---|---|---|---|---|---|---|---|---|---|
+| V7a_h_lat=1e3Wperm2K_w_wall=0um | V0 (uniform) | 1e+03 | 0 | +98.179 mK | +98.412 mK | -0.234 mK | 98.334 mK | never below ambient | - mK |
+| V7a_h_lat=1e3Wperm2K_w_wall=50um | V0 (uniform) | 1e+03 | 50 | +109.142 mK | +109.343 mK | -0.201 mK | 109.260 mK | never below ambient | - mK |
+| V7a_h_lat=1e3Wperm2K_w_wall=200um | V0 (uniform) | 1e+03 | 200 | +163.858 mK | +163.959 mK | -0.101 mK | 163.890 mK | never below ambient | - mK |
+| V7a_h_lat=1e4Wperm2K_w_wall=0um | V0 (uniform) | 1e+04 | 0 | +9.678 mK | +9.910 mK | -0.233 mK | 9.833 mK | never below ambient | - mK |
+| V7a_h_lat=1e4Wperm2K_w_wall=50um | V0 (uniform) | 1e+04 | 50 | +10.782 mK | +10.981 mK | -0.200 mK | 10.926 mK | never below ambient | - mK |
+| V7a_h_lat=1e4Wperm2K_w_wall=200um | V0 (uniform) | 1e+04 | 200 | +16.296 mK | +16.397 mK | -0.101 mK | 16.389 mK | never below ambient | - mK |
+| V7a_h_lat=1e5Wperm2K_w_wall=0um | V0 (uniform) | 1e+05 | 0 | +0.834 mK | +1.055 mK | -0.222 mK | 0.983 mK | never below ambient | - mK |
+| V7a_h_lat=1e5Wperm2K_w_wall=50um | V0 (uniform) | 1e+05 | 50 | +0.949 mK | +1.142 mK | -0.194 mK | 1.093 mK | never below ambient | - mK |
+| V7a_h_lat=1e5Wperm2K_w_wall=200um | V0 (uniform) | 1e+05 | 200 | +1.540 mK | +1.641 mK | -0.101 mK | 1.639 mK | never below ambient | - mK |
+| V7b_h_lat=1e3Wperm2K_w_wall=0um | V1 (rz on) | 1e+03 | 0 | +204.565 mK | +206.200 mK | -1.636 mK | 205.343 mK | never below ambient | - mK |
+| V7b_h_lat=1e3Wperm2K_w_wall=50um | V1 (rz on) | 1e+03 | 50 | +227.410 mK | +228.977 mK | -1.566 mK | 228.159 mK | never below ambient | - mK |
+| V7b_h_lat=1e3Wperm2K_w_wall=200um | V1 (rz on) | 1e+03 | 200 | +341.480 mK | +342.839 mK | -1.359 mK | 342.238 mK | never below ambient | - mK |
+| V7b_h_lat=1e4Wperm2K_w_wall=0um | V1 (rz on) | 1e+04 | 0 | +19.759 mK | +21.386 mK | -1.627 mK | 20.534 mK | never below ambient | - mK |
+| V7b_h_lat=1e4Wperm2K_w_wall=50um | V1 (rz on) | 1e+04 | 50 | +22.014 mK | +23.574 mK | -1.560 mK | 22.816 mK | never below ambient | - mK |
+| V7b_h_lat=1e4Wperm2K_w_wall=200um | V1 (rz on) | 1e+04 | 200 | +33.339 mK | +34.696 mK | -1.357 mK | 34.224 mK | never below ambient | - mK |
+| V7b_h_lat=1e5Wperm2K_w_wall=0um | V1 (rz on) | 1e+05 | 0 | +1.318 mK | +2.863 mK | -1.545 mK | 2.053 mK | never below ambient | - mK |
+| V7b_h_lat=1e5Wperm2K_w_wall=50um | V1 (rz on) | 1e+05 | 50 | +1.503 mK | +3.003 mK | -1.500 mK | 2.282 mK | never below ambient | - mK |
+| V7b_h_lat=1e5Wperm2K_w_wall=200um | V1 (rz on) | 1e+05 | 200 | +2.533 mK | +3.872 mK | -1.339 mK | 3.422 mK | never below ambient | - mK |
 
 Flags: V2a: Q_tot inside doped layers less reliable with BGN; V2b: Q_tot inside doped layers less reliable with BGN.
 
@@ -92,10 +117,11 @@ Ambipolar high-injection model of the i-region with lumped end sinks. eta_E = 1 
 - [fig8_V6_heatmap](figures/fig8_V6_heatmap.png) ([pdf](figures/fig8_V6_heatmap.pdf)): V6: dT_max heat map over (w_rz, tau_short) _[reference model]_
 - [fig9_comsol_vs_reference](figures/fig9_comsol_vs_reference.png) ([pdf](figures/fig9_comsol_vs_reference.pdf)): COMSOL (solid) vs reference model (dashed) for V0 and V1 _[reference model only]_
 - [fig10_thermophotonic_map](figures/fig10_thermophotonic_map.png) ([pdf](figures/fig10_thermophotonic_map.pdf)): V10 thermophotonic stub: net cooling per pair eta_EQE*hw - qV over EQE and qV/hw (analytic) _[analytic]_
+- [fig11_V7_lateral](figures/fig11_V7_lateral.png) ([pdf](figures/fig11_V7_lateral.pdf)): V7 (Config C): end temperature relative to ambient vs h_lat and w_wall, with the lumped heating estimate P_el/(h_lat P L_sink) _[reference model]_
 
 ## 5. Conclusion
 
-In the reference-model results at VF = 0.7 V, the device as drawn (V0, uniform lifetime) heats its junction ends by 0.098 mK relative to the sink in Config B. Config A gives Q_room = -0.058 mW and dT_max = none (room heated). Recombination heat flows back to the ends, so the room is heated. With the engineered central recombination zone (V1) the ends cool by 0.943 mK. Config A gives Q_room(dT=0) = 0.558 mW, COP = 0.68 and dT_max = 0.943 mK. dT_max rises to 5.14 mK at VF = 0.800 V, the top of the Study 2 sweep. Junction cooling is therefore real but milli-kelvin in size, consistent with the estimate dT ~ n_b D_a Pi/k (Fig. 7). Stacking does not change this: see `results/cascade.md` (about 2000 series stages for 10 K, with an electrical power multiplier of about 10^1556 at COP = 0.2 per stage). These numbers come from the COMSOL-independent reference model. The COMSOL results, and with them checks C1-C9, are pending (see 'Not executed').
+In the reference-model results at VF = 0.7 V, the device as drawn (V0, uniform lifetime) heats its junction ends by 0.098 mK relative to the sink in Config B. Config A gives Q_room = -0.058 mW and dT_max = none (room heated). Recombination heat flows back to the ends, so the room is heated. With the engineered central recombination zone (V1) the ends cool by 0.943 mK. Config A gives Q_room(dT=0) = 0.558 mW, COP = 0.68 and dT_max = 0.943 mK. dT_max rises to 5.14 mK at VF = 0.800 V, the top of the Study 2 sweep. Junction cooling is therefore real but milli-kelvin in size, consistent with the estimate dT ~ n_b D_a Pi/k (Fig. 7). With only a lateral sink (Config C, V7) the junction ends sit between +0.834 mK (V7a_h_lat=1e5Wperm2K_w_wall=0um) and +341.480 mK (V7b_h_lat=1e3Wperm2K_w_wall=200um) relative to the ambient T_out at 0.7 V. None of them is below ambient, because the whole electrical power has to leave through the same sink that defines the ambient, and the bar heats up by about P_el/(h_lat P L_sink). That is more than the local Peltier dip at the ends. Stacking does not change this: see `results/cascade.md` (about 2000 series stages for 10 K, with an electrical power multiplier of about 10^1556 at COP = 0.2 per stage). These numbers come from the COMSOL-independent reference model. The COMSOL results, and with them checks C1-C9, are pending (see 'Not executed').
 
 ## 6. Not executed
 

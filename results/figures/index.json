@@ -48,5 +48,10 @@
   "name": "fig10_thermophotonic_map",
   "caption": "V10 thermophotonic stub: net cooling per pair eta_EQE*hw - qV over EQE and qV/hw (analytic)",
   "source": "analytic"
+ },
+ {
+  "name": "fig11_V7_lateral",
+  "caption": "V7 (Config C): end temperature relative to ambient vs h_lat and w_wall, with the lumped heating estimate P_el/(h_lat P L_sink)",
+  "source": "reference model"
  }
 ]

@@ -40,6 +40,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.integrate import cumulative_trapezoid, solve_bvp, trapezoid
+from scipy.linalg import solve_banded
 from scipy.optimize import brentq
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -269,6 +270,46 @@ def _heat_config_B(dev: RefDevice, bp: BiasPoint):
     return T, qx
 
 
+def _heat_config_C(dev: RefDevice, bp: BiasPoint, h_lat: float, P_over_A: float, w_wall: float,
+                   T_out: float):
+    """Config C: insulated ends (lumped end sinks Q_b), lateral convective sink
+    -h_lat (P/A) (T - T_out) wherever |x - Xc| < Wi/2 - w_wall.  Finite-volume solve of
+    k T'' + H(x) - h_lat (P/A) m(x) (T - T_out) = 0.  Returns T(x) on the evaluation grid.
+    Energy check: Ac [2 Q_b + int H] = P_el leaves through the lateral sink."""
+    k = dev.k
+    # the BVP grid has node pairs only ~1e-21 m apart; merge them (10 nm) to keep the
+    # finite-volume matrix well conditioned, then map back to the evaluation grid
+    x = np.unique(np.concatenate([np.round(bp.x, 8), [dev.Wi / 2.0]]))
+    H = np.interp(x, bp.x, bp.H)
+    beta = h_lat * P_over_A * (np.abs(x - dev.Wi / 2.0) < dev.Wi / 2.0 - w_wall)
+    dx = np.diff(x)
+    vol = np.zeros_like(x)
+    vol[:-1] += dx / 2.0
+    vol[1:] += dx / 2.0
+    g = k / dx                                   # face conductances (W/m^2/K)
+    ab = np.zeros((3, x.size))                   # banded matrix for theta = T - T_out
+    ab[1] = beta * vol
+    ab[1, :-1] += g
+    ab[1, 1:] += g
+    ab[0, 1:] = -g                               # super-diagonal
+    ab[2, :-1] = -g                              # sub-diagonal
+    rhs = H * vol
+    rhs[0] += bp.Q_b
+    rhs[-1] += bp.Q_b
+    return T_out + np.interp(bp.x, x, solve_banded((1, 1), ab, rhs))
+
+
+def lateral_table(dev: RefDevice, pts: list, VF: np.ndarray, p: dict) -> pd.DataFrame:
+    """Config C point temperatures vs VF (same columns as COMSOL's lat_vs_VF.csv)."""
+    rows = []
+    for v in VF:
+        bp = solve_at_VF(dev, float(v), pts)
+        TC = _heat_config_C(dev, bp, p["h_lat"], p["Plat_over_A"], p["w_wall"], p["T_out"])
+        rows.append(dict(VF=bp.VF, T_P1=TC[0], T_P5=TC[-1],
+                         T_P3=float(np.interp(dev.Wi / 2.0, bp.x, TC))))
+    return pd.DataFrame(rows)
+
+
 def _heat_config_A(dev: RefDevice, bp: BiasPoint, dT_sink: float = 0.0):
     """T(0) = T(W) = T_room, T(centre) = T_room + dT_sink.
 
@@ -338,6 +379,7 @@ class RefResult:
     glob: pd.DataFrame
     room: pd.DataFrame
     profiles: dict
+    lat: pd.DataFrame | None = None
 
 
 def _row(dev: RefDevice, bp: BiasPoint) -> dict:
@@ -359,7 +401,8 @@ def _row(dev: RefDevice, bp: BiasPoint) -> dict:
 
 
 def run_variant(variant_id: str, overrides: dict, convention: str = DEFAULT_CONVENTION,
-                write: bool = True, out_root: Path = RESULTS, header_extra: dict | None = None) -> RefResult:
+                write: bool = True, out_root: Path = RESULTS, header_extra: dict | None = None,
+                configs: list | None = None) -> RefResult:
     base = load_base()
     p = evaluate_params(overrides)
     dev = RefDevice.from_params(p, convention=convention)
@@ -387,7 +430,10 @@ def run_variant(variant_id: str, overrides: dict, convention: str = DEFAULT_CONV
             n=bp.n, p=bp.n, Ndop=-p["N_bg"], JdotE=JdotE, Q_tot=bp.H,
             Q_rec=bp.H - JdotE, T=TB, tfluxX=qB))
 
-    res = RefResult(variant_id, dev, p, pts, glob, room, profiles)
+    lat = None
+    if "C" in (configs or []):
+        lat = lateral_table(dev, pts, glob["VF"].to_numpy(), p)
+    res = RefResult(variant_id, dev, p, pts, glob, room, profiles, lat)
     if write:
         write_result(res, out_root, overrides, header_extra)
     return res
@@ -404,6 +450,9 @@ def write_result(res: RefResult, out_root: Path, overrides: dict, header_extra=N
     hdr.update(header_extra or {})
     write_csv(d / "global_vs_VF.csv", res.glob, hdr)
     write_csv(d / "room_sweep.csv", res.room, hdr)
+    if res.lat is not None:
+        write_csv(d / "lat_vs_VF.csv", res.lat,
+                  {**hdr, "T_P1,T_P5,T_P3": "Config C (insulated ends, lateral sink to T_out)"})
     if res.variant not in PROFILE_VARIANTS:
         return
     for v, df in res.profiles.items():
@@ -473,18 +522,18 @@ def plot_thermophotonic(out_dir: Path) -> list[Path]:
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--set", default="reference",
-                    help="core | reference (core + V5 + V6, default) | ids comma-separated")
+                    help="core | reference (core + V5 + V6 + V7, default) | ids comma-separated")
     ap.add_argument("--convention", default=DEFAULT_CONVENTION, choices=list(LIFETIME_CONVENTIONS))
     args = ap.parse_args(argv)
     if args.set == "core":
         runs = expand_variants("core")
     elif args.set == "reference":
-        runs = expand_variants(ids=["V0", "V1", "V5", "V6"])
+        runs = expand_variants(ids=["V0", "V1", "V5", "V6", "V7a", "V7b"])
     else:
         runs = expand_variants(ids=args.set.split(","))
     summary = []
     for r in runs:
-        res = run_variant(r["id"], r["params"], args.convention)
+        res = run_variant(r["id"], r["params"], args.convention, configs=r.get("configs"))
         g = res.glob.set_index("VF")
         row = g.loc[np.isclose(g.index, 0.7)].iloc[0] if np.any(np.isclose(g.index, 0.7)) else None
         slope = room_slope(res.dev)

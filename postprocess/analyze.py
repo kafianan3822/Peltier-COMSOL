@@ -129,12 +129,23 @@ class VariantData:
     profiles: dict = field(default_factory=dict)
     reverse: pd.DataFrame | None = None
     reverse_glob: pd.DataFrame | None = None
+    lat: pd.DataFrame | None = None     # Config C point temperatures (lat_vs_VF.csv)
     header: dict = field(default_factory=dict)
     run: dict = field(default_factory=dict)
 
     @property
     def available(self) -> bool:
         return self.glob is not None
+
+    @property
+    def configs(self) -> list:
+        return list(self.run.get("configs", ["A", "B"])) if self.run else ["A", "B"]
+
+    @property
+    def lateral_only(self) -> bool:
+        """Config-C-only run (V7): Study 1 still runs Config A at dT_sink = 0, but those columns
+        are the parent device's values, not a result of the lateral-sink set-up."""
+        return self.configs == ["C"]
 
 
 def load_variant(vid: str, source: str = "comsol", run: dict | None = None) -> VariantData:
@@ -157,6 +168,8 @@ def load_variant(vid: str, source: str = "comsol", run: dict | None = None) -> V
         vd.reverse = read_csv(path / "reverse_bias_profile.csv")
     if (path / "reverse_bias_global.csv").exists():
         vd.reverse_glob = read_csv(path / "reverse_bias_global.csv")
+    if (path / "lat_vs_VF.csv").exists():
+        vd.lat = read_csv(path / "lat_vs_VF.csv")
     return vd
 
 
@@ -172,10 +185,11 @@ def metrics(vd: VariantData, VF: float = VF_REPORT) -> dict:
         return dict(variant=vd.vid, source=vd.source, available=False)
     p = params_for(vd.run) if vd.run else evaluate_params()
     g = vd.glob
-    out = dict(variant=vd.vid, source=vd.source, available=True, VF=VF)
+    out = dict(variant=vd.vid, source=vd.source, available=True, VF=VF, configs=vd.configs)
     for c in ("I", "J", "P_el", "Qtot_int", "Qjn_n", "Qjn_p", "Qc_contacts", "Q_room", "eta_E"):
         out[c] = interp_at(g, c, VF) if c in g else float("nan")
-    T_end = np.nanmean([interp_at(g, "T_P1", VF), interp_at(g, "T_P5", VF)])
+    ends = [interp_at(g, c, VF) for c in ("T_P1", "T_P5") if c in g]
+    T_end = np.nanmean(ends) if ends and np.any(np.isfinite(ends)) else float("nan")
     out["dT_end_B"] = T_end - p["T_room"]            # Config B: ends minus sink (K)
     out["cop0"] = float(cop(out["Q_room"], out["I"], VF)) if np.isfinite(out["Q_room"]) else float("nan")
     if vd.room is not None and not vd.room.empty:
@@ -191,6 +205,9 @@ def metrics(vd: VariantData, VF: float = VF_REPORT) -> dict:
         if not best.empty:
             b = best.iloc[best.dT_max.argmax()]
             out["dT_max_best"], out["VF_best"] = float(b.dT_max), float(b.VF)
+    elif vd.lateral_only:
+        out["dT_max"], out["dT_max_status"] = None, "n/a (Config C only)"
+        out["dT_max_text"], out["cop_half"] = "n/a (Config C)", float("nan")
     else:
         # Config B only: for the symmetric 1D bar dT_max(Config A) = T_room - T_end(Config B) exactly.
         out["dT_max"] = -out["dT_end_B"] if np.isfinite(out["dT_end_B"]) and out["dT_end_B"] < 0 else None
@@ -198,6 +215,32 @@ def metrics(vd: VariantData, VF: float = VF_REPORT) -> dict:
         out["dT_max_text"] = (f"{out['dT_max']*1e3:.3f} mK (B)" if out["dT_max"] is not None
                               else out["dT_max_status"])
         out["cop_half"] = float("nan")
+    out.update(lateral_metrics(vd, p, VF))
+    return out
+
+
+def lateral_metrics(vd: VariantData, p: dict, VF: float = VF_REPORT) -> dict:
+    """Config C (insulated ends, lateral convective sink to T_out).
+
+    dT_end_C    = mean(T_P1, T_P5) - T_out at VF   (< 0: the junction ends are below ambient)
+    dT_centre_C = T_P3 - T_out
+    dip_C       = T_end - T_centre (local Peltier dip relative to the hot centre)
+    dT_end_C_min, VF_C_min: most negative dT_end_C over the VF sweep.
+    Energy: in steady state all of P_el leaves through the lateral sink, so the bar heats up by
+    about P_el / (h_lat P L_sink) on average (lumped estimate dT_lumped_C, L_sink = Wi - 2 w_wall)."""
+    if vd.lat is None or vd.lat.empty:
+        return {}
+    lat = vd.lat.dropna(subset=["T_P1", "T_P5"])
+    end = 0.5 * (lat.T_P1 + lat.T_P5) - p["T_out"]
+    t = pd.DataFrame(dict(VF=lat.VF, end=end, centre=lat.T_P3 - p["T_out"]))
+    out = dict(dT_end_C=interp_at(t, "end", VF), dT_centre_C=interp_at(t, "centre", VF))
+    out["dip_C"] = out["dT_end_C"] - out["dT_centre_C"]
+    i = int(np.argmin(t.end.to_numpy()))
+    out["dT_end_C_min"], out["VF_C_min"] = float(t.end.iloc[i]), float(t.VF.iloc[i])
+    L_sink = max(p["Wi"] - 2.0 * p["w_wall"], 1e-12)
+    P = interp_at(vd.glob, "P_el", VF) if vd.glob is not None and "P_el" in vd.glob else float("nan")
+    out["dT_lumped_C"] = P / (p["h_lat"] * p["Plat_over_A"] * p["Ac"] * L_sink)
+    out["h_lat"], out["w_wall"] = p["h_lat"], p["w_wall"]
     return out
 
 
@@ -321,6 +364,9 @@ def check_C7(all_metrics: list[dict], source="COMSOL") -> Check:
         dB = m.get("dT_end_B")
         if dB is not None and np.isfinite(dB) and -dB >= PLAUSIBILITY_LIMIT:
             bad.append(f"{m['variant']}:Config-B end cooling={-dB*1e3:.1f} mK")
+        dC = m.get("dT_end_C_min")
+        if dC is not None and np.isfinite(dC) and -dC >= PLAUSIBILITY_LIMIT:
+            bad.append(f"{m['variant']}:Config-C end below T_out by {-dC*1e3:.1f} mK")
     if not any(m.get("available") for m in all_metrics):
         return _pending("C7", name)
     if bad:
@@ -368,8 +414,9 @@ def comsol_checks(comsol: dict[str, VariantData], ref: dict[str, VariantData], a
         (check_C3, "C3", "Junction cooling exists", ("V0", "V1")),
         (check_C4, "C4", "Junction-cooling magnitude", ("V0", "V1")),
     ]:
+        # Config-C-only runs (V7) repeat their parent's Study 1, so C2 would only duplicate V0/V1
         tv = [comsol[t] for t in (targets or comsol) if t in comsol and comsol[t].available
-              and (fn is not check_C2 or comsol[t].glob is not None)]
+              and (fn is not check_C2 or not comsol[t].lateral_only)]
         if not tv:
             checks.append(_pending(cid, nm))
             continue

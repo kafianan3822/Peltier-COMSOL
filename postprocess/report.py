@@ -62,6 +62,43 @@ def table(metrics: list[dict]) -> list[str]:
     return lines
 
 
+def lateral_only(m: dict) -> bool:
+    return list(m.get("configs") or []) == ["C"]
+
+
+def below_text(m: dict) -> str:
+    v = m.get("dT_end_C_min")
+    if v is None or not math.isfinite(v):
+        return "-"
+    if v > -1e-6:           # never more than 1 uK below ambient over the whole VF sweep
+        return "never below ambient"
+    return f"{v*1e3:+.3f} mK ({m['VF_C_min']:.3f} V)"
+
+
+def lateral_table(com: list[dict], ref: list[dict]) -> list[str]:
+    """Config C (V7): insulated ends, lateral convective sink h_lat (P/A) (T - T_out)."""
+    refm = {m["variant"]: m for m in ref if m.get("available")}
+    rows = [m for m in com if m.get("available") and lateral_only(m)]
+    if not rows:  # no COMSOL V7 results: show the reference model alone
+        rows = [m for m in ref if m.get("available") and lateral_only(m)]
+    rows = [m for m in rows if m.get("dT_end_C") is not None]
+    if not rows:
+        return []
+    out = ["| Variant | device | h_lat (W/m²K) | w_wall (µm) | T_end − T_out @0.7 V | T_centre − T_out | "
+           "dip = T_end − T_centre | lumped P_el/(h_lat·P·L_sink) | lowest T_end − T_out over VF | "
+           "reference T_end − T_out |", "|---|---|---|---|---|---|---|---|---|---|"]
+    for m in sorted(rows, key=lambda m: (m["variant"][:3], m.get("h_lat", 0), m.get("w_wall", 0))):
+        r = refm.get(m["variant"]) if m["source"] == "comsol" else None
+        dev = "V1 (rz on)" if m["variant"].startswith("V7b") else "V0 (uniform)"
+        out.append(
+            f"| {m['variant']} | {dev} | {m['h_lat']:.0e} | {m['w_wall']*1e6:g} "
+            f"| {f(m.get('dT_end_C'), 1e3, '{:+.3f}')} mK | {f(m.get('dT_centre_C'), 1e3, '{:+.3f}')} mK "
+            f"| {f(m.get('dip_C'), 1e3, '{:+.3f}')} mK | {f(m.get('dT_lumped_C'), 1e3, '{:.3f}')} mK "
+            f"| {below_text(m)} "
+            f"| {f(r.get('dT_end_C') if r else None, 1e3, '{:+.3f}')} mK |")
+    return out
+
+
 def checks_md(checks: list[dict]) -> list[str]:
     icon = {"PASS": "PASS", "FAIL": "**FAIL**", "BUG": "**BUG**", "PENDING": "PENDING", "N/A": "N/A"}
     out = ["| # | Check | Status | Detail |", "|---|---|---|---|"]
@@ -95,6 +132,18 @@ def conclusion(res: dict) -> str:
         s[-1] += "."
     s.append("Junction cooling is therefore real but milli-kelvin in size, consistent with the estimate "
              "dT ~ n_b D_a Pi/k (Fig. 7).")
+    lat = [m for m in d.values() if lateral_only(m) and m.get("dT_end_C") is not None]
+    if lat:
+        lo = min(lat, key=lambda m: m["dT_end_C"])
+        hi = max(lat, key=lambda m: m["dT_end_C"])
+        below = [m for m in lat if m["dT_end_C"] < 0]
+        s.append(f"With only a lateral sink (Config C, V7) the junction ends sit between "
+                 f"{lo['dT_end_C']*1e3:+.3f} mK ({lo['variant']}) and {hi['dT_end_C']*1e3:+.3f} mK "
+                 f"({hi['variant']}) relative to the ambient T_out at 0.7 V. "
+                 + (f"{len(below)} of {len(lat)} cases are below ambient." if below else
+                    "None of them is below ambient, because the whole electrical power has to leave through the "
+                    "same sink that defines the ambient, and the bar heats up by about P_el/(h_lat P L_sink). "
+                    "That is more than the local Peltier dip at the ends."))
     casc = ROOT / "results" / "cascade.md"
     if casc.exists():
         s.append("Stacking does not change this: see `results/cascade.md` (about 2000 series stages for 10 K, "
@@ -119,10 +168,11 @@ def main() -> int:
          f"_Generated {dt.datetime.now().isoformat(timespec='seconds')} by `postprocess/report.py`._", "",
          "Sign conventions: Q_room > 0 means the room is cooled. dT_max is the sink-minus-room temperature at "
          "which Q_room = 0 (Config A); 'none (room heated)' means Q_room < 0 already at dT_sink = 0. "
-         "For Config-B-only runs (V5, V6), dT_max = T_room - T_end, which is exact for the symmetric 1D bar.", ""]
+         "For Config-B-only runs (V5, V6), dT_max = T_room - T_end, which is exact for the symmetric 1D bar. "
+         "Config-C-only runs (V7) are listed in their own table (1b).", ""]
     L += ["## 1. COMSOL results", ""]
     if have_c:
-        L += table(com)
+        L += table([m for m in com if not lateral_only(m)])
     else:
         L += ["**PENDING.** No COMSOL results were found in `results/<variant>/`. This table is filled in once you run "
               "`python comsol/python/build_model.py` and `python comsol/python/run_variants.py --set core` "
@@ -131,6 +181,16 @@ def main() -> int:
               "| eta_E @0.7 V | T_end-T_room, Config B |", "|---|---|---|---|---|---|---|---|",
               "| V0 | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |",
               "| V1 | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |"]
+    lt = lateral_table(com, ref)
+    if lt:
+        src_c = ("COMSOL" if any(m.get("available") and lateral_only(m) for m in com) else "reference model")
+        L += ["", f"### 1b. Config C: lateral sink (V7, {src_c})", "",
+              "Ends insulated, heat removed sideways from the i-region by h_lat·(P/A)·(T − T_out), except within "
+              "w_wall of each junction. There is no reservoir colder than T_out, so the ends can only fall below "
+              "ambient if the local Peltier dip is larger than the overall heating of the bar by P_el, which is "
+              "about P_el/(h_lat·P·L_sink) (lumped column). T_end − T_out < 0 means the ends are below ambient. "
+              "The Config A/B columns of the parent device (V0 for V7a, V1 for V7b) are in the table above.", ""]
+        L += lt
     flags = [r for r in an.expand_variants("full") if r.get("flag")]
     if flags:
         L += ["", "Flags: " + "; ".join(f"{r['id']}: {r['flag']}" for r in flags) + "."]
@@ -139,7 +199,7 @@ def main() -> int:
           "it books the full E_g + 3k_BT - qV_j per pair. Lifetime convention: `srh_hl` (see CHANGES.md).", ""]
     L += table([m for m in ref if m["variant"] in ("V0", "V1")])
     L += ["", "<details><summary>V5 / V6 sweeps (reference model)</summary>", ""]
-    L += table([m for m in ref if m["variant"] not in ("V0", "V1")])
+    L += table([m for m in ref if m["variant"] not in ("V0", "V1") and not lateral_only(m)])
     L += ["", "</details>", "", "## 3. Verification checks (spec §10)", "", "### COMSOL checks C1-C9", ""]
     L += checks_md(res["comsol_checks"])
     L += ["", "### Reference-model sanity checks", ""]

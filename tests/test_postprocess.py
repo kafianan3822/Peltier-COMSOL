@@ -163,3 +163,22 @@ def test_cascade_numbers():
     assert r["log10_power_multiplier"] == pytest.approx(2000 * np.log10(6.0))
     assert r["dT_interface"] == pytest.approx(1e-5 * cc.DEFAULT_QFLUX)
     assert r["parallel_dT"] == 5e-3
+
+
+def test_C7_flags_config_C_bug():
+    bad = [dict(variant="V7b", source="comsol", available=True, dT_max=None, dT_end_C_min=-0.2)]
+    assert an.check_C7(bad).status == "BUG"
+
+
+def test_lateral_metrics_from_lat_table():
+    run = next(r for r in expand_variants(ids=["V7b"]) if r["params"]["h_lat"].startswith("1e4"))
+    vd = an.VariantData(run["id"], "comsol", an.RESULTS / "nowhere", run=run)
+    vd.glob = pd.DataFrame(dict(VF=[0.6, 0.7, 0.8], P_el=[1e-4, 4e-4, 1e-3]))
+    vd.lat = pd.DataFrame(dict(VF=[0.6, 0.7, 0.8], T_P1=[300.001, 300.010, 300.05],
+                               T_P5=[300.001, 300.012, 300.05], T_P3=[300.002, 300.013, 300.06]))
+    m = an.metrics(vd)
+    assert vd.lateral_only and m["dT_max_status"].startswith("n/a")
+    assert m["dT_end_C"] == pytest.approx(0.011)
+    assert m["dip_C"] == pytest.approx(-0.002)
+    p = evaluate_params(run["params"])
+    assert m["dT_lumped_C"] == pytest.approx(4e-4 / (p["h_lat"] * 4000 * 1e-6 * (p["Wi"] - 2 * p["w_wall"])))

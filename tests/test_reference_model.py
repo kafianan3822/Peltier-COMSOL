@@ -136,3 +136,27 @@ def test_thermophotonic_stub():
     assert rm.thermophotonic_cools(0.9, 1.4, 1.2)          # 0.9 > 0.857
     assert not rm.thermophotonic_cools(0.8, 1.4, 1.2)      # 0.8 < 0.857
     assert not rm.thermophotonic_cools(1e-3, 1.12, 0.7)    # Si-like EQE
+
+
+def test_configC_energy_and_lumped_limit(params):
+    """Config C: all of P_el leaves through the lateral sink; T is close to the lumped estimate
+    P_el/(h P L) and the ends sit below the centre for the recombination-zone device."""
+    dev = device(dict(params, rz_on=1.0))
+    bp = rm.bias_point(dev, 0.65)
+    h, PA, w = 1e4, 4000.0, 50e-6
+    T = rm._heat_config_C(dev, bp, h, PA, w, 300.0)
+    beta = h * PA * (np.abs(bp.x - dev.Wi / 2) < dev.Wi / 2 - w)
+    removed = trapezoid(beta * (T - 300.0), bp.x)               # W/m^2
+    supplied = 2 * bp.Q_b + trapezoid(bp.H, bp.x)               # = J VF (eta_E = 1)
+    assert removed == pytest.approx(supplied, rel=2e-3)
+    lumped = supplied / (h * PA * (dev.Wi - 2 * w))
+    assert np.mean(T - 300.0) == pytest.approx(lumped, rel=0.05)
+    assert T[0] < np.interp(dev.Wi / 2, bp.x, T)
+
+
+def test_configC_needs_very_strong_sink_to_go_below_ambient(params):
+    dev = device(dict(params, rz_on=1.0))
+    bp = rm.bias_point(dev, 0.65)
+    warm = rm._heat_config_C(dev, bp, 1e4, 4000.0, 50e-6, 300.0)
+    cold = rm._heat_config_C(dev, bp, 1e7, 4000.0, 50e-6, 300.0)
+    assert warm[0] > 300.0 > cold[0]

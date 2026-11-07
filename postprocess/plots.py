@@ -354,10 +354,58 @@ def fig10_thermophotonic():
                       "eta_EQE*hw - qV over EQE and qV/hw (analytic)", source="analytic"))
 
 
+# ------------------------------------------------------------------ figure 11
+def fig11_lateral():
+    runs = expand_variants(ids=["V7a", "V7b"])
+    if not runs:
+        return
+    rows = []
+    for r in runs:
+        for src in ("comsol", "reference"):
+            vd = an.load_variant(r["id"], src, r)
+            if not vd.available or vd.lat is None:
+                continue
+            m = an.metrics(vd)
+            rows.append(dict(dev=r["id"][:3], src=src, h=m["h_lat"], w=m["w_wall"], end=m["dT_end_C"],
+                             dip=m["dip_C"], lump=m["dT_lumped_C"]))
+    if not rows:
+        return placeholder("fig11_V7_lateral", "Fig. 11  V7 lateral sink", "Config C end temperature")
+    ws = sorted({r["w"] for r in rows})
+    cols = [C["V0"], C["V1"], C["third"]]
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.3), sharey=True)
+    have_c = any(r["src"] == "comsol" for r in rows)
+    for ax, dev, title in zip(axes, ("V7a", "V7b"), ("V7a: uniform lifetime (V0)", "V7b: recombination zone (V1)")):
+        for w, col in zip(ws, cols):
+            for src, ls, mk in (("comsol", "-", "o"), ("reference", "--", "x")):
+                sel = sorted([r for r in rows if r["dev"] == dev and r["w"] == w and r["src"] == src],
+                             key=lambda r: r["h"])
+                if not sel:
+                    continue
+                ax.plot([r["h"] for r in sel], [r["end"] * 1e3 for r in sel], color=col, ls=ls, marker=mk, ms=4,
+                        label=(f"w_wall = {w*1e6:g} um" if src == ("comsol" if have_c else "reference") else None))
+        sel = sorted([r for r in rows if r["dev"] == dev and r["src"] == ("comsol" if have_c else "reference")
+                      and np.isclose(r["w"], ws[0])], key=lambda r: r["h"])
+        if sel:
+            ax.plot([r["h"] for r in sel], [r["lump"] * 1e3 for r in sel], color=MUTED, lw=0.9, ls=":",
+                    label=f"lumped P_el/(h P L), w_wall = {ws[0]*1e6:g} um")
+        ax.axhline(0, color=INK, lw=0.8)
+        ax.set_xscale("log")
+        ax.set_yscale("symlog", linthresh=0.1)
+        ax.set_xlabel("h_lat (W m$^{-2}$ K$^{-1}$)")
+        ax.set_title(title)
+    axes[0].set_ylabel("T_end - T_out, Config C, VF = 0.7 V (mK)")
+    axes[0].legend(fontsize=7, loc="upper right")
+    src = "COMSOL solid, reference dashed" if have_c else "reference model"
+    fig.suptitle(f"V7 lateral sink: junction ends vs ambient [{src}]. Above 0 = warmer than ambient",
+                 fontsize=8.5, color=MUTED)
+    save(fig, "fig11_V7_lateral", "V7 (Config C): end temperature relative to ambient vs h_lat and w_wall, "
+         "with the lumped heating estimate P_el/(h_lat P L_sink)", src)
+
+
 def main() -> None:
     load_base()
     for f in (fig1_band, fig2_carriers, fig3_heat_source, fig4_temperature, fig5_room, fig6_dtmax_cop,
-              fig7_scaling, fig8_rz_map, fig9_compare, fig10_thermophotonic):
+              fig7_scaling, fig8_rz_map, fig9_compare, fig10_thermophotonic, fig11_lateral):
         f()
     (FIG / "index.json").write_text(json.dumps(INDEX, indent=1), encoding="utf-8")
     for e in INDEX:

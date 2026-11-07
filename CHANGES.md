@@ -69,3 +69,15 @@ leaves a choice open, or an addition. Each item gives the reason.
 | P5 | Reference-model sanity checks R1-R4 are reported separately from C1-C9. | C1-C9 are defined on COMSOL output. Without COMSOL they are PENDING rather than faked. |
 | P6 | Figures 1 and 9 are written as labelled placeholders / reference-only until COMSOL data exist. Fig. 3 shows the reference i-region source and states that the junction dip needs COMSOL. | The reference model does not compute band edges or the distributed junction dip. Fake curves are not drawn. |
 | P7 | Fig. 7 plots the estimate n_b D_a Π_side / k at each run's own V_j, plus the Auger-limited upper bound (2/W_i)·sqrt(D_a/C_a). | §11.3 gives both. Using one V_j for every W_i would misplace the estimate, since short bars have a smaller ohmic drop. |
+
+## M21 Config C (V7) post-processing and reference solver
+The first full-matrix summary copied the parent's Study 1 numbers into the V7 rows and printed
+"none (ends warmer)", because `lat_vs_VF.csv` was never read. Now:
+- `analyze.load_variant` reads `lat_vs_VF.csv`; `metrics()` adds dT_end_C = mean(T_P1, T_P5) - T_out,
+  dT_centre_C, dip_C = T_end - T_centre, the lowest dT_end_C over VF, and the lumped estimate
+  P_el/(h_lat P L_sink). Config-C-only runs show dT_max "n/a (Config C)" and are left out of C2
+  (their Study 1 is identical to V0/V1). C7 also flags Config-C end cooling >= 0.1 K below T_out.
+- `report.py`: V7 gets its own table (1b) with a reference-model column; the conclusion states the result.
+- `reference_model._heat_config_C`: finite-volume solve of k T'' + H - h_lat (P/A) m(x) (T - T_out) = 0
+  with the lumped end sinks; the reference set now includes V7a/V7b (`lat_vs_VF.csv`).
+- `plots.fig11_lateral`: T_end - T_out vs h_lat for each w_wall.
