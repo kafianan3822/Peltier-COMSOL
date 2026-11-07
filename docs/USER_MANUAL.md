@@ -378,6 +378,26 @@ Recording**; the recorded Java lines appear in the Application Builder's method 
 
 Repeat until all 8 stages pass. Every fix is permanent: you will not see the same error again.
 
+### 7.3b "Invalid property value": the name is right, the option value is wrong
+
+If COMSOL says `Invalid property value` it also prints the values it accepts, for example
+
+```
+- Property: growthrate (Growth rate)
+'Growth rate' is a string.
+- : "linear", "exponential"
+```
+
+Find the constant whose *value* is the rejected option. Option values are listed with kind
+`value` in `docs/VERIFY_API_NAMES.md`; in this example it is `DIST_GEOMETRIC`. Pick the allowed
+value that matches the GUI choice, and put it in `config\api_names_override.yaml`:
+
+```yaml
+DIST_GEOMETRIC: "exponential"
+```
+
+If no constant holds the rejected value, paste the error to whoever maintains the scripts.
+
 ### 7.4 Names that fix themselves
 
 Result variable names (`semi.U_tot`, `semi.JX`, `semi.I0_2`, ...) are **tried automatically**

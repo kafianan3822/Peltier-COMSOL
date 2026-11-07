@@ -215,13 +215,13 @@ class PinPeltierBuilder:
                     d.set(api.name("DIST_NUMELEM"), str(nd))   # str: a Python int is ambiguous (int/boolean) in JPype
             else:
                 with verify("DIST_TYPE"):
-                    d.set(api.name("DIST_TYPE"), "predefined")
+                    d.set(api.name("DIST_TYPE"), api.name("DIST_PREDEFINED"))
                 with verify("DIST_ELEMCOUNT"):
                     d.set(api.name("DIST_ELEMCOUNT"), str(ni))   # str: a Python int is ambiguous (int/boolean) in JPype
                 with verify("DIST_ELEMRATIO"):
                     d.set(api.name("DIST_ELEMRATIO"), str(ratio))   # str: a Python int is ambiguous (int/boolean) in JPype
                 with verify("DIST_GROWTH"):
-                    d.set(api.name("DIST_GROWTH"), "geometric")
+                    d.set(api.name("DIST_GROWTH"), api.name("DIST_GEOMETRIC"))
                 with verify("DIST_REVERSE"):
                     d.set(api.name("DIST_REVERSE"), rev)
             self._dists[tag] = d
@@ -387,7 +387,7 @@ class PinPeltierBuilder:
                 with verify("DOP_PROFILE"):
                     d.set(api.name("DOP_PROFILE"), api.name("DOP_GAUSS"))
                 with verify("DOP_LSCALE_SRC"):
-                    d.set(api.name("DOP_LSCALE_SRC"), "length")
+                    d.set(api.name("DOP_LSCALE_SRC"), api.name("DOP_LSCALE_LENGTH"))
                 with verify("DOP_LSCALE"):
                     d.set(api.name("DOP_LSCALE"), "l_dec")
             else:
@@ -652,7 +652,7 @@ class PinPeltierBuilder:
         step.set("punit", ["V"])
         try:
             with verify("STEP_CONTINUATION"):
-                step.set(api.name("STEP_CONTINUATION"), "manual")
+                step.set(api.name("STEP_CONTINUATION"), api.name("STEP_CONT_MANUAL"))
             with verify("STEP_CONT_PARAM"):
                 step.set(api.name("STEP_CONT_PARAM"), "VF")
         except ApiNameError as e:

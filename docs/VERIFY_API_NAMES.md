@@ -71,6 +71,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`DOP_GAUSS`](#dop_gauss) | value | `gaussian` | Profile = Gaussian |
 | [`DOP_NONE`](#dop_none) | value | `none` | Profile = none / step (background box) |
 | [`DOP_LSCALE_SRC`](#dop_lscale_src) | property | `pspec` | Specify profile length scale (vs junction depth) |
+| [`DOP_LSCALE_LENGTH`](#dop_lscale_length) | value | `length` | Specify profile length scale (option value) |
 | [`DOP_LSCALE`](#dop_lscale) | property | `l` | Profile length scale (decay length) |
 | [`SRH_TAUN`](#srh_taun) | property | `taun` | Trap-Assisted Recombination > Electron lifetime, SRH |
 | [`SRH_TAUP`](#srh_taup) | property | `taup` | Trap-Assisted Recombination > Hole lifetime, SRH |
@@ -107,6 +108,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`STEP_USEDISABLE`](#step_usedisable) | property | `useadvanceddisable` | Study step > Modify model configuration for study step (check box) |
 | [`STEP_DISABLED`](#step_disabled) | property | `disabledphysics` | Study step > disable physics features list |
 | [`STEP_CONTINUATION`](#step_continuation) | property | `pcontinuationmode` | Study step > Study Extensions > Auxiliary sweep > Run continuation for |
+| [`STEP_CONT_MANUAL`](#step_cont_manual) | value | `manual` | Run continuation for = a chosen parameter (option value) |
 | [`STEP_CONT_PARAM`](#step_cont_param) | property | `pcontinuation` | Study step > Auxiliary sweep > Run continuation for = VF |
 | [`SOLVER_STOL`](#solver_stol) | property | `stol` | Solver Configurations > Stationary Solver 1 > Relative tolerance |
 | [`SOLVER_SEGREGATED`](#solver_segregated) | feature | `Segregated` | Stationary Solver > right-click > Segregated |
@@ -127,6 +129,8 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`MESH_EDGE`](#mesh_edge) | feature | `Edge` | Mesh > Edge (1D) |
 | [`MESH_DIST`](#mesh_dist) | feature | `Distribution` | Edge > right-click > Distribution |
 | [`DIST_TYPE`](#dist_type) | property | `type` | Distribution > Distribution type |
+| [`DIST_PREDEFINED`](#dist_predefined) | value | `predefined` | Distribution type = Predefined |
+| [`DIST_GEOMETRIC`](#dist_geometric) | value | `exponential` | Distribution method = Geometric (stored as 'exponential'; confirmed by COMSOL 6.3) |
 | [`DIST_NUMELEM`](#dist_numelem) | property | `numelem` | Distribution (Fixed number) > Number of elements |
 | [`DIST_ELEMCOUNT`](#dist_elemcount) | property | `elemcount` | Distribution (Predefined) > Number of elements |
 | [`DIST_ELEMRATIO`](#dist_elemratio) | property | `elemratio` | Distribution (Predefined) > Element ratio |
@@ -496,6 +500,14 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **GUI action:** Specify profile length scale (vs junction depth)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "length")`
 
+### DOP_LSCALE_LENGTH
+
+<a id="dop_lscale_length"></a>
+
+- **Current value:** `length` (value)
+- **GUI action:** Specify profile length scale (option value)
+- **Java pattern in Save-as-Java output:** `feature("adm1").set("pspec", "<HERE>")`
+
 ### DOP_LSCALE
 
 <a id="dop_lscale"></a>
@@ -784,6 +796,14 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **GUI action:** Study step > Study Extensions > Auxiliary sweep > Run continuation for
 - **Java pattern in Save-as-Java output:** `feature("stat").set("<HERE>", "manual")`
 
+### STEP_CONT_MANUAL
+
+<a id="step_cont_manual"></a>
+
+- **Current value:** `manual` (value)
+- **GUI action:** Run continuation for = a chosen parameter (option value)
+- **Java pattern in Save-as-Java output:** `feature("stat").set("pcontinuationmode", "<HERE>")`
+
 ### STEP_CONT_PARAM
 
 <a id="step_cont_param"></a>
@@ -943,6 +963,22 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `type` (property)
 - **GUI action:** Distribution > Distribution type
 - **Java pattern in Save-as-Java output:** `feature("dis1").set("<HERE>", "predefined")`
+
+### DIST_PREDEFINED
+
+<a id="dist_predefined"></a>
+
+- **Current value:** `predefined` (value)
+- **GUI action:** Distribution type = Predefined
+- **Java pattern in Save-as-Java output:** `feature("dis1").set("type", "<HERE>")`
+
+### DIST_GEOMETRIC
+
+<a id="dist_geometric"></a>
+
+- **Current value:** `exponential` (value)
+- **GUI action:** Distribution method = Geometric (stored as 'exponential'; confirmed by COMSOL 6.3)
+- **Java pattern in Save-as-Java output:** `feature("dis1").set("growthrate", "<HERE>")`
 
 ### DIST_NUMELEM
 
