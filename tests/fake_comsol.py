@@ -327,10 +327,57 @@ class FakeJava:
             def dataset(self, tag=None):
                 d = outer._result.children["dataset"]
                 return d if tag is None else d.children[tag]
+
+            def numerical(self, tag=None):
+                n = outer._result.children["numerical"]
+                if tag is not None:
+                    return n.children[tag]
+
+                class L:
+                    def create(self, t, ftype):
+                        f = FakeNumerical(t, ftype, outer.fake)
+                        n.children[t] = f
+                        return f
+
+                    def remove(self, t):
+                        n.children.pop(t, None)
+
+                    def tags(self):
+                        return list(n.children)
+                return L()
         return R()
 
     def save(self, path):
         self.saved.append(path)
+
+
+class FakeNumerical(FakeEntity):
+    """EvalGlobal / Eval numerical feature: computeResult()[0] -> [inner][expr]; getData() -> [expr][inner][pt]."""
+
+    def __init__(self, tag, ftype, fake):
+        super().__init__(tag, ftype)
+        self.fake = fake
+
+    def _ctx(self):
+        study, _ = self.fake._study_of_dset(self.props["data"])
+        exprs = self.props["expr"]
+        exprs = list(exprs) if isinstance(exprs, (list, tuple)) else [exprs]
+        return study, self.fake._vf(study), exprs
+
+    def computeResult(self):
+        study, VF, exprs = self._ctx()
+        outer = self.props.get("outersolnum")
+        cols = []
+        for e in exprs:
+            r = np.asarray(self.fake._global_or_field(e, VF, study, int(outer) if outer else None), float)
+            if r.ndim != 1:
+                raise RuntimeError(f"not a global expression: {e}")
+            cols.append(r)
+        return [np.column_stack(cols)]
+
+    def getData(self):
+        study, VF, exprs = self._ctx()
+        return [self.fake._field(e, VF) for e in exprs]
 
 
 class FakeModel:
@@ -382,6 +429,10 @@ class FakeModel:
                 d.props["solution"] = st
                 d._label = f"{study.tag}//{s._label}"
                 ds[d.tag] = d
+
+    def _study_of_dset(self, tag):
+        st = self.java._result.children["dataset"].children[tag].props["solution"]
+        return st.replace("sol_", "").replace("_p", ""), st.endswith("_p")
 
     def _study_of_label(self, label):
         for d in self.java._result.children["dataset"].children.values():

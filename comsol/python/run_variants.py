@@ -36,7 +36,7 @@ sys.path.insert(0, str(HERE))
 
 from api_names import TAGS as T, ApiNameError  # noqa: E402
 from common.csvio import write_csv  # noqa: E402
-from common.params import expand_variants, load_base, parse_range  # noqa: E402
+from common.params import Q_E, expand_variants, load_base, parse_range  # noqa: E402
 
 LOG = logging.getLogger("pin_peltier")
 MODELS = ROOT / "comsol" / "models"
@@ -109,15 +109,41 @@ def point_temps(b, study: str) -> pd.DataFrame:
 PROFILE_COLS = ["x", "Ec", "Ev", "Efn", "Efp", "n", "p", "Ndop", "JdotE", "Q_tot", "Q_rec", "T", "tfluxX"]
 
 
+def _field_or_nan(b, expr, study, unit, shape_like=None):
+    """One field column; NaN (with a warning) if the variable is unavailable or COMSOL rejects it."""
+    if expr is None:
+        return None
+    try:
+        return b.eval_field(expr, study, unit=unit)
+    except Exception as exc:
+        LOG.warning("profile column '%s' not available (%s); written as NaN", expr, " ".join(str(exc).split())[:160])
+        return None
+
+
+def _energy_to_eV(a):
+    """Band energies: COMSOL may return J (about 1e-19) or V/eV (about 1); normalise to eV."""
+    if a is None:
+        return None
+    return a / Q_E if np.nanmax(np.abs(a)) < 1e-10 else a
+
+
 def profiles(b, study_semi: str, study_T: str, VFs: list[float]) -> dict[float, pd.DataFrame]:
     """Spec §6.2 profiles at mesh nodes; carriers/heat from study_semi, T/flux from study_T
-    (identical semi solution in both because of one-way coupling)."""
+    (identical semi solution in both because of one-way coupling). Each column is evaluated on its
+    own, so a missing optional variable (e.g. band edges) gives a NaN column instead of an error."""
     jx, ex, hs = b.var("J_X"), b.var("E_X"), b.hs_expr
-    exprs = ["x", b.var("EC"), b.var("EV"), b.var("EFN"), b.var("EFP"), b.var("N_E"), b.var("P_H"),
-             b.var("NDOP"), f"{jx}*{ex}", hs, f"({hs})-{jx}*{ex}"]
-    units = ["m", "eV", "eV", "eV", "eV", "1/m^3", "1/m^3", "1/m^3", "W/m^3", "W/m^3", "W/m^3"]
-    vals = b.eval_field(exprs, study_semi, unit=units)
-    tvals = b.eval_field(["x", "T", b.var("TFLUX_X")], study_T, unit=["m", "K", "W/m^2"])
+    x = b.eval_field("x", study_semi, unit="m")
+    cols_def = [("Ec", b.var("EC"), None), ("Ev", b.var("EV"), None), ("Efn", b.var("EFN"), None),
+                ("Efp", b.var("EFP"), None), ("n", b.var("N_E"), "1/m^3"), ("p", b.var("P_H"), "1/m^3"),
+                ("Ndop", b.var("NDOP"), "1/m^3"), ("JdotE", f"{jx}*{ex}", "W/m^3"), ("Q_tot", hs, "W/m^3"),
+                ("Q_rec", f"({hs})-{jx}*{ex}", "W/m^3")]
+    vals = {}
+    for name, expr, unit in cols_def:
+        a = _field_or_nan(b, expr, study_semi, unit)
+        vals[name] = _energy_to_eV(a) if name in ("Ec", "Ev", "Efn", "Efp") else a
+    xT = b.eval_field("x", study_T, unit="m")
+    TT = b.eval_field("T", study_T, unit="K")
+    qT = _field_or_nan(b, b.var("TFLUX_X"), study_T, "W/m^2")
     VFa = b.eval_global("VF", study_semi, unit="V")
     VFt = b.eval_global("VF", study_T, unit="V")
     out = {}
@@ -127,10 +153,15 @@ def profiles(b, study_semi: str, study_T: str, VFs: list[float]) -> dict[float, 
         if abs(VFa[i] - v) > 1e-9 or abs(VFt[k] - v) > 1e-9:
             LOG.warning("VF=%g not on the sweep grid; skipped", v)
             continue
-        cols = {c: a[i] for c, a in zip(PROFILE_COLS[:11], vals)}
-        if not np.allclose(tvals[0][k], cols["x"]):
+        npts = x[i].size
+        cols = {"x": x[i]}
+        for name, _, _ in cols_def:
+            a = vals[name]
+            cols[name] = a[i] if a is not None else np.full(npts, np.nan)
+        if not np.allclose(xT[k], x[i]):
             raise RuntimeError("profile export: node coordinates differ between studies")
-        cols["T"], cols["tfluxX"] = tvals[1][k], tvals[2][k]
+        cols["T"] = TT[k]
+        cols["tfluxX"] = qT[k] if qT is not None else np.full(npts, np.nan)
         df = pd.DataFrame(cols)[PROFILE_COLS]
         df = df.sort_values("x", kind="stable").reset_index(drop=True)
         out[v] = df

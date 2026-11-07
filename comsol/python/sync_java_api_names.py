@@ -52,6 +52,11 @@ def api_block() -> str:
         c = [v.value] + [x for x in v.candidates if x != v.value]
         lines.append("      {" + ", ".join(_q(x) for x in [k] + c) + "},")
     lines.append("  };")
+    lines.append("  /** Variables needed only for optional outputs (may stay unresolved). */")
+    lines.append("  static final String[] OPTIONAL_VARIABLES = {" + ", ".join(_q(k) for k in api.OPTIONAL_VARIABLES) + "};")
+    lines.append("  /** Last-resort formulas; {J_X} is replaced by the resolved current-density name. */")
+    lines.append("  static final String[][] COMPUTED_FALLBACKS = {" + ", ".join(
+        "{" + _q(k) + ", " + _q(v) + "}" for k, v in api.COMPUTED_FALLBACKS.items()) + "};")
     lines.append("  // END API_NAMES")
     return "\n".join(lines)
 

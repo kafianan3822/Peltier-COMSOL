@@ -1100,7 +1100,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `semi.U_tot` (variable)
 - **GUI action:** Results > Add expression > Semiconductor > Generation-recombination > total recombination
 - **Java pattern in Save-as-Java output:** `search 'total recombination' in the variable list`
-- **Candidates probed at run time:** `semi.U_tot`, `semi.R_tot`, `semi.U`, `semi.Rtot`, `semi.GR_tot`
+- **Candidates probed at run time:** `semi.U_tot`, `semi.R_tot`, `semi.U`, `semi.Rtot`, `semi.GR_tot`, `semi.R`
 
 ### J_X
 
@@ -1109,7 +1109,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `semi.JX` (variable)
 - **GUI action:** Results > Add expression > Semiconductor > Current > Total current density, x
 - **Java pattern in Save-as-Java output:** `search 'current density' in the variable list`
-- **Candidates probed at run time:** `semi.JX`, `semi.Jx`, `semi.J_x`
+- **Candidates probed at run time:** `semi.JX`, `semi.Jx`, `semi.J_x`, `semi.JnX+semi.JpX`, `-semi.normJ`
 
 ### E_X
 
@@ -1118,7 +1118,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `semi.EX` (variable)
 - **GUI action:** Results > Add expression > Semiconductor > Electric field, x
 - **Java pattern in Save-as-Java output:** `search 'Electric field' in the variable list`
-- **Candidates probed at run time:** `semi.EX`, `semi.Ex`, `-d(V,x)`
+- **Candidates probed at run time:** `semi.EX`, `semi.Ex`, `-d(V,x)`, `-d(V,X)`
 
 ### I_TERMINAL
 
@@ -1136,7 +1136,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `semi.Ec` (variable)
 - **GUI action:** Semiconductor > Band diagram > Conduction band energy
 - **Java pattern:** variable, not present in Save-as-Java output; see 'variable' above
-- **Candidates probed at run time:** `semi.Ec`, `semi.Ec_e`
+- **Candidates probed at run time:** `semi.Ec`, `semi.Ec_e`, `semi.Ec_ev`
 
 ### EV
 
@@ -1190,7 +1190,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `semi.Ndoping` (variable)
 - **GUI action:** Semiconductor > Signed dopant concentration
 - **Java pattern:** variable, not present in Save-as-Java output; see 'variable' above
-- **Candidates probed at run time:** `semi.Ndoping`, `semi.Nd_net`, `semi.Ndop`
+- **Candidates probed at run time:** `semi.Ndoping`, `semi.Nd_net`, `semi.Ndop`, `semi.Nd-semi.Na`
 
 ### ND_TOT
 
@@ -1235,7 +1235,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **Current value:** `ht.tfluxX` (variable)
 - **GUI action:** Heat Transfer > Total heat flux, x component
 - **Java pattern:** variable, not present in Save-as-Java output; see 'variable' above
-- **Candidates probed at run time:** `ht.tfluxX`, `ht.tfluxx`, `ht.dfluxX`
+- **Candidates probed at run time:** `ht.tfluxX`, `ht.tfluxx`, `ht.dfluxX`, `ht.dfluxx`, `-k_Si*d(T,x)`
 
 ## Notes on units (also worth confirming once)
 

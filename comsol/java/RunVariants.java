@@ -165,27 +165,31 @@ public class RunVariants {
   /** Variable names probed after the first solve: {KEY, default, alternatives...}. */
   static final String[][] CANDIDATES = {
       {"Q_TOT", "semi.Q_tot", "semi.Qh", "semi.Q"},
-      {"U_TOT", "semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot"},
-      {"J_X", "semi.JX", "semi.Jx", "semi.J_x"},
-      {"E_X", "semi.EX", "semi.Ex", "-d(V,x)"},
+      {"U_TOT", "semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot", "semi.R"},
+      {"J_X", "semi.JX", "semi.Jx", "semi.J_x", "semi.JnX+semi.JpX", "-semi.normJ"},
+      {"E_X", "semi.EX", "semi.Ex", "-d(V,x)", "-d(V,X)"},
       {"I_TERMINAL", "semi.I0_2", "semi.I0_mc_p", "semi.mc2.I0", "semi.I0_1"},
-      {"EC", "semi.Ec", "semi.Ec_e"},
+      {"EC", "semi.Ec", "semi.Ec_e", "semi.Ec_ev"},
       {"EV", "semi.Ev", "semi.Ev_e"},
       {"EFN", "semi.Efn", "semi.Efn_e"},
       {"EFP", "semi.Efp", "semi.Efp_e"},
       {"N_E", "semi.N", "semi.n", "Ne", "N"},
       {"P_H", "semi.P", "semi.p", "Ph", "P"},
-      {"NDOP", "semi.Ndoping", "semi.Nd_net", "semi.Ndop"},
+      {"NDOP", "semi.Ndoping", "semi.Nd_net", "semi.Ndop", "semi.Nd-semi.Na"},
       {"ND_TOT", "semi.Nd", "semi.Nd_plus", "semi.Ndplus"},
       {"NA_TOT", "semi.Na", "semi.Na_minus", "semi.Naminus"},
       {"NC_VAR", "semi.Nc", "semi.Nc_eff"},
       {"NV_VAR", "semi.Nv", "semi.Nv_eff"},
-      {"TFLUX_X", "ht.tfluxX", "ht.tfluxx", "ht.dfluxX"},
+      {"TFLUX_X", "ht.tfluxX", "ht.tfluxx", "ht.dfluxX", "ht.dfluxx", "-k_Si*d(T,x)"},
   };
   /** Property names with alternatives tried in order: {KEY, default, alternatives...}. */
   static final String[][] PROP_CANDIDATES = {
       {"FEAT_AUGER", "AugerRecombination", "Auger", "AugerRecombinationModel", "AugerModel"},
   };
+  /** Variables needed only for optional outputs (may stay unresolved). */
+  static final String[] OPTIONAL_VARIABLES = {"EC", "EV", "EFN", "EFP", "U_TOT", "ND_TOT", "NA_TOT", "NC_VAR", "NV_VAR"};
+  /** Last-resort formulas; {J_X} is replaced by the resolved current-density name. */
+  static final String[][] COMPUTED_FALLBACKS = {{"I_TERMINAL", "Ac*abs(pt_p({J_X}))"}};
   // END API_NAMES
 
   // BEGIN SHARED
@@ -454,7 +458,10 @@ public class RunVariants {
   }
 
   static String heatSourceExpr(String qsrc) {
-    return qsrc.equals("builtin") ? var("Q_TOT") : var("Q_TOT") + "+k_B_const*T0*" + var("U_TOT");
+    if (qsrc.equals("builtin")) return var("Q_TOT");
+    if (var("U_TOT") == null)
+      throw new RuntimeException("qsrc=corrected needs U_TOT, which is not available; variant skipped");
+    return var("Q_TOT") + "+k_B_const*T0*" + var("U_TOT");
   }
 
   static void setHeatSource(Model m, String qsrc) {
@@ -589,6 +596,15 @@ public class RunVariants {
 
   /** Global expression on a dataset, one value per inner solution (outer > 0 selects a sweep step). */
   static double[] evalGlobal(Model m, String expr, String unit, String dset, int outer) {
+    try {
+      return evalGlobalOnce(m, expr, unit, dset, outer);
+    } catch (RuntimeException e) {
+      if (unit == null) throw e;
+      return evalGlobalOnce(m, expr, null, dset, outer);   // unit rejected: SI default
+    }
+  }
+
+  static double[] evalGlobalOnce(Model m, String expr, String unit, String dset, int outer) {
     String tag = "pp_eg" + (evalCounter++);
     NumericalFeature ev = m.result().numerical().create(tag, "EvalGlobal");
     try {
@@ -706,8 +722,8 @@ public class RunVariants {
     if (m.find()) MOBILITY_BASE = m.group(1);
     int i = js.indexOf("\"names\"");
     if (i >= 0) {
-      Matcher kv = Pattern.compile("\"([A-Z_]+)\"\\s*:\\s*\"([^\"]*)\"").matcher(js.substring(i));
-      while (kv.find()) NAMES.put(kv.group(1), kv.group(2));
+      Matcher kv = Pattern.compile("\"([A-Z_]+)\"\\s*:\\s*(null|\"([^\"]*)\")").matcher(js.substring(i));
+      while (kv.find()) NAMES.put(kv.group(1), kv.group(3));
     }
   }
 
@@ -776,9 +792,11 @@ public class RunVariants {
     String jx = var("J_X"), ex = var("E_X"), hs = HS_EXPR;
     String[] ex1 = {"x", var("EC"), var("EV"), var("EFN"), var("EFP"), var("N_E"), var("P_H"), var("NDOP"),
         jx + "*" + ex, hs, "(" + hs + ")-" + jx + "*" + ex};
-    String[] un1 = {"m", "eV", "eV", "eV", "eV", "1/m^3", "1/m^3", "1/m^3", "W/m^3", "W/m^3", "W/m^3"};
-    double[][][] a = evalField(m, ex1, un1, dsSemi);
-    double[][][] t = evalField(m, new String[]{"x", "T", var("TFLUX_X")}, new String[]{"m", "K", "W/m^2"}, dsT);
+    // each column on its own: an unavailable variable gives a NaN column instead of an error
+    double[][][] a = new double[ex1.length][][];
+    for (int c = 0; c < ex1.length; c++) a[c] = fieldOrNull(m, ex1[c], dsSemi);
+    for (int c = 1; c <= 4; c++) if (a[c] != null) toEV(a[c]);
+    double[][][] t = {fieldOrNull(m, "x", dsT), fieldOrNull(m, "T", dsT), fieldOrNull(m, var("TFLUX_X"), dsT)};
     double[] VFa = evalGlobal(m, "VF", "V", dsSemi, 0), VFt = evalGlobal(m, "VF", "V", dsT, 0);
     String[] cols = {"x", "Ec", "Ev", "Efn", "Efp", "n", "p", "Ndop", "JdotE", "Q_tot", "Q_rec", "T", "tfluxX"};
     for (String vs : CFG.get("sweep.profile_VF").split(",")) {
@@ -793,15 +811,32 @@ public class RunVariants {
       double[][] data = new double[cols.length][np];
       for (int q = 0; q < np; q++) {
         int o = order[q];
-        for (int c = 0; c < 11; c++) data[c][q] = a[c][i][o];
+        for (int c = 0; c < 11; c++) data[c][q] = a[c] == null ? Double.NaN : a[c][i][o];
         data[11][q] = t[1][k][o];
-        data[12][q] = t[2][k][o];
+        data[12][q] = t[2] == null ? Double.NaN : t[2][k][o];
       }
       String name = vs.endsWith(".0") ? vs.substring(0, vs.length() - 2) : vs;
       String[] h = Arrays.copyOf(hdr, hdr.length + 1);
       h[hdr.length] = "VF: " + v;
       writeCsv(out + "/profiles_VF" + name + ".csv", h, cols, data);
     }
+  }
+
+  static double[][] fieldOrNull(Model m, String expr, String ds) {
+    if (expr == null) return null;
+    try {
+      return evalField(m, new String[]{expr}, null, ds)[0];
+    } catch (Exception e) {
+      log("WARNING profile column '" + expr + "' not available: " + firstLine(e));
+      return null;
+    }
+  }
+
+  /** Band energies may come back in J (about 1e-19); convert to eV. */
+  static void toEV(double[][] a) {
+    double mx = 0;
+    for (double[] r : a) for (double v : r) mx = Math.max(mx, Math.abs(v));
+    if (mx < 1e-10) for (double[] r : a) for (int i = 0; i < r.length; i++) r[i] /= 1.602176634e-19;
   }
 
   static int nearest(double[] a, double v) {

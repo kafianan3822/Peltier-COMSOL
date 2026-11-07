@@ -289,17 +289,17 @@ VERIFY: dict[str, V] = {
     "U_TOT": V("semi.U_tot", "variable",
                "Results > Add expression > Semiconductor > Generation-recombination > total recombination",
                "search 'total recombination' in the variable list",
-               ["semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot"]),
+               ["semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot", "semi.R"]),
     "J_X": V("semi.JX", "variable", "Results > Add expression > Semiconductor > Current > Total current density, x",
-             "search 'current density' in the variable list", ["semi.JX", "semi.Jx", "semi.J_x"]),
+             "search 'current density' in the variable list", ["semi.JX", "semi.Jx", "semi.J_x", "semi.JnX+semi.JpX", "-semi.normJ"]),
     "E_X": V("semi.EX", "variable", "Results > Add expression > Semiconductor > Electric field, x",
-             "search 'Electric field' in the variable list", ["semi.EX", "semi.Ex", "-d(V,x)"]),
+             "search 'Electric field' in the variable list", ["semi.EX", "semi.Ex", "-d(V,x)", "-d(V,X)"]),
     "I_TERMINAL": V("semi.I0_2", "variable",
                     "Results > Add expression > Semiconductor > Terminals > Terminal current (terminal of mc_p)",
                     "Metal Contact mc_p > Terminal name; variable semi.I0_<name>",
                     ["semi.I0_2", "semi.I0_mc_p", "semi.mc2.I0", "semi.I0_1"]),
     "EC": V("semi.Ec", "variable", "Semiconductor > Band diagram > Conduction band energy", "",
-            ["semi.Ec", "semi.Ec_e"]),
+            ["semi.Ec", "semi.Ec_e", "semi.Ec_ev"]),
     "EV": V("semi.Ev", "variable", "Semiconductor > Band diagram > Valence band energy", "",
             ["semi.Ev", "semi.Ev_e"]),
     "EFN": V("semi.Efn", "variable", "Semiconductor > Band diagram > Electron quasi-Fermi level", "",
@@ -309,7 +309,7 @@ VERIFY: dict[str, V] = {
     "N_E": V("semi.N", "variable", "Semiconductor > Electron concentration", "", ["semi.N", "semi.n", "Ne", "N"]),
     "P_H": V("semi.P", "variable", "Semiconductor > Hole concentration", "", ["semi.P", "semi.p", "Ph", "P"]),
     "NDOP": V("semi.Ndoping", "variable", "Semiconductor > Signed dopant concentration", "",
-              ["semi.Ndoping", "semi.Nd_net", "semi.Ndop"]),
+              ["semi.Ndoping", "semi.Nd_net", "semi.Ndop", "semi.Nd-semi.Na"]),
     "ND_TOT": V("semi.Nd", "variable", "Semiconductor > Donor concentration (for M2 N_tot)", "",
                 ["semi.Nd", "semi.Nd_plus", "semi.Ndplus"]),
     "NA_TOT": V("semi.Na", "variable", "Semiconductor > Acceptor concentration (for M2 N_tot)", "",
@@ -319,7 +319,7 @@ VERIFY: dict[str, V] = {
     "NV_VAR": V("semi.Nv", "variable", "Semiconductor > Effective DOS, valence band", "",
                 ["semi.Nv", "semi.Nv_eff"]),
     "TFLUX_X": V("ht.tfluxX", "variable", "Heat Transfer > Total heat flux, x component", "",
-                 ["ht.tfluxX", "ht.tfluxx", "ht.dfluxX"]),
+                 ["ht.tfluxX", "ht.tfluxx", "ht.dfluxX", "ht.dfluxx", "-k_Si*d(T,x)"]),
 }
 
 # Non-verify (stable) tags chosen by this package -- not COMSOL names.
@@ -332,6 +332,12 @@ TAGS = dict(
     std_eq_iv="std_eq_iv", std_room="std_room", std_float="std_float", std_lat="std_lat",
     intop_all="intop_all", pt_n="pt_n", pt_c="pt_c", pt_p="pt_p", intop_i="intop_i",
 )
+
+# Variables that are only needed for optional outputs: if no candidate evaluates, the build continues
+# and the affected outputs are NaN (EC..EFP: band diagram) or skipped (U_TOT: qsrc=corrected variants).
+OPTIONAL_VARIABLES = ("EC", "EV", "EFN", "EFP", "U_TOT", "ND_TOT", "NA_TOT", "NC_VAR", "NV_VAR")
+# Last-resort expressions built from other (already resolved) names; '{J_X}' is filled in at run time.
+COMPUTED_FALLBACKS = {"I_TERMINAL": "Ac*abs(pt_p({J_X}))"}
 
 # Thermal nodes active per configuration (spec §4.4, §7)
 CONFIG_NODES = {
