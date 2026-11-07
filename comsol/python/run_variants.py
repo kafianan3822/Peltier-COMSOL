@@ -269,14 +269,17 @@ def main(argv=None) -> int:
     for r in runs:
         b = load_builder(client)
         try:
-            if r.get("mobility") == "M1" and b.material_used != "library":
+            if r.get("mobility") == "M1" and b.mobility_base != "M1":
                 r = dict(r, mobility="M2")
-                LOG.warning("%s: M1 needs the library material -> running with M2", r["id"])
-            if r.get("fletcher") or r.get("bgn") == "slotboom":
-                if b.material_used != "library":
-                    LOG.error("%s needs library material parameters (BGN/Fletcher); skipped", r["id"])
-                    failed.append((r["id"], "needs library material"))
-                    continue
+                LOG.warning("%s: M1 (Arora) not available in this build -> running with M2", r["id"])
+            if r.get("fletcher") and b.mobility_base != "M1":
+                LOG.error("%s needs the Arora + Fletcher mobility models; skipped", r["id"])
+                failed.append((r["id"], "Fletcher needs M1"))
+                continue
+            if (r.get("fletcher") or r.get("bgn") == "slotboom") and b.material_used != "library":
+                LOG.error("%s needs library material parameters (BGN/Fletcher); skipped", r["id"])
+                failed.append((r["id"], "needs library material"))
+                continue
             apply_variant(b, r)
             export_variant(b, r, reverse=(not a.no_reverse) and r["id"] in ("V0", "V1"), version=version)
         except ApiNameError as e:

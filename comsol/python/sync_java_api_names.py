@@ -44,6 +44,14 @@ def api_block() -> str:
         c = [v.value] + [x for x in v.candidates if x != v.value]
         lines.append("      {" + ", ".join(_q(x) for x in [k] + c) + "},")
     lines.append("  };")
+    lines.append("  /** Property names with alternatives tried in order: {KEY, default, alternatives...}. */")
+    lines.append("  static final String[][] PROP_CANDIDATES = {")
+    for k, v in api.VERIFY.items():
+        if v.kind == "variable" or not v.candidates:
+            continue
+        c = [v.value] + [x for x in v.candidates if x != v.value]
+        lines.append("      {" + ", ".join(_q(x) for x in [k] + c) + "},")
+    lines.append("  };")
     lines.append("  // END API_NAMES")
     return "\n".join(lines)
 

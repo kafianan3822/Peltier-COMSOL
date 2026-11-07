@@ -54,8 +54,8 @@ public class RunVariants {
   static final String SMM_BGN_SLOTBOOM = "slotboom";  // value: Band-gap narrowing = Slotboom (confirmed by COMSOL 6.3)
   static final String SMM_INCION_PROP = "Ionization";  // property: smm1 > Dopant Ionization (confirmed by COMSOL 6.3)
   static final String SMM_ION_COMPLETE = "complete";  // value: Dopant Ionization = Complete ionization (COMSOL default; 'incomplete' confirmed)
-  static final String SMM_MUN_SEL = "mun_mob";  // property: smm1 > Mobility Model > Electron mobility (select model node)
-  static final String SMM_MUP_SEL = "mup_mob";  // property: smm1 > Mobility Model > Hole mobility (select model node)
+  static final String SMM_MUN_SEL = "mun_mob";  // property: smm1 > Mobility Model > Electron mobility (select model node); 'mun_mob' rejected by COMSOL 6.3, alternatives are tried, else the build falls back to M2
+  static final String SMM_MUP_SEL = "mup_mob";  // property: smm1 > Mobility Model > Hole mobility (select model node); see SMM_MUN_SEL
   static final String SMM_MUN_USER = "mun";  // property: smm1 > Electron mobility (user defined, M2)
   static final String SMM_MUP_USER = "mup";  // property: smm1 > Hole mobility (user defined, M2)
   static final String MOB_INPUT_N = "mun_in";  // property: Fletcher node > Input electron mobility = Arora
@@ -175,6 +175,11 @@ public class RunVariants {
       {"NC_VAR", "semi.Nc", "semi.Nc_eff"},
       {"NV_VAR", "semi.Nv", "semi.Nv_eff"},
       {"TFLUX_X", "ht.tfluxX", "ht.tfluxx", "ht.dfluxX"},
+  };
+  /** Property names with alternatives tried in order: {KEY, default, alternatives...}. */
+  static final String[][] PROP_CANDIDATES = {
+      {"SMM_MUN_SEL", "mun_mob", "ElectronMobility", "mun_src", "mun_model", "MobilityModelElectrons"},
+      {"SMM_MUP_SEL", "mup_mob", "HoleMobility", "mup_src", "mup_model", "MobilityModelHoles"},
   };
   // END API_NAMES
 
@@ -402,9 +407,8 @@ public class RunVariants {
       } else if (existing.contains("mmfc1")) {
         smm.feature("mmfc1").active(false);
       }
-      final String sel = top;
-      verify("SMM_MUN_SEL", SMM_MUN_SEL, () -> smm.set(SMM_MUN_SEL, sel));
-      verify("SMM_MUP_SEL", SMM_MUP_SEL, () -> smm.set(SMM_MUP_SEL, sel));
+      setFirst(smm, "SMM_MUN_SEL", top);
+      setFirst(smm, "SMM_MUP_SEL", top);
     } else {
       if (fletcher) throw new RuntimeException("Fletcher add-on is defined on top of Arora (M1) only");
       for (String t : new String[]{"mmal1", "mmfc1"}) if (existing.contains(t)) smm.feature(t).active(false);
@@ -417,6 +421,25 @@ public class RunVariants {
       setUserdef(smm, SMM_MUN_USER, "mun_CT", "SMM_MUN_USER");
       setUserdef(smm, SMM_MUP_USER, "mup_CT", "SMM_MUP_USER");
     }
+  }
+
+  /** Set value on the first accepted property name of PROP_CANDIDATES[key]; ApiNameError if none. */
+  static String setFirst(PhysicsFeature f, String key, String value) {
+    for (String[] c : PROP_CANDIDATES) {
+      if (!c[0].equals(key)) continue;
+      StringBuilder err = new StringBuilder();
+      for (int i = 1; i < c.length; i++) {
+        try {
+          f.set(c[i], value);
+          if (i > 1) log("API name " + key + ": '" + c[1] + "' rejected, '" + c[i] + "' works");
+          return c[i];
+        } catch (Exception e) {
+          err.append(c[i]).append(": ").append(firstLine(e)).append(" | ");
+        }
+      }
+      throw new ApiNameError(key, c[1], new RuntimeException("no candidate accepted: " + err));
+    }
+    throw new IllegalArgumentException("no PROP_CANDIDATES entry for " + key);
   }
 
   static String heatSourceExpr(String qsrc) {
@@ -856,7 +879,12 @@ public class RunVariants {
           failed.add(r.get("id"));
           continue;
         }
-        if (r.get("mobility").equals("M1") && !MATERIAL_USED.equals("library")) r.put("mobility", "M2");
+        if (Boolean.parseBoolean(r.get("fletcher")) && !MOBILITY_BASE.equals("M1")) {
+          log(r.get("id") + " needs the Arora + Fletcher mobility models; skipped");
+          failed.add(r.get("id"));
+          continue;
+        }
+        if (r.get("mobility").equals("M1") && !MOBILITY_BASE.equals("M1")) r.put("mobility", "M2");
         Model m = ModelUtil.load("Model", ROOT + "/comsol/models/pin_peltier_base.mph");
         try {
           applyVariant(m, r);

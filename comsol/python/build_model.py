@@ -369,7 +369,16 @@ class PinPeltierBuilder:
         if self.mobility_base == "M2":
             LOG.warning("fallback material has no Arora parameters -> base mobility = M2 "
                         "(Caughey-Thomas, spec §4.3). Recorded in the run headers; see CHANGES.md.")
-        self.set_mobility(self.mobility_base, fletcher=False)
+        try:
+            self.set_mobility(self.mobility_base, fletcher=False)
+        except ApiNameError as e:
+            if self.mobility_base != "M1":
+                raise
+            LOG.warning("could not select the Arora mobility model (M1) in smm1: %s", e)
+            LOG.warning("-> continuing with mobility option M2 (Caughey-Thomas, spec §4.3). Variants that ask "
+                        "for M1 run with M2; V2a/V2b (Fletcher on Arora) are skipped. See CHANGES.md M16.")
+            self.mobility_base = "M2"
+            self.set_mobility("M2", fletcher=False)
 
         for tag, dtype, x0, w, conc, profile in (
             (T["dop_bg"], "acceptor", "0", "Ltot", "N_bg", "none"),
@@ -474,10 +483,8 @@ class PinPeltierBuilder:
                 with verify("MOB_INPUT_P"):
                     f.set(api.name("MOB_INPUT_P"), T["mob_arora"])
                 top = T["mob_fletcher"]
-            with verify("SMM_MUN_SEL"):
-                smm.set(api.name("SMM_MUN_SEL"), top)
-            with verify("SMM_MUP_SEL"):
-                smm.set(api.name("SMM_MUP_SEL"), top)
+            for key in ("SMM_MUN_SEL", "SMM_MUP_SEL"):
+                self.set_first(smm, key, top)
         else:
             if fletcher:
                 raise RuntimeError("Fletcher add-on is defined on top of Arora (M1) only")
@@ -491,6 +498,24 @@ class PinPeltierBuilder:
                 LOG.debug("mobility selector does not take 'userdef'; setting user-defined values only")
             self.set_userdef(smm, api.name("SMM_MUN_USER"), "mun_CT", "SMM_MUN_USER")
             self.set_userdef(smm, api.name("SMM_MUP_USER"), "mup_CT", "SMM_MUP_USER")
+
+    def set_first(self, feat, key: str, value) -> str:
+        """Set `value` on the first property name of api key `key` that COMSOL accepts
+        (its value, then its candidates). Remembers the working name; ApiNameError if none."""
+        item = api.VERIFY[key]
+        names = [item.value] + [c for c in item.candidates if c != item.value]
+        errors = []
+        for n in names:
+            try:
+                feat.set(n, value)
+            except Exception as exc:
+                errors.append(f"{n}: {str(exc).splitlines()[0] if str(exc) else exc}")
+                continue
+            if n != item.value:
+                LOG.warning("API name %s: '%s' rejected, '%s' works", key, item.value, n)
+                item.value = n
+            return n
+        raise ApiNameError(key, extra="none of " + ", ".join(names) + " accepted: " + " | ".join(errors))
 
     # ================================================================= STAGE 4
     def stage4(self) -> None:

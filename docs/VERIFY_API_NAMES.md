@@ -52,8 +52,8 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`SMM_BGN_SLOTBOOM`](#smm_bgn_slotboom) | value | `slotboom` | Band-gap narrowing = Slotboom (confirmed by COMSOL 6.3) |
 | [`SMM_INCION_PROP`](#smm_incion_prop) | property | `Ionization` | smm1 > Dopant Ionization (confirmed by COMSOL 6.3) |
 | [`SMM_ION_COMPLETE`](#smm_ion_complete) | value | `complete` | Dopant Ionization = Complete ionization (COMSOL default; 'incomplete' confirmed) |
-| [`SMM_MUN_SEL`](#smm_mun_sel) | property | `mun_mob` | smm1 > Mobility Model > Electron mobility (select model node) |
-| [`SMM_MUP_SEL`](#smm_mup_sel) | property | `mup_mob` | smm1 > Mobility Model > Hole mobility (select model node) |
+| [`SMM_MUN_SEL`](#smm_mun_sel) | property | `mun_mob` | smm1 > Mobility Model > Electron mobility (select model node); 'mun_mob' rejected by COMSOL 6.3, alternatives are tried, else the build falls back to M2 |
+| [`SMM_MUP_SEL`](#smm_mup_sel) | property | `mup_mob` | smm1 > Mobility Model > Hole mobility (select model node); see SMM_MUN_SEL |
 | [`SMM_MUN_USER`](#smm_mun_user) | property | `mun` | smm1 > Electron mobility (user defined, M2) |
 | [`SMM_MUP_USER`](#smm_mup_user) | property | `mup` | smm1 > Hole mobility (user defined, M2) |
 | [`MOB_INPUT_N`](#mob_input_n) | property | `mun_in` | Fletcher node > Input electron mobility = Arora |
@@ -354,16 +354,18 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 <a id="smm_mun_sel"></a>
 
 - **Current value:** `mun_mob` (property)
-- **GUI action:** smm1 > Mobility Model > Electron mobility (select model node)
+- **GUI action:** smm1 > Mobility Model > Electron mobility (select model node); 'mun_mob' rejected by COMSOL 6.3, alternatives are tried, else the build falls back to M2
 - **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "mmal1")`
+- **Candidates probed at run time:** `mun_mob`, `ElectronMobility`, `mun_src`, `mun_model`, `MobilityModelElectrons`
 
 ### SMM_MUP_SEL
 
 <a id="smm_mup_sel"></a>
 
 - **Current value:** `mup_mob` (property)
-- **GUI action:** smm1 > Mobility Model > Hole mobility (select model node)
+- **GUI action:** smm1 > Mobility Model > Hole mobility (select model node); see SMM_MUN_SEL
 - **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", "mmal1")`
+- **Candidates probed at run time:** `mup_mob`, `HoleMobility`, `mup_src`, `mup_model`, `MobilityModelHoles`
 
 ### SMM_MUN_USER
 

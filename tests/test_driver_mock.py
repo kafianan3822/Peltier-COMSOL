@@ -120,3 +120,17 @@ def test_stage7_and_stage8(built, tmp_path, monkeypatch):
     assert path.name == "pin_peltier_base.mph"
     assert built.hs_expr == "semi.Q_tot"
     assert (built.stage_dir / "build_info.json").exists()
+
+
+def test_set_first_tries_alternatives_and_mobility_needs_a_name(built, monkeypatch):
+    import api_names as api
+    from fake_comsol import FakeEntity
+    smm = built.semi.feature("smm1")
+    monkeypatch.setattr(api.VERIFY["SMM_MUN_SEL"], "value", "mun_mob")
+    monkeypatch.setattr(FakeEntity, "REJECT", {"mun_mob"})
+    assert built.set_first(smm, "SMM_MUN_SEL", "mmal1") == "ElectronMobility"
+    assert api.VERIFY["SMM_MUN_SEL"].value == "ElectronMobility"
+    monkeypatch.setattr(FakeEntity, "REJECT", set(api.VERIFY["SMM_MUP_SEL"].candidates))
+    built.material_used = "library"
+    with pytest.raises(bm.ApiNameError):
+        built.set_mobility("M1", fletcher=False)

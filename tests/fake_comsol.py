@@ -45,7 +45,11 @@ class FakeEntity:
         self._sel = FakeSelection()
 
     # property access
+    REJECT: set = set()   # property names the fake COMSOL refuses (tests)
+
     def set(self, name, value, desc=None):
+        if name in FakeEntity.REJECT:
+            raise RuntimeError(f"Unknown parameter {name}.")
         if isinstance(value, int) and not isinstance(value, bool):
             # JPype: a Python int matches both set(String,int) and set(String,boolean)
             raise RuntimeError("Ambiguous overloads found for PropFeatureClient.set(str,int)")
