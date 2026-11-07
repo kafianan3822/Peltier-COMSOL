@@ -46,6 +46,9 @@ class FakeEntity:
 
     # property access
     def set(self, name, value, desc=None):
+        if isinstance(value, int) and not isinstance(value, bool):
+            # JPype: a Python int matches both set(String,int) and set(String,boolean)
+            raise RuntimeError("Ambiguous overloads found for PropFeatureClient.set(str,int)")
         self.props[name] = value
         return self
 

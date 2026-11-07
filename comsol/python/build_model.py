@@ -60,6 +60,9 @@ def verify(key: str, extra: str = ""):
     except ApiNameError:
         raise
     except Exception as exc:  # JPype wraps com.comsol.util.exceptions.FlException
+        if "Ambiguous overloads" in str(exc):
+            raise RuntimeError(f"Python/Java type problem in the script while setting {key} (not a wrong "
+                               f"COMSOL name; please report it): {exc}") from exc
         raise ApiNameError(key, exc, extra) from exc
 
 
@@ -209,14 +212,14 @@ class PinPeltierBuilder:
             d.selection().set([dom])
             if kind == "fixed":
                 with verify("DIST_NUMELEM"):
-                    d.set(api.name("DIST_NUMELEM"), nd)
+                    d.set(api.name("DIST_NUMELEM"), str(nd))   # str: a Python int is ambiguous (int/boolean) in JPype
             else:
                 with verify("DIST_TYPE"):
                     d.set(api.name("DIST_TYPE"), "predefined")
                 with verify("DIST_ELEMCOUNT"):
-                    d.set(api.name("DIST_ELEMCOUNT"), ni)
+                    d.set(api.name("DIST_ELEMCOUNT"), str(ni))   # str: a Python int is ambiguous (int/boolean) in JPype
                 with verify("DIST_ELEMRATIO"):
-                    d.set(api.name("DIST_ELEMRATIO"), ratio)
+                    d.set(api.name("DIST_ELEMRATIO"), str(ratio))   # str: a Python int is ambiguous (int/boolean) in JPype
                 with verify("DIST_GROWTH"):
                     d.set(api.name("DIST_GROWTH"), "geometric")
                 with verify("DIST_REVERSE"):
