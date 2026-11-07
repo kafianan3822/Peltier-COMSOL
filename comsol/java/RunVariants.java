@@ -860,30 +860,28 @@ public class RunVariants {
 
   static void profiles(Model m, String dsSemi, String dsT, String out, String[] hdr) throws IOException {
     String jx = var("J_X"), ex = var("E_X"), hs = HS_EXPR;
-    String[] ex1 = {"x", var("EC"), var("EV"), var("EFN"), var("EFP"), var("N_E"), var("P_H"), var("NDOP"),
+    // common grid: sorted unique node coordinates. Each quantity is read with its own x and mapped
+    // onto it (COMSOL 6.3 returns different point sets for node and per-element quantities).
+    double[] grid = Arrays.stream(evalField(m, new String[]{"x"}, null, dsSemi)[0][0]).sorted().distinct().toArray();
+    String[] ex1 = {null, var("EC"), var("EV"), var("EFN"), var("EFP"), var("N_E"), var("P_H"), var("NDOP"),
         jx + "*" + ex, hs, "(" + hs + ")-" + jx + "*" + ex};
-    // each column on its own: an unavailable variable gives a NaN column instead of an error
     double[][][] a = new double[ex1.length][][];
-    for (int c = 0; c < ex1.length; c++) a[c] = fieldOrNull(m, ex1[c], dsSemi);
+    for (int c = 1; c < ex1.length; c++) a[c] = columnOnGrid(m, ex1[c], dsSemi, grid);
     for (int c = 1; c <= 4; c++) if (a[c] != null) toEV(a[c]);
-    double[][][] t = {fieldOrNull(m, "x", dsT), fieldOrNull(m, "T", dsT), fieldOrNull(m, var("TFLUX_X"), dsT)};
+    double[][] tT = columnOnGrid(m, "T", dsT, grid), qT = columnOnGrid(m, var("TFLUX_X"), dsT, grid);
     double[] VFa = evalGlobal(m, "VF", "V", dsSemi, 0), VFt = evalGlobal(m, "VF", "V", dsT, 0);
     String[] cols = {"x", "Ec", "Ev", "Efn", "Efp", "n", "p", "Ndop", "JdotE", "Q_tot", "Q_rec", "T", "tfluxX"};
     for (String vs : CFG.get("sweep.profile_VF").split(",")) {
       double v = Double.parseDouble(vs);
       int i = nearest(VFa, v), k = nearest(VFt, v);
       if (Math.abs(VFa[i] - v) > 1e-9 || Math.abs(VFt[k] - v) > 1e-9) continue;
-      int np = a[0][i].length;
-      Integer[] order = new Integer[np];
-      for (int q = 0; q < np; q++) order[q] = q;
-      final double[] xs = a[0][i];
-      Arrays.sort(order, Comparator.comparingDouble(q -> xs[q]));
+      int np = grid.length;
       double[][] data = new double[cols.length][np];
       for (int q = 0; q < np; q++) {
-        int o = order[q];
-        for (int c = 0; c < 11; c++) data[c][q] = a[c] == null ? Double.NaN : a[c][i][o];
-        data[11][q] = t[1][k][o];
-        data[12][q] = t[2] == null ? Double.NaN : t[2][k][o];
+        data[0][q] = grid[q];
+        for (int c = 1; c < 11; c++) data[c][q] = a[c] == null ? Double.NaN : a[c][i][q];
+        data[11][q] = tT == null ? Double.NaN : tT[k][q];
+        data[12][q] = qT == null ? Double.NaN : qT[k][q];
       }
       String name = vs.endsWith(".0") ? vs.substring(0, vs.length() - 2) : vs;
       String[] h = Arrays.copyOf(hdr, hdr.length + 1);
@@ -892,14 +890,37 @@ public class RunVariants {
     }
   }
 
-  static double[][] fieldOrNull(Model m, String expr, String ds) {
+  /** expr on the grid, per sweep step: duplicates (element boundaries) averaged, linear interpolation. */
+  static double[][] columnOnGrid(Model m, String expr, String ds, double[] grid) {
     if (expr == null) return null;
+    double[][][] r;
     try {
-      return evalField(m, new String[]{expr}, null, ds)[0];
+      r = evalField(m, new String[]{"x", expr}, null, ds);
     } catch (Exception e) {
       log("WARNING profile column '" + expr + "' not available: " + firstLine(e));
       return null;
     }
+    double[][] out = new double[r[0].length][grid.length];
+    for (int i = 0; i < r[0].length; i++) {
+      TreeMap<Double, double[]> acc = new TreeMap<>();
+      for (int q = 0; q < r[0][i].length; q++) {
+        double[] sv = acc.computeIfAbsent(Math.rint(r[0][i][q] * 1e14) / 1e14, key -> new double[2]);
+        sv[0] += r[1][i][q];
+        sv[1] += 1;
+      }
+      double[] xu = new double[acc.size()], vu = new double[acc.size()];
+      int j = 0;
+      for (Map.Entry<Double, double[]> e : acc.entrySet()) {
+        xu[j] = e.getKey();
+        vu[j++] = e.getValue()[0] / e.getValue()[1];
+      }
+      for (int g = 0; g < grid.length; g++) {
+        double x = Math.min(Math.max(grid[g], xu[0]), xu[xu.length - 1]);
+        double y = interp(x, xu, vu);
+        out[i][g] = Double.isNaN(y) ? vu[xu.length - 1] : y;
+      }
+    }
+    return out;
   }
 
   /** Band energies may come back in J (about 1e-19); convert to eV. */

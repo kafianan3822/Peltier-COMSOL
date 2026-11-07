@@ -375,9 +375,18 @@ class FakeNumerical(FakeEntity):
             cols.append(r)
         return [np.column_stack(cols)]
 
+    ELEMENTWISE = ("EX", "Ec", "Ev", "Efn", "Efp")
+
     def getData(self):
         study, VF, exprs = self._ctx()
-        return [self.fake._field(e, VF) for e in exprs]
+        data = [self.fake._field(e, VF) for e in exprs]
+        if any(k in e for e in exprs for k in self.ELEMENTWISE):
+            # like COMSOL 6.3: per-element quantities come back with interior points duplicated,
+            # so their point set differs from a plain node evaluation of 'x'
+            n = data[0].shape[-1]
+            idx = np.concatenate([[0], np.repeat(np.arange(1, n - 1), 2), [n - 1]])
+            data = [d[..., idx] for d in data]
+        return data
 
 
 class FakeModel:

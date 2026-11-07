@@ -109,15 +109,30 @@ def point_temps(b, study: str) -> pd.DataFrame:
 PROFILE_COLS = ["x", "Ec", "Ev", "Efn", "Efp", "n", "p", "Ndop", "JdotE", "Q_tot", "Q_rec", "T", "tfluxX"]
 
 
-def _field_or_nan(b, expr, study, unit, shape_like=None):
-    """One field column; NaN (with a warning) if the variable is unavailable or COMSOL rejects it."""
+def _on_grid(xs: np.ndarray, vs: np.ndarray, grid: np.ndarray) -> np.ndarray:
+    """Map values given at COMSOL's evaluation points onto a common x grid, per sweep step.
+    COMSOL returns different point sets for different quantities (node values vs. per-element
+    values with duplicates at element boundaries: user's run), so duplicates are averaged and
+    the result is interpolated linearly onto `grid`."""
+    xs, vs = np.atleast_2d(xs), np.atleast_2d(vs)
+    out = np.empty((xs.shape[0], grid.size))
+    for i in range(xs.shape[0]):
+        xu, inv = np.unique(np.round(xs[i], 14), return_inverse=True)
+        vu = np.bincount(inv, weights=vs[i]) / np.bincount(inv)
+        out[i] = np.interp(grid, xu, vu)
+    return out
+
+
+def _column(b, expr, study, unit, grid):
+    """One profile quantity on `grid` (shape n_inner x n_grid); None if unavailable (logged)."""
     if expr is None:
         return None
     try:
-        return b.eval_field(expr, study, unit=unit)
+        xs, vs = b.eval_field(["x", expr], study, unit=["m", unit] if unit else None)
     except Exception as exc:
         LOG.warning("profile column '%s' not available (%s); written as NaN", expr, " ".join(str(exc).split())[:160])
         return None
+    return _on_grid(xs, vs, grid)
 
 
 def _energy_to_eV(a):
@@ -128,22 +143,21 @@ def _energy_to_eV(a):
 
 
 def profiles(b, study_semi: str, study_T: str, VFs: list[float]) -> dict[float, pd.DataFrame]:
-    """Spec §6.2 profiles at mesh nodes; carriers/heat from study_semi, T/flux from study_T
-    (identical semi solution in both because of one-way coupling). Each column is evaluated on its
-    own, so a missing optional variable (e.g. band edges) gives a NaN column instead of an error."""
+    """Spec §6.2 profiles on the mesh nodes; carriers/heat from study_semi, T/flux from study_T
+    (identical semi solution in both because of one-way coupling). Each quantity is read together
+    with its own x and mapped onto the common node grid, so columns always have equal length."""
     jx, ex, hs = b.var("J_X"), b.var("E_X"), b.hs_expr
-    x = b.eval_field("x", study_semi, unit="m")
+    grid = np.unique(np.round(np.atleast_2d(b.eval_field("x", study_semi, unit="m"))[0], 14))
     cols_def = [("Ec", b.var("EC"), None), ("Ev", b.var("EV"), None), ("Efn", b.var("EFN"), None),
                 ("Efp", b.var("EFP"), None), ("n", b.var("N_E"), "1/m^3"), ("p", b.var("P_H"), "1/m^3"),
                 ("Ndop", b.var("NDOP"), "1/m^3"), ("JdotE", f"{jx}*{ex}", "W/m^3"), ("Q_tot", hs, "W/m^3"),
                 ("Q_rec", f"({hs})-{jx}*{ex}", "W/m^3")]
     vals = {}
     for name, expr, unit in cols_def:
-        a = _field_or_nan(b, expr, study_semi, unit)
+        a = _column(b, expr, study_semi, unit, grid)
         vals[name] = _energy_to_eV(a) if name in ("Ec", "Ev", "Efn", "Efp") else a
-    xT = b.eval_field("x", study_T, unit="m")
-    TT = b.eval_field("T", study_T, unit="K")
-    qT = _field_or_nan(b, b.var("TFLUX_X"), study_T, "W/m^2")
+    TT = _column(b, "T", study_T, "K", grid)
+    qT = _column(b, b.var("TFLUX_X"), study_T, "W/m^2", grid)
     VFa = b.vf_values(study_semi)
     VFt = b.vf_values(study_T)
     out = {}
@@ -153,18 +167,13 @@ def profiles(b, study_semi: str, study_T: str, VFs: list[float]) -> dict[float, 
         if abs(VFa[i] - v) > 1e-9 or abs(VFt[k] - v) > 1e-9:
             LOG.warning("VF=%g not on the sweep grid; skipped", v)
             continue
-        npts = x[i].size
-        cols = {"x": x[i]}
+        nan = np.full(grid.size, np.nan)
+        cols = {"x": grid}
         for name, _, _ in cols_def:
-            a = vals[name]
-            cols[name] = a[i] if a is not None else np.full(npts, np.nan)
-        if xT[k].shape != x[i].shape or not np.allclose(xT[k], x[i]):
-            raise RuntimeError("profile export: node coordinates differ between studies")
-        cols["T"] = TT[k]
-        cols["tfluxX"] = qT[k] if qT is not None else np.full(npts, np.nan)
-        df = pd.DataFrame(cols)[PROFILE_COLS]
-        df = df.sort_values("x", kind="stable").reset_index(drop=True)
-        out[v] = df
+            cols[name] = vals[name][i] if vals[name] is not None else nan
+        cols["T"] = TT[k] if TT is not None else nan
+        cols["tfluxX"] = qT[k] if qT is not None else nan
+        out[v] = pd.DataFrame(cols)[PROFILE_COLS]
     return out
 
 
