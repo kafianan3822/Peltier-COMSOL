@@ -657,3 +657,19 @@ problem (missing file or package), `2` BUG (cooling ≥ 0.1 K), `3` a COMSOL nam
 - [ ] `report.py` run; no BUG; C1-C5, C7-C9 reviewed in `results\summary.md`
 - [ ] V4 run (C6), then the remaining groups of section 12
 - [ ] Any change of parameters or settings recorded in `CHANGES.md`
+
+
+---
+
+## Final device (extended sweep 0.6-1.5 V)
+
+After the 51-run matrix, the final design (25 um / 0.3 us recombination zone, carrier-carrier
+scattering, corrected heat source) is run on a sweep up to 1.5 V. Everything about it, including
+all differences from V1, is in `docs/FINAL_DEVICE.md`. Short version:
+
+```
+python comsol/python/run_final.py
+python postprocess/final_report.py
+```
+
+Open `results/final/summary_final.md` and the figures in `results/final/figures/`.

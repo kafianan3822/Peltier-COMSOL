@@ -153,3 +153,22 @@ def test_mobility_m1_selects_arora_by_variable(built):
     built.set_mobility("M1", fletcher=True)
     assert smm.props["mun_mat"] == "root.comp1.semi.mun_fl"
     assert smm.feature("mmfc1").props["mun_in_src"] == "root.comp1.semi.mun_ar"
+
+
+def test_final_device_extended_sweep(built, tmp_path):
+    """run_final.py path: extended VF sweep and reduced dT_sink list reach every study and the exports."""
+    import run_final as rf
+    from common.params import expand_final
+    run = expand_final(ids=["FINAL"])[0]
+    assert run["params"]["w_rz"] == "25[um]" and run["qsrc"] == "corrected" and run["fletcher"]
+    sw = rf.sweeps_for(run, 1.1, 0.05)
+    assert sw["VF_iv"] == "range(0,0.05,1.1)" and max(sw["profile_VF"]) <= 1.1
+    run = dict(run, mobility="M2", fletcher=False)      # the fake build has no Arora/Fletcher
+    rv.apply_variant(built, run)
+    rv.set_sweeps(built, sw)
+    out = rv.export_variant(built, run, out_root=tmp_path / "res", reverse=False, sweeps=sw)
+    g = read_csv(out / "global_vs_VF.csv")
+    assert g.VF.iloc[-1] == pytest.approx(1.1) and g.VF.size == 23
+    room = read_csv(out / "room_sweep.csv")
+    assert room.dT_sink.nunique() == 11 and room.VF.max() == pytest.approx(1.1)
+    assert (out / "profiles_VF1.csv").exists()

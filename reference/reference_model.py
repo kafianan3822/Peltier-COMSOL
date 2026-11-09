@@ -47,7 +47,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from common.csvio import write_csv  # noqa: E402
-from common.params import K_B, Q_E, evaluate_params, expand_variants, load_base, parse_range  # noqa: E402
+from common.params import (K_B, Q_E, evaluate_params, expand_final, expand_variants, load_base, load_final,  # noqa: E402
+                           parse_range)
 
 RESULTS = ROOT / "results" / "reference"
 
@@ -59,7 +60,7 @@ MU_P = 470.5e-4
 LIFETIME_CONVENTIONS = {"srh_hl": 2.0, "spec_literal": 1.0}
 DEFAULT_CONVENTION = "srh_hl"
 RECT_SMOOTH = 10e-6        # rect1 transition-zone size, m (spec §5.2)
-PROFILE_VARIANTS = ("V0", "V1")   # profiles are written for the core variants only (repo size)
+PROFILE_VARIANTS = ("V0", "V1", "FINAL", "V1x")   # profiles are written for the core variants only (repo size)
 PROFILE_MAX_ROWS = 2500
 
 
@@ -342,13 +343,19 @@ def room_slope(dev: RefDevice) -> float:
 
 
 # ------------------------------------------------------------- bias sweeps
-def sweep_Vj(dev: RefDevice, Vj_max: float = 0.9, dVj: float = 0.01) -> list[BiasPoint]:
+def sweep_Vj(dev: RefDevice, Vj_max: float = 0.9, dVj: float = 0.01,
+             VF_target: float | None = None) -> list[BiasPoint]:
+    """Continuation in V_j from 0 to Vj_max; with VF_target, continue (up to V_j = 1.2 V)
+    until the terminal voltage reaches VF_target (extended sweeps of the final device)."""
     pts, guess = [], None
-    for Vj in np.round(np.arange(0.0, Vj_max + 1e-12, dVj), 10):
-        bp = bias_point(dev, float(Vj), guess)
+    Vj = 0.0
+    while True:
+        bp = bias_point(dev, float(np.round(Vj, 10)), guess)
         guess = bp.sol
         pts.append(bp)
-    return pts
+        Vj += dVj
+        if Vj > Vj_max + 1e-12 and (VF_target is None or bp.VF >= VF_target or Vj > 1.2 + 1e-12):
+            return pts
 
 
 def solve_at_VF(dev: RefDevice, VF: float, pts: list[BiasPoint]) -> BiasPoint:
@@ -402,18 +409,19 @@ def _row(dev: RefDevice, bp: BiasPoint) -> dict:
 
 def run_variant(variant_id: str, overrides: dict, convention: str = DEFAULT_CONVENTION,
                 write: bool = True, out_root: Path = RESULTS, header_extra: dict | None = None,
-                configs: list | None = None) -> RefResult:
+                configs: list | None = None, sweeps: dict | None = None) -> RefResult:
     base = load_base()
+    sw = {**base["sweeps"], **(sweeps or {})}
     p = evaluate_params(overrides)
     dev = RefDevice.from_params(p, convention=convention)
-    pts = sweep_Vj(dev)
-    VF_iv = parse_range(base["sweeps"]["VF_iv"])
-    VF_room = parse_range(base["sweeps"]["VF_room"])
-    dTs = parse_range(base["sweeps"]["dT_sink"])
+    VF_iv = parse_range(sw["VF_iv"])
+    VF_room = parse_range(sw["VF_room"])
+    dTs = parse_range(sw["dT_sink"])
+    pts = sweep_Vj(dev, VF_target=max(VF_iv.max(), VF_room.max()) if sweeps else None)
 
     rows = [_row(dev, solve_at_VF(dev, float(v), pts)) for v in VF_iv if v <= pts[-1].VF]
     glob = pd.DataFrame(rows)
-    glob["VF"] = np.round(glob["VF"], 9)
+    glob["VF"] = np.round(glob["VF"], 6)    # root-found to 1e-7 V: snap to the sweep grid
 
     slope = room_slope(dev)
     Q0 = np.interp(VF_room, glob["VF"], glob["Q_room"])
@@ -421,7 +429,9 @@ def run_variant(variant_id: str, overrides: dict, convention: str = DEFAULT_CONV
                          for v, q in zip(VF_room, Q0) for d in dTs])
 
     profiles = {}
-    for v in base["sweeps"]["profile_VF"]:
+    for v in sw["profile_VF"]:
+        if v > pts[-1].VF:
+            continue
         bp = solve_at_VF(dev, float(v), pts)
         TB, qB = _heat_config_B(dev, bp)
         JdotE = bp.J ** 2 / bp.sigma
@@ -522,18 +532,28 @@ def plot_thermophotonic(out_dir: Path) -> list[Path]:
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--set", default="reference",
-                    help="core | reference (core + V5 + V6 + V7, default) | ids comma-separated")
+                    help="core | reference (core + V5 + V6 + V7, default) | final (config/final_device.yaml) "
+                         "| ids comma-separated")
     ap.add_argument("--convention", default=DEFAULT_CONVENTION, choices=list(LIFETIME_CONVENTIONS))
     args = ap.parse_args(argv)
-    if args.set == "core":
+    if args.set == "final":
+        runs = expand_final("all")
+    elif args.set == "core":
         runs = expand_variants("core")
     elif args.set == "reference":
         runs = expand_variants(ids=["V0", "V1", "V5", "V6", "V7a", "V7b"])
     else:
-        runs = expand_variants(ids=args.set.split(","))
+        ids = args.set.split(",")
+        final_ids = set(load_final()["runs"])
+        runs = (expand_final(ids=ids) if all(i.split("_w_rz")[0] in final_ids for i in ids)
+                else expand_variants(ids=ids))
     summary = []
     for r in runs:
-        res = run_variant(r["id"], r["params"], args.convention, configs=r.get("configs"))
+        res = run_variant(r["id"], r["params"], args.convention, configs=r.get("configs"),
+                          sweeps=r.get("sweeps"),
+                          header_extra={"note": "reference model ignores Fletcher scattering and the heat-source "
+                                                "switch (it always books the full E_g + 3kT per pair)"}
+                          if r.get("sweeps") else None)
         g = res.glob.set_index("VF")
         row = g.loc[np.isclose(g.index, 0.7)].iloc[0] if np.any(np.isclose(g.index, 0.7)) else None
         slope = room_slope(res.dev)

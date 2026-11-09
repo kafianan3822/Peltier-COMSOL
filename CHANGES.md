@@ -81,3 +81,14 @@ The first full-matrix summary copied the parent's Study 1 numbers into the V7 ro
 - `reference_model._heat_config_C`: finite-volume solve of k T'' + H - h_lat (P/A) m(x) (T - T_out) = 0
   with the lumped end sinks; the reference set now includes V7a/V7b (`lat_vs_VF.csv`).
 - `plots.fig11_lateral`: T_end - T_out vs h_lat for each w_wall.
+
+## M22 Final device and extended sweep (docs/FINAL_DEVICE.md)
+- `config/final_device.yaml`: FINAL (25 um / 0.3 us zone, Fletcher, corrected heat source, mesh_factor 2),
+  V1x (V1 unchanged) and FINAL_scan; sweeps 0 -> 1.5 V in 0.01 V steps, dT_sink -50..+50 mK.
+- `comsol/python/run_final.py` (Driver A): same base model and exports as run_variants.py; on
+  non-convergence the run is repeated with VF_max 1.3, then 1.1 V.
+- `run_variants.set_sweeps`, `export_variant(..., sweeps=)`, `room_sweep(b, dT_list)`.
+- Reference model: `sweep_Vj(..., VF_target=)` continues past V_j = 0.9 V until the terminal voltage is
+  reached; `run_variant(..., sweeps=)`; `--set final`. VF snapped to the sweep grid (1e-6 V).
+- `postprocess/final_report.py`: results/final/summary_final.md, figures F1-F7, self-heating validity flag
+  (|T_end - T_room| > 1 K: one-way coupling approximate).

@@ -1,0 +1,37 @@
+[
+ {
+  "name": "F1_IV",
+  "caption": "Current density vs applied voltage (log scale); dotted line: V_j where Auger recombination overtakes SRH (n* = (C tau_eff)^-1/2)",
+  "source": "reference model"
+ },
+ {
+  "name": "F2_voltage_split",
+  "caption": "Junction voltage V_j = VF - V_i (thick) and i-region drop V_i (thin) vs VF",
+  "source": "reference model"
+ },
+ {
+  "name": "F3_dT_vs_VF",
+  "caption": "End cooling T_room - T_end (Config B; equal to dT_max of Config A for the symmetric bar) vs VF; markers: optimum",
+  "source": "reference model"
+ },
+ {
+  "name": "F4_Qroom_COP",
+  "caption": "Q_room(dT_sink = 0) and COP vs VF (Config A)",
+  "source": "reference model"
+ },
+ {
+  "name": "F5_heat_budget",
+  "caption": "FINAL: electrical power, released heat and junction cooling; energy-balance ratio eta_E for both devices",
+  "source": "reference model"
+ },
+ {
+  "name": "F6_T_profiles",
+  "caption": "FINAL: temperature along the bar (Config B, centre held at T_room)",
+  "source": "reference model"
+ },
+ {
+  "name": "F7_zone_scan",
+  "caption": "Peak end cooling (over VF) vs zone lifetime for two zone widths",
+  "source": "reference model"
+ }
+]

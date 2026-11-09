@@ -1,0 +1,52 @@
+# =============================================================================
+# Final device, chosen after the 51-run matrix (see docs/FINAL_DEVICE.md).
+# Same run-dict format as variants.yaml; the `defaults` of variants.yaml apply
+# (MB statistics, no BGN, M1 Arora mobility, Config A + B, rz_on = 0, ...).
+#
+#   python comsol/python/run_final.py              # FINAL + V1x   (COMSOL)
+#   python comsol/python/run_final.py --set all    # + FINAL_scan  (COMSOL)
+#   python reference/reference_model.py --set final   # reference model, no COMSOL
+#   python postprocess/final_report.py             # results/final/summary_final.md
+# =============================================================================
+# mesh_factor 2: the centre elements are ~6 um at mesh_factor 1, too coarse for a 25 um zone
+# (V4 showed mesh_factor 2 changes dT by only 0.19 % for the 100 um zone).
+runs:
+  FINAL:
+    purpose: "Final design: 25 um / 0.3 us central recombination zone, carrier-carrier scattering, corrected heat source"
+    params: {rz_on: "1", w_rz: "25[um]", tau_short: "0.3[us]", mesh_factor: "2"}
+    fletcher: true
+    qsrc: corrected
+    configs: [A, B]
+  V1x:
+    purpose: "V1 exactly as in the matrix (100 um / 1 us zone, builtin heat source), on the extended sweep"
+    params: {rz_on: "1"}
+    configs: [A, B]
+  FINAL_scan:
+    purpose: "COMSOL check of the zone optimum at high bias (final physics, Config B only)"
+    params: {rz_on: "1", mesh_factor: "2"}
+    fletcher: true
+    qsrc: corrected
+    configs: [B]
+    sweep:
+      w_rz:      ["25[um]", "50[um]"]
+      tau_short: ["0.1[us]", "0.3[us]", "1[us]"]
+
+sets:
+  default: [FINAL, V1x]
+  all: [FINAL, V1x, FINAL_scan]
+
+# Extended sweeps. The continuation always starts at VF = 0 (equilibrium); results are
+# reported from report_VF[0] to report_VF[1]. If a sweep does not converge up to VF_max,
+# run_final.py retries with the next value of VF_max_fallbacks.
+sweeps:
+  VF_iv:    "range(0,0.01,1.5)"        # Studies 1 and 3 (and 4)
+  VF_room:  "range(0,0.01,1.5)"        # Study 2
+  dT_sink:  "range(-0.05,0.01,0.05)"   # Study 2 parametric (Q_room is linear in dT_sink)
+  profile_VF: [0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0, 1.2, 1.5]
+  report_VF: [0.6, 1.5]
+  VF_max_fallbacks: [1.5, 1.3, 1.1]
+
+validity:
+  # one-way coupling: the semiconductor is solved at T0 = 300 K. n_i rises by about 8 %/K,
+  # so points whose Config B end temperature differs from T_room by more than this are flagged.
+  max_self_heating_K: 1.0

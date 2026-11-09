@@ -111,7 +111,7 @@ def dT_max_vs_VF(room: pd.DataFrame) -> pd.DataFrame:
 
 def interp_at(df: pd.DataFrame, col: str, VF: float) -> float:
     d = df.dropna(subset=[col]).sort_values("VF")
-    if d.empty or VF < d.VF.min() - 1e-9 or VF > d.VF.max() + 1e-9:
+    if d.empty or VF < d.VF.min() - 1e-6 or VF > d.VF.max() + 1e-6:
         return float("nan")
     return float(np.interp(VF, d.VF, d[col]))
 

@@ -180,10 +180,9 @@ def profiles(b, study_semi: str, study_T: str, VFs: list[float]) -> dict[float, 
     return out
 
 
-def room_sweep(b) -> pd.DataFrame:
+def room_sweep(b, dT_list: str | None = None) -> pd.DataFrame:
     """Q_room(VF, dT_sink) from the Parametric Sweep of std_room; driver-loop fallback."""
-    base = load_base()
-    dTs = parse_range(base["sweeps"]["dT_sink"])
+    dTs = parse_range(dT_list or load_base()["sweeps"]["dT_sink"])
     tf = b.var("TFLUX_X")
     expr = f"Ac*(pt_n({tf})-pt_p({tf})-pt_n({b.qb_n})-pt_p({b.qb_p}))"
     rows = []
@@ -227,12 +226,23 @@ def reverse_bias(b, hdr: dict, out: Path) -> None:
         st.set("plistarr", [fwd])
 
 
+def set_sweeps(b, sweeps: dict) -> None:
+    """Replace the VF sweeps of Studies 1-4 and the dT_sink list of Study 2 (used by run_final.py).
+    Every run reloads the base .mph, so this never leaks into the next run."""
+    for tag, key in ((T["std_eq_iv"], "VF_iv"), (T["std_float"], "VF_iv"), (T["std_lat"], "VF_iv"),
+                     (T["std_room"], "VF_room")):
+        b.j.study(tag).feature("stat").set("plistarr", [sweeps[key]])
+    b.j.study(T["std_room"]).feature("param").set("plistarr", [sweeps["dT_sink"]])
+    LOG.info("sweeps: VF_iv=%s VF_room=%s dT_sink=%s", sweeps["VF_iv"], sweeps["VF_room"], sweeps["dT_sink"])
+
+
 def export_variant(b, run: dict, out_root: Path = RESULTS, solve: bool = True, reverse: bool = True,
-                   version: str = "6.3") -> Path:
+                   version: str = "6.3", sweeps: dict | None = None) -> Path:
     out = out_root / run["id"]
     out.mkdir(parents=True, exist_ok=True)
     hdr = _header(b, run, version)
     base = load_base()
+    sweeps = {**base["sweeps"], **(sweeps or {})}
     t0 = time.time()
     if solve:
         b.solve(T["std_eq_iv"])
@@ -256,12 +266,12 @@ def export_variant(b, run: dict, out_root: Path = RESULTS, solve: bool = True, r
         write_csv(out / "lat_vs_VF.csv", point_temps(b, T["std_lat"]), hdr)
         study_T = study_T if "B" in cfgs else T["std_lat"]
     write_csv(out / "global_vs_VF.csv", glob, hdr)
-    for v, df in profiles(b, T["std_eq_iv"], study_T, base["sweeps"]["profile_VF"]).items():
+    for v, df in profiles(b, T["std_eq_iv"], study_T, sweeps["profile_VF"]).items():
         write_csv(out / f"profiles_VF{v:g}.csv", df, {**hdr, "VF": v, "T,tfluxX from": study_T})
     if "A" in cfgs:
         if solve:
             b.solve(T["std_room"])
-        write_csv(out / "room_sweep.csv", room_sweep(b), hdr)
+        write_csv(out / "room_sweep.csv", room_sweep(b, sweeps["dT_sink"]), hdr)
     if reverse:
         reverse_bias(b, hdr, out)
     LOG.info("variant %s exported to %s (%.1f s)", run["id"], out, time.time() - t0)

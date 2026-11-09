@@ -160,3 +160,14 @@ def test_configC_needs_very_strong_sink_to_go_below_ambient(params):
     warm = rm._heat_config_C(dev, bp, 1e4, 4000.0, 50e-6, 300.0)
     cold = rm._heat_config_C(dev, bp, 1e7, 4000.0, 50e-6, 300.0)
     assert warm[0] > 300.0 > cold[0]
+
+
+def test_extended_sweep_reaches_target():
+    r = rm.run_variant("FINAL", {"rz_on": "1", "w_rz": "25[um]", "tau_short": "0.3[us]"}, write=False,
+                       sweeps={"VF_iv": "range(0,0.1,1.5)", "VF_room": "range(0,0.1,1.5)",
+                               "dT_sink": "range(-0.05,0.05,0.05)", "profile_VF": [0.9]})
+    g = r.glob
+    assert g.VF.max() == pytest.approx(1.5)
+    # cooling at moderate bias, strong Joule heating once the junction barrier is nearly gone
+    assert g.loc[np.isclose(g.VF, 0.9), "Q_room"].iloc[0] > 0 > g.loc[np.isclose(g.VF, 1.5), "Q_room"].iloc[0]
+    assert np.all(g.Vj < 1.0)

@@ -103,11 +103,29 @@ def expand_variants(set_name: str = "core", ids: list[str] | None = None) -> lis
     stats, bgn, mobility, fletcher, qsrc, configs, flag.
     """
     cfg = load_variants()
-    ids = ids or cfg["sets"][set_name]
+    return _expand(cfg["defaults"], cfg["variants"], ids or cfg["sets"][set_name])
+
+
+def load_final(path: Path | None = None) -> dict:
+    with open(path or CONFIG / "final_device.yaml", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def expand_final(set_name: str = "default", ids: list[str] | None = None) -> list[dict]:
+    """Runs of config/final_device.yaml (same run-dict format as expand_variants; the
+    defaults of variants.yaml apply). Each run also carries the extended `sweeps`."""
+    fin = load_final()
+    runs = _expand(load_variants()["defaults"], fin["runs"], ids or fin["sets"][set_name])
+    for r in runs:
+        r["sweeps"] = dict(fin["sweeps"])
+    return runs
+
+
+def _expand(defaults: dict, variants: dict, ids: list[str]) -> list[dict]:
     runs = []
     for vid in ids:
-        v = cfg["variants"][vid]
-        merged = deepcopy(cfg["defaults"])
+        v = variants[vid]
+        merged = deepcopy(defaults)
         merged["params"] = dict(merged.get("params", {}))
         merged["params"].update(v.get("params", {}))
         for key in ("stats", "bgn", "mobility", "fletcher", "qsrc", "configs"):
