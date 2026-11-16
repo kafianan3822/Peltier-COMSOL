@@ -1,33 +1,33 @@
 [
  {
   "name": "fig1_band_diagram",
-  "caption": "Band diagram Ec, Ev, Efn, Efp at VF = 0 and 0.4 V (V0), zoomed on both junctions (placeholder: COMSOL results not available)",
-  "source": "none"
+  "caption": "Band diagram Ec, Ev, Efn, Efp at VF = 0 and 0.4 V (V0), zoomed on both junctions",
+  "source": "COMSOL"
  },
  {
   "name": "fig2_carriers",
   "caption": "Electron and hole densities, V0 vs V1, VF = 0.4 V",
-  "source": "reference model"
+  "source": "COMSOL"
  },
  {
   "name": "fig3_heat_source",
   "caption": "Q_tot(x) zoomed on 0-10 um and the mirror region with J\u00b7E and Q_rec, V0, VF = 0.4 V",
-  "source": "reference model"
+  "source": "COMSOL"
  },
  {
   "name": "fig4_temperature_configB",
   "caption": "KEY FIGURE: T(x) - T_room in mK, Config B, V0 vs V1, VF = 0.4 V",
-  "source": "reference model"
+  "source": "COMSOL"
  },
  {
   "name": "fig5_Qroom_vs_dTsink",
   "caption": "Q_room vs dT_sink (Config A), V0 vs V1, VF = 0.3/0.35/0.4 V, with dT_max markers",
-  "source": "reference model"
+  "source": "COMSOL"
  },
  {
   "name": "fig6_dTmax_COP_vs_VF",
   "caption": "dT_max and COP vs VF (COP at dT = 0 and dT_max/2)",
-  "source": "reference model"
+  "source": "COMSOL"
  },
  {
   "name": "fig7_V5_scaling",
@@ -42,7 +42,7 @@
  {
   "name": "fig9_comsol_vs_reference",
   "caption": "COMSOL (solid) vs reference model (dashed) for V0 and V1",
-  "source": "reference model only"
+  "source": "COMSOL + reference model"
  },
  {
   "name": "fig10_thermophotonic_map",

@@ -36,7 +36,7 @@ def built(ref, tmp_path):
 def test_staged_build_smoke_tests(built):
     b = built
     assert b.material_used == "fallback" and b.mobility_base == "M2"
-    assert b.names["U_TOT"] == "semi.U_tot"
+    assert b.names["U_TOT"] == bm.api.name("U_TOT")  # default or config/api_names_override.yaml
     st = b.j.study("std_room")
     assert st.feature("param").getStringArray("pname") == ["dT_sink"]
     dis = st.feature("stat").getStringArray("disabledphysics")
@@ -47,8 +47,8 @@ def test_staged_build_smoke_tests(built):
     smm = b.semi.feature("smm1")
     assert smm.props["minput_temperature_src"] == "userdef" and smm.props["minput_temperature"] == "T0"
     # contact Peltier sinks
-    assert b.ht.feature("bhs_n").props["Qb"] == "-abs(semi.JX)*Pi_nc"
-    assert b.ht.feature("bhs_p").props["Qb"] == "-abs(semi.JX)*Pi_pc"
+    assert b.ht.feature("bhs_n").props[bm.api.name("BHS_QB")] == "-abs(semi.JX)*Pi_nc"
+    assert b.ht.feature("bhs_p").props[bm.api.name("BHS_QB")] == "-abs(semi.JX)*Pi_pc"
     assert b.Pi[0] == pytest.approx(0.0517, abs=1e-3)      # Ge, Nd = Nc
 
 
@@ -88,7 +88,7 @@ def test_variant_apply_and_export(built, tmp_path):
            "qsrc": "corrected", "stats": "MB", "bgn": "off", "mobility": "M2", "fletcher": False}
     rv.apply_variant(b, run)
     assert b.model.pvals()["rz_on"] == 1.0
-    assert b.hs_expr == "semi.Q_tot+k_B_const*T0*semi.U_tot"
+    assert b.hs_expr == f"{bm.api.name('Q_TOT')}+k_B_const*T0*{bm.api.name('U_TOT')}"
     assert b.mesh_nodes().size == 2 * (400 + 600 + 600 + 400) + 1
     out = rv.export_variant(b, run, out_root=tmp_path / "res", reverse=True)
     g = read_csv(out / "global_vs_VF.csv")

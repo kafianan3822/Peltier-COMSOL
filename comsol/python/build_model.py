@@ -67,6 +67,13 @@ def verify(key: str, extra: str = ""):
         raise ApiNameError(key, exc, extra) from exc
 
 
+def _exc_text(exc: Exception) -> str:
+    """COMSOL exceptions start with a bare 'Exception:' line; keep the informative lines."""
+    lines = [ln.strip() for ln in str(exc).splitlines()]
+    lines = [ln for ln in lines if ln and ln not in ("Exception:", "Messages:")]
+    return " | ".join(lines[:6]) or repr(exc)
+
+
 def diag3(expr: str) -> list[str]:
     return [expr, "0", "0", "0", expr, "0", "0", "0", expr]
 
@@ -301,6 +308,9 @@ class PinPeltierBuilder:
                           ("MAT_NV", "Nv"), ("MAT_MUN", "mun"), ("MAT_MUP", "mup")):
             with verify(key):
                 g.set(api.name(key), fb[prop])
+        if any(re.search(r"\bT\b", str(fb[p])) for p in ("Eg0", "chi0", "Nc", "Nv", "mun", "mup")):
+            # expressions in T (e.g. Nc ~ (T/300[K])^1.5) need temperature declared as a model input
+            g.addInput("temperature")
         LOG.info("material: explicit fallback properties (spec §4.2 table)")
 
     def _copy_library_material(self, mat) -> None:
@@ -356,7 +366,15 @@ class PinPeltierBuilder:
             semi.prop(api.name("SEMI_AREA_GROUP")).set(api.name("SEMI_AREA_PROP"), "Ac")
         self.set_statistics("MB")
         with verify("SEMI_TREF_PROP"):
-            semi.prop(api.name("SEMI_MODEL_GROUP")).set(api.name("SEMI_TREF_PROP"), "T0")
+            grp = semi.prop(api.name("SEMI_MODEL_GROUP"))
+            if api.name("SEMI_TREF_PROP") in [str(p) for p in grp.properties()]:
+                grp.set(api.name("SEMI_TREF_PROP"), "T0")
+            else:
+                # COMSOL 6.3 has no settable energy-level reference temperature on the semi
+                # interface; the semi temperature is still fixed to T0 via SMM_TEMP below.
+                LOG.warning("semi has no property '%s' in group '%s' (COMSOL 6.3); skipping Tref. "
+                            "Semi temperature is fixed to T0 via %s.", api.name("SEMI_TREF_PROP"),
+                            api.name("SEMI_MODEL_GROUP"), api.name("SMM_TEMP"))
         smm = semi.feature(api.name("SMM_TAG"))
         with verify("SMM_TEMP_SRC", "one-way coupling: semi temperature must be the user-defined T0"):
             smm.set(api.name("SMM_TEMP_SRC"), "userdef")
@@ -364,7 +382,12 @@ class PinPeltierBuilder:
             smm.set(api.name("SMM_TEMP"), "T0")
         self.set_bgn("off")
         with verify("SMM_INCION_PROP"):
-            smm.set(api.name("SMM_INCION_PROP"), False)
+            # COMSOL 6.3: "Ionization" takes "complete"/"incomplete"; older versions took a boolean.
+            try:
+                allowed = [str(a) for a in smm.getAllowedPropertyValues(api.name("SMM_INCION_PROP"))]
+            except Exception:
+                allowed = []
+            smm.set(api.name("SMM_INCION_PROP"), "complete" if "complete" in allowed else False)
         self.mobility_base = "M1" if self.si_models else "M2"
         if self.mobility_base == "M2":
             LOG.info("base mobility = M2 (user-defined doping-dependent mobility of %s; the Arora model "
@@ -387,7 +410,13 @@ class PinPeltierBuilder:
             with verify(key):
                 d.set(api.name(key), conc)
             with verify("DOP_X0"):
-                d.set(api.name("DOP_X0"), x0)
+                try:
+                    d.set(api.name("DOP_X0"), x0)
+                except Exception as exc:
+                    # COMSOL 6.3 stores the base position as a 3-vector even in 1D.
+                    if "vector of length 3" not in str(exc):
+                        raise
+                    d.set(api.name("DOP_X0"), [x0, "0", "0"])
             with verify("DOP_W"):
                 d.set(api.name("DOP_W"), w)
             if profile == "gaussian":
@@ -402,6 +431,11 @@ class PinPeltierBuilder:
                     d.set(api.name("DOP_PROFILE"), api.name("DOP_NONE"))
                 except Exception:
                     LOG.debug("background box: profile 'none' not settable (box covers the whole bar)")
+                    # COMSOL 6.3 has no 'none' profile. The default junction-depth mode evaluates
+                    # sqrt(log(N_box/Nb)), which is NaN when N_bg < Nb (default 1e15 cm^-3), even though
+                    # the box spans the whole bar and the drop-off is never used. Decay-length mode avoids it.
+                    with verify("DOP_LSCALE_SRC", "background box: switch drop-off to decay length"):
+                        d.set(api.name("DOP_LSCALE_SRC"), api.name("DOP_LSCALE_LENGTH"))
 
         std = self.j.study().create(T["std_eq_iv"])
         std.label("Study 1: I-V and heat-source map")
@@ -730,11 +764,31 @@ class PinPeltierBuilder:
         raise RuntimeError(f"no {'parametric ' if parametric else ''}dataset found for study {study}")
 
     def _dlabel(self, study: str, parametric=False) -> str:
-        return str(self.j.result().dataset(self.dataset_of(study, parametric)).label())
+        """Dataset name as MPh's evaluate() expects it. MPh 1.4 names datasets
+        '<study label>//<solution label>', so resolve the Java tag to MPh's node name."""
+        tag = self.dataset_of(study, parametric)
+        label = str(self.j.result().dataset(tag).label())
+        if hasattr(self.model, "java"):
+            try:
+                for node in (self.model / "datasets").children():
+                    if str(node.tag()) == tag:
+                        return node.name()
+            except Exception:
+                pass
+            try:
+                names = list(self.model.datasets())
+            except Exception:
+                names = []
+            if names and label not in names:
+                match = [n for n in names if n.endswith("//" + label)]
+                if len(match) == 1:
+                    return match[0]
+        return label
 
     def solve(self, study: str, plist: str | None = None) -> None:
         """Run a study; on failure apply the spec §4.6 fallback (segregated, then half VF step)."""
         std = self.j.study(study)
+        self._drop_stale_sequences(study)
         std.createAutoSequences("all")
         self.set_solver_tolerance(study)
         t0 = time.time()
@@ -743,14 +797,14 @@ class PinPeltierBuilder:
             LOG.info("solved %s in %.1f s", study, time.time() - t0)
             return
         except Exception as exc:
-            LOG.warning("%s failed (%s) -> fallback 1: segregated solver", study, str(exc).splitlines()[0])
+            LOG.warning("%s failed (%s) -> fallback 1: segregated solver", study, _exc_text(exc))
         self.make_segregated(study)
         try:
             std.run()
             LOG.info("solved %s with segregated solver in %.1f s", study, time.time() - t0)
             return
         except Exception as exc:
-            LOG.warning("%s failed again (%s) -> fallback 2: halve the VF step", study, str(exc).splitlines()[0])
+            LOG.warning("%s failed again (%s) -> fallback 2: halve the VF step", study, _exc_text(exc))
         st = std.feature("stat") if "stat" in [str(t) for t in std.feature().tags()] else None
         if st is None:
             raise RuntimeError(f"{study}: no stationary step to refine")
@@ -762,6 +816,30 @@ class PinPeltierBuilder:
         self.make_segregated(study)
         std.run()
         LOG.info("solved %s with segregated solver and half VF step", study)
+
+    def _drop_stale_sequences(self, study: str) -> None:
+        """createAutoSequences("all") does not rebuild an existing solver sequence (COMSOL 6.3).
+        If a study step was added after the sequence was generated (stage 4 adds 'stat' to the
+        stage-3 study), remove the study's solutions so the sequence is regenerated."""
+        steps = {str(t) for t in self.j.study(study).feature().tags()}
+        sols = self.solutions_of(study)
+        if not sols:
+            return
+        covered = set()
+        for s in sols:
+            sol = self.j.sol(s)
+            for t in sol.feature().tags():
+                f = sol.feature(t)
+                if str(f.getType()) == "StudyStep":
+                    try:
+                        covered.add(str(f.getString("studystep")))
+                    except Exception:
+                        pass
+        if steps <= covered:
+            return
+        LOG.info("%s: solver sequence lacks study step(s) %s; regenerating", study, sorted(steps - covered))
+        for s in sols:
+            self.j.sol().remove(s)
 
     def make_segregated(self, study: str) -> None:
         semi_vars = api.name("DEPVARS_SEMI").split(",")
@@ -778,7 +856,11 @@ class PinPeltierBuilder:
                     ss1 = se.feature(api.name("SEG_DEFAULT_STEP"))
                 with verify("SEG_VARS"):
                     ss1.set(api.name("SEG_VARS"), semi_vars)
-                if "ss_T" not in [str(t) for t in se.feature().tags()]:
+                try:
+                    has_ht = self.ht is not None    # raises before stage 5 creates ht
+                except Exception:
+                    has_ht = False
+                if has_ht and "ss_T" not in [str(t) for t in se.feature().tags()]:
                     with verify("SEG_STEP"):
                         ss = se.create("ss_T", api.name("SEG_STEP"))
                     with verify("SEG_VARS"):

@@ -32,7 +32,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`PHYS_HT`](#phys_ht) | feature | `HeatTransfer` | Add Physics > Heat Transfer > Heat Transfer in Solids (ht) |
 | [`FEAT_DOPING`](#feat_doping) | feature | `AnalyticDopingModel` | semi > right-click > Analytic Doping Model |
 | [`FEAT_SRH`](#feat_srh) | feature | `TrapAssistedRecombination` | semi > right-click > Trap-Assisted Recombination |
-| [`FEAT_AUGER`](#feat_auger) | feature | `AugerRecombination` | semi > right-click > Auger Recombination |
+| [`FEAT_AUGER`](#feat_auger) | feature | `AURecombination` | semi > right-click > Auger Recombination |
 | [`FEAT_CONTACT`](#feat_contact) | feature | `MetalContact` | semi > right-click > Metal Contact (select point) |
 | [`FEAT_MOB_ARORA`](#feat_mob_arora) | feature | `AroraMobilityModel` | semi > Semiconductor Material Model 1 > right-click > Arora Mobility Model (LI) |
 | [`FEAT_MOB_FLETCHER`](#feat_mob_fletcher) | feature | `FletcherMobilityModel` | semi > Semiconductor Material Model 1 > right-click > Fletcher Mobility Model (C) |
@@ -40,7 +40,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`SEMI_AREA_PROP`](#semi_area_prop) | property | `A` | semi > Settings > Cross-Sectional Area > A (value Ac) |
 | [`SEMI_MODEL_GROUP`](#semi_model_group) | property | `ModelProperties` | semi > Settings > Model Properties (carrier statistics) |
 | [`SEMI_STATS_PROP`](#semi_stats_prop) | property | `CarrierStatistics` | semi > Settings > Carrier statistics |
-| [`SEMI_STATS_MB`](#semi_stats_mb) | value | `MaxwellBoltzmann` | Carrier statistics = Maxwell-Boltzmann |
+| [`SEMI_STATS_MB`](#semi_stats_mb) | value | `Boltzmann` | Carrier statistics = Maxwell-Boltzmann |
 | [`SEMI_STATS_FD`](#semi_stats_fd) | value | `FermiDirac` | Carrier statistics = Fermi-Dirac |
 | [`SEMI_TREF_PROP`](#semi_tref_prop) | property | `T0` | semi > Settings > Reference temperature for energy levels (Tref) |
 | [`SEMI_DISC_GROUP`](#semi_disc_group) | property | `ShapeProperty` | semi > Settings > Discretization |
@@ -48,9 +48,9 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`SMM_TEMP_SRC`](#smm_temp_src) | property | `minput_temperature_src` | smm1 > Model Input > Temperature = User defined |
 | [`SMM_TEMP`](#smm_temp) | property | `minput_temperature` | smm1 > Model Input > Temperature value |
 | [`SMM_BGN_PROP`](#smm_bgn_prop) | property | `BandGapNarrowing` | smm1 > Band-Gap Narrowing |
-| [`SMM_BGN_OFF`](#smm_bgn_off) | value | `Off` | Band-gap narrowing = Off |
-| [`SMM_BGN_SLOTBOOM`](#smm_bgn_slotboom) | value | `Slotboom` | Band-gap narrowing = Slotboom |
-| [`SMM_INCION_PROP`](#smm_incion_prop) | property | `IncompleteIonization` | smm1 > Dopant Ionization = Complete |
+| [`SMM_BGN_OFF`](#smm_bgn_off) | value | `none` | Band-gap narrowing = Off |
+| [`SMM_BGN_SLOTBOOM`](#smm_bgn_slotboom) | value | `slotboom` | Band-gap narrowing = Slotboom |
+| [`SMM_INCION_PROP`](#smm_incion_prop) | property | `Ionization` | smm1 > Dopant Ionization = Complete |
 | [`SMM_MUN_SEL`](#smm_mun_sel) | property | `mun_mob` | smm1 > Mobility Model > Electron mobility (select model node) |
 | [`SMM_MUP_SEL`](#smm_mup_sel) | property | `mup_mob` | smm1 > Mobility Model > Hole mobility (select model node) |
 | [`SMM_MUN_USER`](#smm_mun_user) | property | `mun` | smm1 > Electron mobility (user defined, M2) |
@@ -58,24 +58,24 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`MOB_INPUT_N`](#mob_input_n) | property | `mun_in` | Fletcher node > Input electron mobility = Arora |
 | [`MOB_INPUT_P`](#mob_input_p) | property | `mup_in` | Fletcher node > Input hole mobility = Arora |
 | [`USERDEF_SUFFIX`](#userdef_suffix) | property | `_mat` | any 'From material / User defined' combo box |
-| [`DOP_TYPE`](#dop_type) | property | `dopantType` | Analytic Doping Model > Impurity type |
+| [`DOP_TYPE`](#dop_type) | property | `impurityType` | Analytic Doping Model > Impurity type |
 | [`DOP_DONOR`](#dop_donor) | value | `donor` | Impurity type = Donor doping |
 | [`DOP_ACCEPTOR`](#dop_acceptor) | value | `acceptor` | Impurity type = Acceptor doping |
-| [`DOP_DIST`](#dop_dist) | property | `dopingDistribution` | Analytic Doping Model > Distribution = Box |
+| [`DOP_DIST`](#dop_dist) | property | `impurityDistribution` | Analytic Doping Model > Distribution = Box |
 | [`DOP_BOX`](#dop_box) | value | `box` | Distribution = Box |
 | [`DOP_NA`](#dop_na) | property | `NAc` | Acceptor concentration N_A0 |
 | [`DOP_ND`](#dop_nd) | property | `NDc` | Donor concentration N_D0 |
-| [`DOP_X0`](#dop_x0) | property | `x0` | Box > Base position (1D) |
-| [`DOP_W`](#dop_w) | property | `W` | Box > Width (1D) |
-| [`DOP_PROFILE`](#dop_profile) | property | `profile` | Profile away from uniform region = Gaussian |
+| [`DOP_X0`](#dop_x0) | property | `rb` | Box > Base position (1D) |
+| [`DOP_W`](#dop_w) | property | `jwidth` | Box > Width (1D) |
+| [`DOP_PROFILE`](#dop_profile) | property | `dropoff_profile` | Profile away from uniform region = Gaussian |
 | [`DOP_GAUSS`](#dop_gauss) | value | `gaussian` | Profile = Gaussian |
 | [`DOP_NONE`](#dop_none) | value | `none` | Profile = none / step (background box) |
-| [`DOP_LSCALE_SRC`](#dop_lscale_src) | property | `pspec` | Specify profile length scale (vs junction depth) |
-| [`DOP_LSCALE_LENGTH`](#dop_lscale_length) | value | `length` | Specify profile length scale (option value) |
-| [`DOP_LSCALE`](#dop_lscale) | property | `l` | Profile length scale (decay length) |
+| [`DOP_LSCALE_SRC`](#dop_lscale_src) | property | `JunctionOrLength` | Specify profile length scale (vs junction depth) |
+| [`DOP_LSCALE_LENGTH`](#dop_lscale_length) | value | `decay_length` | Specify profile length scale (option value) |
+| [`DOP_LSCALE`](#dop_lscale) | property | `l_1D` | Profile length scale (decay length) |
 | [`SRH_TAUN`](#srh_taun) | property | `taun` | Trap-Assisted Recombination > Electron lifetime, SRH |
 | [`SRH_TAUP`](#srh_taup) | property | `taup` | Trap-Assisted Recombination > Hole lifetime, SRH |
-| [`SRH_ET`](#srh_et) | property | `Et` | Trap energy level (relative to midgap = 0) |
+| [`SRH_ET`](#srh_et) | property | `Delta_Et` | Trap energy level (relative to midgap = 0) |
 | [`AUG_CN`](#aug_cn) | property | `Cn` | Auger > Electron Auger coefficient |
 | [`AUG_CP`](#aug_cp) | property | `Cp` | Auger > Hole Auger coefficient |
 | [`MC_TERMTYPE`](#mc_termtype) | property | `TerminalType` | Metal Contact > Terminal type = Voltage |
@@ -85,9 +85,9 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`FEAT_BHS`](#feat_bhs) | feature | `BoundaryHeatSource` | ht > right-click > Boundary Heat Source (point in 1D) |
 | [`FEAT_TEMP`](#feat_temp) | feature | `TemperatureBoundary` | ht > right-click > Temperature (point in 1D) |
 | [`HS_Q0`](#hs_q0) | property | `Q0` | Heat Source > General source Q |
-| [`BHS_QB`](#bhs_qb) | property | `Qb` | Boundary Heat Source > Q_b |
+| [`BHS_QB`](#bhs_qb) | property | `Qb_input` | Boundary Heat Source > Q_b |
 | [`TEMP_T0`](#temp_t0) | property | `T0` | Temperature > T_0 |
-| [`HT_AREA_GROUP`](#ht_area_group) | property | `d` | ht > Settings > Cross-Sectional Area (1D) |
+| [`HT_AREA_GROUP`](#ht_area_group) | property | `PhysicalModelProperty` | ht > Settings > Cross-Sectional Area (1D) |
 | [`HT_AREA_PROP`](#ht_area_prop) | property | `Ac` | ht > Settings > Cross-Sectional Area > A_c (value Ac) |
 | [`HT_BFLUX_GROUP`](#ht_bflux_group) | property | `ShapeProperty` | ht > Discretization > Compute boundary fluxes |
 | [`HT_BFLUX_PROP`](#ht_bflux_prop) | property | `boundaryFlux_temperature` | ht > Discretization > Compute boundary fluxes (check box) |
@@ -115,7 +115,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`SEG_STEP`](#seg_step) | feature | `SegregatedStep` | Segregated > right-click > Segregated Step |
 | [`SEG_VARS`](#seg_vars) | property | `segvar` | Segregated Step > Variables |
 | [`SEG_DEFAULT_STEP`](#seg_default_step) | tag | `ssDef` | Segregated 1 > default Segregated Step node |
-| [`DEPVARS_SEMI`](#depvars_semi) | value | `comp1_V,comp1_N,comp1_P` | Dependent variables of semi (FV formulation) |
+| [`DEPVARS_SEMI`](#depvars_semi) | value | `comp1_V,comp1_Ne,comp1_Ph` | Dependent variables of semi (FV formulation) |
 | [`DEPVAR_T`](#depvar_t) | value | `comp1_T` | Dependent variable of ht |
 | [`GEOM_INTERVAL`](#geom_interval) | feature | `Interval` | Geometry 1 > right-click > Interval |
 | [`INT_SPECIFY_PROP`](#int_specify_prop) | property | `intervals` | Interval > Number of intervals = Many |
@@ -137,7 +137,7 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`DIST_GROWTH`](#dist_growth) | property | `growthrate` | Distribution (Predefined) > Distribution method = Geometric |
 | [`DIST_REVERSE`](#dist_reverse) | property | `reverse` | Distribution > Reverse direction |
 | [`Q_TOT`](#q_tot) | variable | `semi.Q_tot` | Results > Add expression > Semiconductor > Heat source |
-| [`U_TOT`](#u_tot) | variable | `semi.U_tot` | Results > Add expression > Semiconductor > Generation-recombination > total recombination |
+| [`U_TOT`](#u_tot) | variable | `semi.Un` | Results > Add expression > Semiconductor > Generation-recombination > total recombination |
 | [`J_X`](#j_x) | variable | `semi.JX` | Results > Add expression > Semiconductor > Current > Total current density, x |
 | [`E_X`](#e_x) | variable | `semi.EX` | Results > Add expression > Semiconductor > Electric field, x |
 | [`I_TERMINAL`](#i_terminal) | variable | `semi.I0_2` | Results > Add expression > Semiconductor > Terminals > Terminal current (terminal of mc_p) |
@@ -192,9 +192,10 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="feat_auger"></a>
 
-- **Current value:** `AugerRecombination` (feature)
+- **Current value:** `AURecombination` (feature)
 - **GUI action:** semi > right-click > Auger Recombination
 - **Java pattern in Save-as-Java output:** `physics("semi").create("auger1", "<HERE>", 1)`
+- **Candidates probed at run time:** `AURecombination`
 
 ### FEAT_CONTACT
 
@@ -256,9 +257,10 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="semi_stats_mb"></a>
 
-- **Current value:** `MaxwellBoltzmann` (value)
+- **Current value:** `Boltzmann` (value)
 - **GUI action:** Carrier statistics = Maxwell-Boltzmann
 - **Java pattern in Save-as-Java output:** `set("CarrierStatistics", "<HERE>")`
+- **Candidates probed at run time:** `Boltzmann`
 
 ### SEMI_STATS_FD
 
@@ -320,25 +322,28 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="smm_bgn_off"></a>
 
-- **Current value:** `Off` (value)
+- **Current value:** `none` (value)
 - **GUI action:** Band-gap narrowing = Off
 - **Java pattern in Save-as-Java output:** `set("BandGapNarrowing", "<HERE>")`
+- **Candidates probed at run time:** `none`
 
 ### SMM_BGN_SLOTBOOM
 
 <a id="smm_bgn_slotboom"></a>
 
-- **Current value:** `Slotboom` (value)
+- **Current value:** `slotboom` (value)
 - **GUI action:** Band-gap narrowing = Slotboom
 - **Java pattern in Save-as-Java output:** `set("BandGapNarrowing", "<HERE>")`
+- **Candidates probed at run time:** `slotboom`
 
 ### SMM_INCION_PROP
 
 <a id="smm_incion_prop"></a>
 
-- **Current value:** `IncompleteIonization` (property)
+- **Current value:** `Ionization` (property)
 - **GUI action:** smm1 > Dopant Ionization = Complete
 - **Java pattern in Save-as-Java output:** `feature("smm1").set("<HERE>", false)`
+- **Candidates probed at run time:** `Ionization`
 
 ### SMM_MUN_SEL
 
@@ -400,9 +405,10 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_type"></a>
 
-- **Current value:** `dopantType` (property)
+- **Current value:** `impurityType` (property)
 - **GUI action:** Analytic Doping Model > Impurity type
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "donor")`
+- **Candidates probed at run time:** `impurityType`
 
 ### DOP_DONOR
 
@@ -424,9 +430,10 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_dist"></a>
 
-- **Current value:** `dopingDistribution` (property)
+- **Current value:** `impurityDistribution` (property)
 - **GUI action:** Analytic Doping Model > Distribution = Box
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "box")`
+- **Candidates probed at run time:** `impurityDistribution`
 
 ### DOP_BOX
 
@@ -456,25 +463,28 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_x0"></a>
 
-- **Current value:** `x0` (property)
+- **Current value:** `rb` (property)
 - **GUI action:** Box > Base position (1D)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "0")`
+- **Candidates probed at run time:** `rb`
 
 ### DOP_W
 
 <a id="dop_w"></a>
 
-- **Current value:** `W` (property)
+- **Current value:** `jwidth` (property)
 - **GUI action:** Box > Width (1D)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "Wn")`
+- **Candidates probed at run time:** `jwidth`
 
 ### DOP_PROFILE
 
 <a id="dop_profile"></a>
 
-- **Current value:** `profile` (property)
+- **Current value:** `dropoff_profile` (property)
 - **GUI action:** Profile away from uniform region = Gaussian
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "gaussian")`
+- **Candidates probed at run time:** `dropoff_profile`
 
 ### DOP_GAUSS
 
@@ -496,25 +506,28 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="dop_lscale_src"></a>
 
-- **Current value:** `pspec` (property)
+- **Current value:** `JunctionOrLength` (property)
 - **GUI action:** Specify profile length scale (vs junction depth)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "length")`
+- **Candidates probed at run time:** `JunctionOrLength`
 
 ### DOP_LSCALE_LENGTH
 
 <a id="dop_lscale_length"></a>
 
-- **Current value:** `length` (value)
+- **Current value:** `decay_length` (value)
 - **GUI action:** Specify profile length scale (option value)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("pspec", "<HERE>")`
+- **Candidates probed at run time:** `decay_length`
 
 ### DOP_LSCALE
 
 <a id="dop_lscale"></a>
 
-- **Current value:** `l` (property)
+- **Current value:** `l_1D` (property)
 - **GUI action:** Profile length scale (decay length)
 - **Java pattern in Save-as-Java output:** `feature("adm1").set("<HERE>", "l_dec")`
+- **Candidates probed at run time:** `l_1D`
 
 ### SRH_TAUN
 
@@ -536,9 +549,10 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="srh_et"></a>
 
-- **Current value:** `Et` (property)
+- **Current value:** `Delta_Et` (property)
 - **GUI action:** Trap energy level (relative to midgap = 0)
 - **Java pattern in Save-as-Java output:** `feature("tar1").set("<HERE>", "0")`
+- **Candidates probed at run time:** `Delta_Et`
 
 ### AUG_CN
 
@@ -616,9 +630,10 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="bhs_qb"></a>
 
-- **Current value:** `Qb` (property)
+- **Current value:** `Qb_input` (property)
 - **GUI action:** Boundary Heat Source > Q_b
 - **Java pattern in Save-as-Java output:** `feature("bhs1").set("<HERE>", ...)`
+- **Candidates probed at run time:** `Qb_input`
 
 ### TEMP_T0
 
@@ -632,9 +647,10 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="ht_area_group"></a>
 
-- **Current value:** `d` (property)
+- **Current value:** `PhysicalModelProperty` (property)
 - **GUI action:** ht > Settings > Cross-Sectional Area (1D)
 - **Java pattern in Save-as-Java output:** `physics("ht").prop("<HERE>").set("Ac", "Ac")`
+- **Candidates probed at run time:** `PhysicalModelProperty`
 
 ### HT_AREA_PROP
 
@@ -856,9 +872,10 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="depvars_semi"></a>
 
-- **Current value:** `comp1_V,comp1_N,comp1_P` (value)
+- **Current value:** `comp1_V,comp1_Ne,comp1_Ph` (value)
 - **GUI action:** Dependent variables of semi (FV formulation)
 - **Java pattern in Save-as-Java output:** `set("segvar", new String[]{<HERE>})`
+- **Candidates probed at run time:** `comp1_V,comp1_Ne,comp1_Ph`
 
 ### DEPVAR_T
 
@@ -1033,10 +1050,10 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 
 <a id="u_tot"></a>
 
-- **Current value:** `semi.U_tot` (variable)
+- **Current value:** `semi.Un` (variable)
 - **GUI action:** Results > Add expression > Semiconductor > Generation-recombination > total recombination
 - **Java pattern in Save-as-Java output:** `search 'total recombination' in the variable list`
-- **Candidates probed at run time:** `semi.U_tot`, `semi.R_tot`, `semi.U`, `semi.Rtot`, `semi.GR_tot`
+- **Candidates probed at run time:** `semi.Un`, `semi.U_tot`, `semi.R_tot`, `semi.U`, `semi.Rtot`, `semi.GR_tot`
 
 ### J_X
 

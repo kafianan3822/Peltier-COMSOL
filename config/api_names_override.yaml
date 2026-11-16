@@ -1,0 +1,38 @@
+# Corrections verified against COMSOL 6.3 (getAllowedPropertyValues / properties() probes and
+# Semiconductor_Module application-library models), 2026-11-16.
+
+# semi > Model Properties: CarrierStatistics allowed values are "Boltzmann", "FermiDirac".
+SEMI_STATS_MB: "Boltzmann"
+
+# smm1 > Band-gap narrowing: allowed "none", "slotboom", "jain", "userdef".
+SMM_BGN_OFF: "none"
+SMM_BGN_SLOTBOOM: "slotboom"
+
+# smm1 > Dopant ionization: property is "Ionization" (values "complete"/"incomplete").
+SMM_INCION_PROP: "Ionization"
+
+# Auger recombination feature ID (used by library models).
+FEAT_AUGER: "AURecombination"
+
+# Analytic Doping Model (1D box).
+DOP_TYPE: "impurityType"
+DOP_DIST: "impurityDistribution"
+DOP_X0: "rb"
+DOP_W: "jwidth"
+DOP_PROFILE: "dropoff_profile"
+DOP_LSCALE_SRC: "JunctionOrLength"
+DOP_LSCALE_LENGTH: "decay_length"
+DOP_LSCALE: "l_1D"
+
+# Trap-assisted recombination: trap level relative to intrinsic level.
+SRH_ET: "Delta_Et"
+
+# Heat transfer.
+BHS_QB: "Qb_input"
+HT_AREA_GROUP: "PhysicalModelProperty"
+
+# Semiconductor dependent variables in COMSOL 6.3 (carriers are Ne, Ph).
+DEPVARS_SEMI: "comp1_V,comp1_Ne,comp1_Ph"
+
+# Total net recombination rate in COMSOL 6.3 (semi.Un = Rsrh + Rau, verified by evaluation).
+U_TOT: "semi.Un"

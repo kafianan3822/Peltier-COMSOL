@@ -3,12 +3,48 @@
   {
    "variant": "V0",
    "source": "comsol",
-   "available": false
+   "available": true,
+   "VF": 0.4,
+   "I": 0.02884433421,
+   "J": 28844.33421,
+   "P_el": 0.01153773369,
+   "Qtot_int": 0.002194190449,
+   "Qjn_n": -0.003279755228,
+   "Qjn_p": -0.0031449951,
+   "Qc_contacts": -0.002465866318,
+   "Q_room": 0.004551590043,
+   "eta_E": -0.02354672739,
+   "dT_end_B": -0.01904079999997066,
+   "cop0": 0.3944960221531145,
+   "dT_max": 0.01904082095492034,
+   "dT_max_status": "interpolated",
+   "dT_max_text": "19.041 mK",
+   "cop_half": 0.19724807385172932,
+   "dT_max_best": 0.01904082095492034,
+   "VF_best": 0.4
   },
   {
    "variant": "V1",
    "source": "comsol",
-   "available": false
+   "available": true,
+   "VF": 0.4,
+   "I": 0.04390426364,
+   "J": 43904.26364,
+   "P_el": 0.01756170546,
+   "Qtot_int": 0.01844612962,
+   "Qjn_n": -0.007658518926,
+   "Qjn_p": -0.007032716977,
+   "Qc_contacts": -0.003753320986,
+   "Q_room": 0.0153849668,
+   "eta_E": 0.8366390535,
+   "dT_end_B": -0.06436039999999821,
+   "cop0": 0.8760519778985182,
+   "dT_max": 0.06436044828881948,
+   "dT_max_status": "extrapolated",
+   "dT_max_text": "64.360 mK (extrap.)",
+   "cop_half": 0.6038189375495467,
+   "dT_max_best": 0.06436044828881948,
+   "VF_best": 0.4
   },
   {
    "variant": "V2a",
@@ -963,32 +999,32 @@
   {
    "cid": "C1",
    "name": "Zero bias",
-   "status": "PENDING",
-   "detail": "needs COMSOL results (results/<variant>/)"
+   "status": "PASS",
+   "detail": "V0: max|Q_tot(0)|/max|Q_tot(0.4)| = 1.16e-07 (<1e-6), max|T-T_room| = 0 uK (<1 uK) | V1: max|Q_tot(0)|/max|Q_tot(0.4)| = 6.99e-08 (<1e-6), max|T-T_room| = 0 uK (<1 uK)"
   },
   {
    "cid": "C2",
    "name": "Energy balance",
-   "status": "PENDING",
-   "detail": "needs COMSOL results (results/<variant>/)"
+   "status": "FAIL",
+   "detail": "V0 (builtin): eta_E - expected in [-1.1110, -0.1704] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V1 (builtin): eta_E - expected in [-0.2891, +0.0007] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03)"
   },
   {
    "cid": "C3",
    "name": "Junction cooling exists",
-   "status": "PENDING",
-   "detail": "needs COMSOL results (results/<variant>/)"
+   "status": "PASS",
+   "detail": "V0: max Qjn_n = -2.552e-06 W, max Qjn_p = -2.564e-06 W over VF 0.10-0.50 V (need < 0) | V1: max Qjn_n = -4.675e-05 W, max Qjn_p = -4.538e-05 W over VF 0.10-0.50 V (need < 0)"
   },
   {
    "cid": "C4",
    "name": "Junction-cooling magnitude",
-   "status": "PENDING",
-   "detail": "needs COMSOL results (results/<variant>/)"
+   "status": "FAIL",
+   "detail": "V0: (Qjn_n+Qjn_p)/(-I(V_bi-V_j)) in [12053.162, 19821.379] for VF 0.2-0.4 V (V_bi = 0.679 V; need 0.7-1.3) | V1: (Qjn_n+Qjn_p)/(-I(V_bi-V_j)) in [19802.801, 25291.141] for VF 0.2-0.4 V (V_bi = 0.679 V; need 0.7-1.3)"
   },
   {
    "cid": "C5",
    "name": "I-V benchmark (V0)",
-   "status": "PENDING",
-   "detail": "needs COMSOL results (results/<variant>/)"
+   "status": "PASS",
+   "detail": "V0: J/J_ref in [0.789, 1.028] for 0.3-0.45 V (J_ref = i-region SRH with tau_eff = 2 tau_long + emitter leakage; need 1/3-3)"
   },
   {
    "cid": "C6",
@@ -999,20 +1035,20 @@
   {
    "cid": "C7",
    "name": "Plausibility (|dT_max| < 0.1 K)",
-   "status": "PENDING",
-   "detail": "needs COMSOL results (results/<variant>/)"
+   "status": "PASS",
+   "detail": "COMSOL: largest |dT_max| = 64.360 mK"
   },
   {
    "cid": "C8",
    "name": "Reverse bias",
-   "status": "PENDING",
-   "detail": "needs COMSOL results (results/<variant>/)"
+   "status": "PASS",
+   "detail": "V0: min Q_tot(-0.5 V) = -1.104e+03 W/m^3 (generation floor -5.76e+07), Q_room = -1.074e-06 W (need <= 0) | V1: min Q_tot(-0.5 V) = -4.871e+05 W/m^3 (generation floor -9.54e+07), Q_room = -5.888e-05 W (need <= 0)"
   },
   {
    "cid": "C9",
    "name": "COMSOL vs reference model",
-   "status": "PENDING",
-   "detail": "needs COMSOL results for V0 and V1"
+   "status": "FAIL",
+   "detail": "V0: COMSOL -19.041 mK vs ref 2.115 mK (ratio -9.00); V1: COMSOL -64.360 mK vs ref -64.227 mK (ratio 1.00) (need 0.5-2)"
   }
  ],
  "reference_checks": [
@@ -1041,5 +1077,5 @@
    "detail": "Config B T_end - T_room at 0.4 V: V0 +2.115 mK, V1 -64.227 mK"
   }
  ],
- "comsol_available": false
+ "comsol_available": true
 }

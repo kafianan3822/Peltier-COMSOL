@@ -68,6 +68,12 @@ class FakeEntity:
     def properties(self):
         return list(self.props)
 
+    def addInput(self, name):
+        """Material property group: declare a model input (e.g. 'temperature')."""
+        self.props.setdefault("_inputs", [])
+        self.props["_inputs"].append(name)
+        return self
+
     def getType(self):
         return self.ftype
 
@@ -355,6 +361,8 @@ class FakeModel:
                 s = FakeEntity(st, "Solution")
                 s.study = (lambda t=study.tag: t)
                 s._label = "Parametric Solutions 1" if par else f"Solution {study.tag}"
+                for i, step in enumerate(study.children, start=1):   # like COMSOL: one StudyStep per step
+                    s.create(f"st{i}", "StudyStep").props["studystep"] = step
                 stat = s.create("s1", "Stationary")
                 stat.create("fc1", "FullyCoupled")
                 sols[st] = s

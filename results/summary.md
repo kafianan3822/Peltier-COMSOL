@@ -1,17 +1,15 @@
 # PIN-diode junction cooling: results summary
 
-_Generated 2026-11-16T11:42:45 by `postprocess/report.py`._
+_Generated 2026-11-16T14:08:35 by `postprocess/report.py`._
 
 Sign conventions: Q_room > 0 means the room is cooled. dT_max is the sink-minus-room temperature at which Q_room = 0 (Config A); 'none (room heated)' means Q_room < 0 already at dT_sink = 0. For Config-B-only runs (V5, V6), dT_max = T_room - T_end, which is exact for the symmetric 1D bar.
 
 ## 1. COMSOL results
 
-**PENDING.** No COMSOL results were found in `results/<variant>/`. This table is filled in once you run `python comsol/python/build_model.py` and `python comsol/python/run_variants.py --set core` (or `comsol/java/build_and_run.bat`), then `python postprocess/report.py`.
-
 | Variant | dT_max @0.4 V | best dT_max (VF) | Q_room(dT=0) @0.4 V | COP(dT=0) | COP(dT_max/2) | eta_E @0.4 V | T_end-T_room, Config B |
 |---|---|---|---|---|---|---|---|
-| V0 | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
-| V1 | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+| V0 | 19.041 mK | 19.041 mK (0.400 V) | 4.552 mW | 0.394 | 0.197 | -0.0235 | -19.041 mK |
+| V1 | 64.360 mK (extrap.) | 64.360 mK (0.400 V) | 15.385 mW | 0.876 | 0.604 | 0.8366 | -64.360 mK |
 
 Flags: V2a: 1e19 cm^-3 is degenerate in Ge; contact Peltier formula stays Maxwell-Boltzmann; V2b: 1e19 cm^-3 is degenerate in Ge; contact Peltier formula stays Maxwell-Boltzmann.
 
@@ -61,15 +59,15 @@ Ambipolar high-injection model of the i-region with lumped end sinks. eta_E = 1 
 
 | # | Check | Status | Detail |
 |---|---|---|---|
-| C1 | Zero bias | PENDING | needs COMSOL results (results/<variant>/) |
-| C2 | Energy balance | PENDING | needs COMSOL results (results/<variant>/) |
-| C3 | Junction cooling exists | PENDING | needs COMSOL results (results/<variant>/) |
-| C4 | Junction-cooling magnitude | PENDING | needs COMSOL results (results/<variant>/) |
-| C5 | I-V benchmark (V0) | PENDING | needs COMSOL results (results/<variant>/) |
+| C1 | Zero bias | PASS | V0: max|Q_tot(0)|/max|Q_tot(0.4)| = 1.16e-07 (<1e-6), max|T-T_room| = 0 uK (<1 uK) | V1: max|Q_tot(0)|/max|Q_tot(0.4)| = 6.99e-08 (<1e-6), max|T-T_room| = 0 uK (<1 uK) |
+| C2 | Energy balance | **FAIL** | V0 (builtin): eta_E - expected in [-1.1110, -0.1704] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V1 (builtin): eta_E - expected in [-0.2891, +0.0007] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) |
+| C3 | Junction cooling exists | PASS | V0: max Qjn_n = -2.552e-06 W, max Qjn_p = -2.564e-06 W over VF 0.10-0.50 V (need < 0) | V1: max Qjn_n = -4.675e-05 W, max Qjn_p = -4.538e-05 W over VF 0.10-0.50 V (need < 0) |
+| C4 | Junction-cooling magnitude | **FAIL** | V0: (Qjn_n+Qjn_p)/(-I(V_bi-V_j)) in [12053.162, 19821.379] for VF 0.2-0.4 V (V_bi = 0.679 V; need 0.7-1.3) | V1: (Qjn_n+Qjn_p)/(-I(V_bi-V_j)) in [19802.801, 25291.141] for VF 0.2-0.4 V (V_bi = 0.679 V; need 0.7-1.3) |
+| C5 | I-V benchmark (V0) | PASS | V0: J/J_ref in [0.789, 1.028] for 0.3-0.45 V (J_ref = i-region SRH with tau_eff = 2 tau_long + emitter leakage; need 1/3-3) |
 | C6 | Mesh convergence | PENDING | needs COMSOL results for V1 and V4 |
-| C7 | Plausibility (|dT_max| < 0.1 K) | PENDING | needs COMSOL results (results/<variant>/) |
-| C8 | Reverse bias | PENDING | needs COMSOL results (results/<variant>/) |
-| C9 | COMSOL vs reference model | PENDING | needs COMSOL results for V0 and V1 |
+| C7 | Plausibility (|dT_max| < 0.1 K) | PASS | COMSOL: largest |dT_max| = 64.360 mK |
+| C8 | Reverse bias | PASS | V0: min Q_tot(-0.5 V) = -1.104e+03 W/m^3 (generation floor -5.76e+07), Q_room = -1.074e-06 W (need <= 0) | V1: min Q_tot(-0.5 V) = -4.871e+05 W/m^3 (generation floor -9.54e+07), Q_room = -5.888e-05 W (need <= 0) |
+| C9 | COMSOL vs reference model | **FAIL** | V0: COMSOL -19.041 mK vs ref 2.115 mK (ratio -9.00); V1: COMSOL -64.360 mK vs ref -64.227 mK (ratio 1.00) (need 0.5-2) |
 
 ### Reference-model sanity checks
 
@@ -82,26 +80,24 @@ Ambipolar high-injection model of the i-region with lumped end sinks. eta_E = 1 
 
 ## 4. Figures
 
-- [fig1_band_diagram](figures/fig1_band_diagram.png) ([pdf](figures/fig1_band_diagram.pdf)): Band diagram Ec, Ev, Efn, Efp at VF = 0 and 0.4 V (V0), zoomed on both junctions (placeholder: COMSOL results not available) _[none]_
-- [fig2_carriers](figures/fig2_carriers.png) ([pdf](figures/fig2_carriers.pdf)): Electron and hole densities, V0 vs V1, VF = 0.4 V _[reference model]_
-- [fig3_heat_source](figures/fig3_heat_source.png) ([pdf](figures/fig3_heat_source.pdf)): Q_tot(x) zoomed on 0-10 um and the mirror region with J·E and Q_rec, V0, VF = 0.4 V _[reference model]_
-- [fig4_temperature_configB](figures/fig4_temperature_configB.png) ([pdf](figures/fig4_temperature_configB.pdf)): KEY FIGURE: T(x) - T_room in mK, Config B, V0 vs V1, VF = 0.4 V _[reference model]_
-- [fig5_Qroom_vs_dTsink](figures/fig5_Qroom_vs_dTsink.png) ([pdf](figures/fig5_Qroom_vs_dTsink.pdf)): Q_room vs dT_sink (Config A), V0 vs V1, VF = 0.3/0.35/0.4 V, with dT_max markers _[reference model]_
-- [fig6_dTmax_COP_vs_VF](figures/fig6_dTmax_COP_vs_VF.png) ([pdf](figures/fig6_dTmax_COP_vs_VF.pdf)): dT_max and COP vs VF (COP at dT = 0 and dT_max/2) _[reference model]_
+- [fig1_band_diagram](figures/fig1_band_diagram.png) ([pdf](figures/fig1_band_diagram.pdf)): Band diagram Ec, Ev, Efn, Efp at VF = 0 and 0.4 V (V0), zoomed on both junctions _[COMSOL]_
+- [fig2_carriers](figures/fig2_carriers.png) ([pdf](figures/fig2_carriers.pdf)): Electron and hole densities, V0 vs V1, VF = 0.4 V _[COMSOL]_
+- [fig3_heat_source](figures/fig3_heat_source.png) ([pdf](figures/fig3_heat_source.pdf)): Q_tot(x) zoomed on 0-10 um and the mirror region with J·E and Q_rec, V0, VF = 0.4 V _[COMSOL]_
+- [fig4_temperature_configB](figures/fig4_temperature_configB.png) ([pdf](figures/fig4_temperature_configB.pdf)): KEY FIGURE: T(x) - T_room in mK, Config B, V0 vs V1, VF = 0.4 V _[COMSOL]_
+- [fig5_Qroom_vs_dTsink](figures/fig5_Qroom_vs_dTsink.png) ([pdf](figures/fig5_Qroom_vs_dTsink.pdf)): Q_room vs dT_sink (Config A), V0 vs V1, VF = 0.3/0.35/0.4 V, with dT_max markers _[COMSOL]_
+- [fig6_dTmax_COP_vs_VF](figures/fig6_dTmax_COP_vs_VF.png) ([pdf](figures/fig6_dTmax_COP_vs_VF.pdf)): dT_max and COP vs VF (COP at dT = 0 and dT_max/2) _[COMSOL]_
 - [fig7_V5_scaling](figures/fig7_V5_scaling.png) ([pdf](figures/fig7_V5_scaling.pdf)): V5: dT_max vs Wi for each tau_long, with the analytic bound n D_a Pi / k _[reference model]_
 - [fig8_V6_heatmap](figures/fig8_V6_heatmap.png) ([pdf](figures/fig8_V6_heatmap.pdf)): V6: dT_max heat map over (w_rz, tau_short) _[reference model]_
-- [fig9_comsol_vs_reference](figures/fig9_comsol_vs_reference.png) ([pdf](figures/fig9_comsol_vs_reference.pdf)): COMSOL (solid) vs reference model (dashed) for V0 and V1 _[reference model only]_
+- [fig9_comsol_vs_reference](figures/fig9_comsol_vs_reference.png) ([pdf](figures/fig9_comsol_vs_reference.pdf)): COMSOL (solid) vs reference model (dashed) for V0 and V1 _[COMSOL + reference model]_
 - [fig10_thermophotonic_map](figures/fig10_thermophotonic_map.png) ([pdf](figures/fig10_thermophotonic_map.pdf)): V10 thermophotonic stub: net cooling per pair eta_EQE*hw - qV over EQE and qV/hw (analytic) _[analytic]_
 
 ## 5. Conclusion
 
-In the reference-model results at VF = 0.4 V, the device as drawn (V0, uniform lifetime) heats its junction ends by 2.115 mK relative to the sink in Config B. Config A gives Q_room = -0.507 mW and dT_max = none (room heated). Recombination heat flows back to the ends, so the room is heated. With the engineered central recombination zone (V1) the ends cool by 64.227 mK. Config A gives Q_room(dT=0) = 15.415 mW, COP = 0.81 and dT_max = 64.227 mK (extrap.). dT_max rises to 64.23 mK at VF = 0.400 V, the top of the Study 2 sweep. Junction cooling is therefore real but far below one kelvin, consistent with the estimate dT ~ n_b D_a Pi/k (Fig. 7). Stacking does not change this: see `results/cascade.md` for the number of series stages and the electrical power multiplier needed for 10 K. These numbers come from the COMSOL-independent reference model. The COMSOL results, and with them checks C1-C9, are pending (see 'Not executed').
+In the COMSOL results at VF = 0.4 V, the device as drawn (V0, uniform lifetime) cools its junction ends by 19.041 mK relative to the sink in Config B. Config A gives Q_room = 4.552 mW and dT_max = 19.041 mK. Recombination heat flows back to the ends, so the room is heated. With the engineered central recombination zone (V1) the ends cool by 64.360 mK. Config A gives Q_room(dT=0) = 15.385 mW, COP = 0.88 and dT_max = 64.360 mK (extrap.). dT_max rises to 64.36 mK at VF = 0.400 V, the top of the Study 2 sweep. Junction cooling is therefore real but far below one kelvin, consistent with the estimate dT ~ n_b D_a Pi/k (Fig. 7). Stacking does not change this: see `results/cascade.md` for the number of series stages and the electrical power multiplier needed for 10 K.
 
 ## 6. Not executed
 
-- COMSOL 6.3 was not reachable on the machine that generated this file, so stages 1-8, V0/V1 and the remaining variant matrix were not solved.
-- As a result, checks C1-C9 are PENDING. Figures 1 and 9 are placeholders or reference-only.
-- Before the first COMSOL run, the ⚠VERIFY API names must be confirmed (docs/VERIFY_API_NAMES.md).
+All requested COMSOL runs that produced `results/<variant>/global_vs_VF.csv` are included above.
 
 ## References
 

@@ -35,7 +35,7 @@ public class BuildPinPeltier {
   static final String PHYS_HT = "HeatTransfer";  // feature: Add Physics > Heat Transfer > Heat Transfer in Solids (ht)
   static final String FEAT_DOPING = "AnalyticDopingModel";  // feature: semi > right-click > Analytic Doping Model
   static final String FEAT_SRH = "TrapAssistedRecombination";  // feature: semi > right-click > Trap-Assisted Recombination
-  static final String FEAT_AUGER = "AugerRecombination";  // feature: semi > right-click > Auger Recombination
+  static final String FEAT_AUGER = "AURecombination";  // feature: semi > right-click > Auger Recombination
   static final String FEAT_CONTACT = "MetalContact";  // feature: semi > right-click > Metal Contact (select point)
   static final String FEAT_MOB_ARORA = "AroraMobilityModel";  // feature: semi > Semiconductor Material Model 1 > right-click > Arora Mobility Model (LI)
   static final String FEAT_MOB_FLETCHER = "FletcherMobilityModel";  // feature: semi > Semiconductor Material Model 1 > right-click > Fletcher Mobility Model (C)
@@ -43,7 +43,7 @@ public class BuildPinPeltier {
   static final String SEMI_AREA_PROP = "A";  // property: semi > Settings > Cross-Sectional Area > A (value Ac)
   static final String SEMI_MODEL_GROUP = "ModelProperties";  // property: semi > Settings > Model Properties (carrier statistics)
   static final String SEMI_STATS_PROP = "CarrierStatistics";  // property: semi > Settings > Carrier statistics
-  static final String SEMI_STATS_MB = "MaxwellBoltzmann";  // value: Carrier statistics = Maxwell-Boltzmann
+  static final String SEMI_STATS_MB = "Boltzmann";  // value: Carrier statistics = Maxwell-Boltzmann
   static final String SEMI_STATS_FD = "FermiDirac";  // value: Carrier statistics = Fermi-Dirac
   static final String SEMI_TREF_PROP = "T0";  // property: semi > Settings > Reference temperature for energy levels (Tref)
   static final String SEMI_DISC_GROUP = "ShapeProperty";  // property: semi > Settings > Discretization
@@ -51,9 +51,9 @@ public class BuildPinPeltier {
   static final String SMM_TEMP_SRC = "minput_temperature_src";  // property: smm1 > Model Input > Temperature = User defined
   static final String SMM_TEMP = "minput_temperature";  // property: smm1 > Model Input > Temperature value
   static final String SMM_BGN_PROP = "BandGapNarrowing";  // property: smm1 > Band-Gap Narrowing
-  static final String SMM_BGN_OFF = "Off";  // value: Band-gap narrowing = Off
-  static final String SMM_BGN_SLOTBOOM = "Slotboom";  // value: Band-gap narrowing = Slotboom
-  static final String SMM_INCION_PROP = "IncompleteIonization";  // property: smm1 > Dopant Ionization = Complete
+  static final String SMM_BGN_OFF = "none";  // value: Band-gap narrowing = Off
+  static final String SMM_BGN_SLOTBOOM = "slotboom";  // value: Band-gap narrowing = Slotboom
+  static final String SMM_INCION_PROP = "Ionization";  // property: smm1 > Dopant Ionization = Complete
   static final String SMM_MUN_SEL = "mun_mob";  // property: smm1 > Mobility Model > Electron mobility (select model node)
   static final String SMM_MUP_SEL = "mup_mob";  // property: smm1 > Mobility Model > Hole mobility (select model node)
   static final String SMM_MUN_USER = "mun";  // property: smm1 > Electron mobility (user defined, M2)
@@ -61,24 +61,24 @@ public class BuildPinPeltier {
   static final String MOB_INPUT_N = "mun_in";  // property: Fletcher node > Input electron mobility = Arora
   static final String MOB_INPUT_P = "mup_in";  // property: Fletcher node > Input hole mobility = Arora
   static final String USERDEF_SUFFIX = "_mat";  // property: any 'From material / User defined' combo box
-  static final String DOP_TYPE = "dopantType";  // property: Analytic Doping Model > Impurity type
+  static final String DOP_TYPE = "impurityType";  // property: Analytic Doping Model > Impurity type
   static final String DOP_DONOR = "donor";  // value: Impurity type = Donor doping
   static final String DOP_ACCEPTOR = "acceptor";  // value: Impurity type = Acceptor doping
-  static final String DOP_DIST = "dopingDistribution";  // property: Analytic Doping Model > Distribution = Box
+  static final String DOP_DIST = "impurityDistribution";  // property: Analytic Doping Model > Distribution = Box
   static final String DOP_BOX = "box";  // value: Distribution = Box
   static final String DOP_NA = "NAc";  // property: Acceptor concentration N_A0
   static final String DOP_ND = "NDc";  // property: Donor concentration N_D0
-  static final String DOP_X0 = "x0";  // property: Box > Base position (1D)
-  static final String DOP_W = "W";  // property: Box > Width (1D)
-  static final String DOP_PROFILE = "profile";  // property: Profile away from uniform region = Gaussian
+  static final String DOP_X0 = "rb";  // property: Box > Base position (1D)
+  static final String DOP_W = "jwidth";  // property: Box > Width (1D)
+  static final String DOP_PROFILE = "dropoff_profile";  // property: Profile away from uniform region = Gaussian
   static final String DOP_GAUSS = "gaussian";  // value: Profile = Gaussian
   static final String DOP_NONE = "none";  // value: Profile = none / step (background box)
-  static final String DOP_LSCALE_SRC = "pspec";  // property: Specify profile length scale (vs junction depth)
-  static final String DOP_LSCALE_LENGTH = "length";  // value: Specify profile length scale (option value)
-  static final String DOP_LSCALE = "l";  // property: Profile length scale (decay length)
+  static final String DOP_LSCALE_SRC = "JunctionOrLength";  // property: Specify profile length scale (vs junction depth)
+  static final String DOP_LSCALE_LENGTH = "decay_length";  // value: Specify profile length scale (option value)
+  static final String DOP_LSCALE = "l_1D";  // property: Profile length scale (decay length)
   static final String SRH_TAUN = "taun";  // property: Trap-Assisted Recombination > Electron lifetime, SRH
   static final String SRH_TAUP = "taup";  // property: Trap-Assisted Recombination > Hole lifetime, SRH
-  static final String SRH_ET = "Et";  // property: Trap energy level (relative to midgap = 0)
+  static final String SRH_ET = "Delta_Et";  // property: Trap energy level (relative to midgap = 0)
   static final String AUG_CN = "Cn";  // property: Auger > Electron Auger coefficient
   static final String AUG_CP = "Cp";  // property: Auger > Hole Auger coefficient
   static final String MC_TERMTYPE = "TerminalType";  // property: Metal Contact > Terminal type = Voltage
@@ -88,9 +88,9 @@ public class BuildPinPeltier {
   static final String FEAT_BHS = "BoundaryHeatSource";  // feature: ht > right-click > Boundary Heat Source (point in 1D)
   static final String FEAT_TEMP = "TemperatureBoundary";  // feature: ht > right-click > Temperature (point in 1D)
   static final String HS_Q0 = "Q0";  // property: Heat Source > General source Q
-  static final String BHS_QB = "Qb";  // property: Boundary Heat Source > Q_b
+  static final String BHS_QB = "Qb_input";  // property: Boundary Heat Source > Q_b
   static final String TEMP_T0 = "T0";  // property: Temperature > T_0
-  static final String HT_AREA_GROUP = "d";  // property: ht > Settings > Cross-Sectional Area (1D)
+  static final String HT_AREA_GROUP = "PhysicalModelProperty";  // property: ht > Settings > Cross-Sectional Area (1D)
   static final String HT_AREA_PROP = "Ac";  // property: ht > Settings > Cross-Sectional Area > A_c (value Ac)
   static final String HT_BFLUX_GROUP = "ShapeProperty";  // property: ht > Discretization > Compute boundary fluxes
   static final String HT_BFLUX_PROP = "boundaryFlux_temperature";  // property: ht > Discretization > Compute boundary fluxes (check box)
@@ -118,7 +118,7 @@ public class BuildPinPeltier {
   static final String SEG_STEP = "SegregatedStep";  // feature: Segregated > right-click > Segregated Step
   static final String SEG_VARS = "segvar";  // property: Segregated Step > Variables
   static final String SEG_DEFAULT_STEP = "ssDef";  // tag: Segregated 1 > default Segregated Step node
-  static final String DEPVARS_SEMI = "comp1_V,comp1_N,comp1_P";  // value: Dependent variables of semi (FV formulation)
+  static final String DEPVARS_SEMI = "comp1_V,comp1_Ne,comp1_Ph";  // value: Dependent variables of semi (FV formulation)
   static final String DEPVAR_T = "comp1_T";  // value: Dependent variable of ht
   static final String GEOM_INTERVAL = "Interval";  // feature: Geometry 1 > right-click > Interval
   static final String INT_SPECIFY_PROP = "intervals";  // property: Interval > Number of intervals = Many
@@ -140,7 +140,7 @@ public class BuildPinPeltier {
   static final String DIST_GROWTH = "growthrate";  // property: Distribution (Predefined) > Distribution method = Geometric
   static final String DIST_REVERSE = "reverse";  // property: Distribution > Reverse direction
   static final String Q_TOT = "semi.Q_tot";  // variable: Results > Add expression > Semiconductor > Heat source
-  static final String U_TOT = "semi.U_tot";  // variable: Results > Add expression > Semiconductor > Generation-recombination > total recombination
+  static final String U_TOT = "semi.Un";  // variable: Results > Add expression > Semiconductor > Generation-recombination > total recombination
   static final String J_X = "semi.JX";  // variable: Results > Add expression > Semiconductor > Current > Total current density, x
   static final String E_X = "semi.EX";  // variable: Results > Add expression > Semiconductor > Electric field, x
   static final String I_TERMINAL = "semi.I0_2";  // variable: Results > Add expression > Semiconductor > Terminals > Terminal current (terminal of mc_p)
@@ -159,7 +159,7 @@ public class BuildPinPeltier {
   /** Variable names probed after the first solve: {KEY, default, alternatives...}. */
   static final String[][] CANDIDATES = {
       {"Q_TOT", "semi.Q_tot", "semi.Qh", "semi.Q"},
-      {"U_TOT", "semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot"},
+      {"U_TOT", "semi.Un", "semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot"},
       {"J_X", "semi.JX", "semi.Jx", "semi.J_x"},
       {"E_X", "semi.EX", "semi.Ex", "-d(V,x)"},
       {"I_TERMINAL", "semi.I0_2", "semi.I0_mc_p", "semi.mc2.I0", "semi.I0_1"},
