@@ -83,3 +83,7 @@ mention the Arora, Slotboom and Fletcher models.
 | G9 | Cascade calculator defaults: 50 mK per stage, COP 0.5. | Germanium reference values (idealised). |
 | G10 | The 0.1 K plausibility limit is unchanged; the room sweep stops at 0.4 V. | See `docs/GERMANIUM_PARAMETERS.md` section 5. |
 | G11 | Added `CLAUDE.md` and `docs/AGENT_SETUP.md`. | Running the pipeline with an agent. |
+| G12 | **Contact recombination heat.** `bhs_n`/`bhs_p` now carry `-abs(J)*Pi + abs(J_minority)*(Eg_ref + 3 k_B T0/q)` (4 k_B T0 for `qsrc=corrected`). New export column `Q_sr`; `Q_room` subtracts it and `eta_E` adds it. New parameter `Eg_ref` (read back from the material). | First COMSOL run: `semi.Q_tot` has no surface recombination, 52 % of V0's current recombines at the contacts, the energy balance failed (C2) and V0 showed a spurious 19 mK cooling. Confirmed to 4 digits by the diagnosis of 2026-11-16. |
+| G13 | Reference model includes the leakage into the doped layers (`common.params.emitter_leakage_coeffs`); the two ends may differ, so `Q_b` became `Q_bn`, `Q_bp`. | Like-for-like comparison with COMSOL (C9). Without it the reference current was half of COMSOL's for V0. |
+| G14 | C4 uses V_j = quasi-Fermi-level split 5 µm inside the i-region (new export column `Vj`). | `VF - V_ifield` equals V_bi at every bias (the field integral contains the built-in voltage), which made the C4 ratio about 10⁴. |
+| G15 | Driver B (Java) does **not** contain the COMSOL 6.3 script fixes or G12-G14. Use Driver A (Python). | Only Driver A has been run against COMSOL. |

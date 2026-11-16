@@ -103,6 +103,32 @@ def material(base: dict | None = None, T: float | None = None) -> dict:
     return out
 
 
+def emitter_leakage_coeffs(p: dict | None = None, base: dict | None = None) -> dict:
+    """Minority-carrier current lost into the two doped contact layers.
+
+    Per layer, J = A (exp(V_j/Vt) - 1) with the short-diode solution for an ohmic
+    contact at distance W:  A_surface = q (n_i^2/N) (D/L) / sinh(W/L)  recombines
+    AT the contact, A_volume = q (n_i^2/N) (D/L) (coth(W/L) - 1/sinh(W/L)) recombines
+    inside the layer.  D uses the M2 mobility at the layer doping and
+    1/tau = 1/tau_long + C_aug N^2.  Returns A/m^2:
+    {"n": (A_surface, A_volume), "p": (...)}; "n" = holes lost in the n+ layer (x = 0),
+    "p" = electrons lost in the p+ layer (x = Ltot)."""
+    base = base or load_base()
+    p = p or evaluate_params(base=base)
+    Vt = K_B * p["T0"] / Q_E
+    ni = material(base)["ni"]
+    out = {}
+    for side, N, W, C, carrier in (("n", p["Nd_p"], p["Wn"], p["Cn_aug"], "holes"),
+                                   ("p", p["Na_p"], p["Wp"], p["Cp_aug"], "electrons")):
+        c = {k: eval_expr(v, {}) for k, v in base["mobility_M2"][carrier].items()}
+        mu = c["mu_min"] + (c["mu_max"] - c["mu_min"]) / (1.0 + (N / c["N_ref"]) ** c["alpha"])
+        D = mu * Vt
+        L = math.sqrt(D / (1.0 / p["tau_long"] + C * N * N))
+        pref = Q_E * ni * ni / N * D / L
+        out[side] = (pref / math.sinh(W / L), pref * (1.0 / math.tanh(W / L) - 1.0 / math.sinh(W / L)))
+    return out
+
+
 def report_cfg(base: dict | None = None) -> dict:
     """Operating point and check windows (`report` section of params_base.yaml)."""
     return dict((base or load_base())["report"])

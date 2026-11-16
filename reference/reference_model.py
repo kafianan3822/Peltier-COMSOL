@@ -14,15 +14,22 @@ COMSOL evaluates for n = p, tau_n = tau_p = tau, midgap trap
 literal n/tau of spec §11.1.  The ``- n_i`` terms make R vanish at equilibrium,
 so J = 0 and T = T_room at V_j = 0 (test of spec §11.5).
 
-Current and heat (spec §11.2):
+Current and heat (spec §11.2, plus leakage into the contact layers):
 
-    J = q int R dx,  sigma = q n (mu_n + mu_p),  V_Omega = int J/sigma dx,
+    J = q int R dx + J_leak,n + J_leak,p,   J_leak,k = A_k (exp(V_j/Vt) - 1)
+    sigma = q n (mu_n + mu_p),  V_Omega = int J/sigma dx,
     V_F = V_j + V_Omega,  H(x) = R (E_g + 3 k_B T) + J^2/sigma,
-    point sink at each end  Q_b = -(J/q) Pi_tot / 2,  Pi_tot = E_g + 3k_BT - qV_j
+    point source at end k   Q_b,k = -(J/q) Pi_tot / 2 + (J_leak,k/q)(E_g + 3k_BT),
+    Pi_tot = E_g + 3k_BT - qV_j
+
+J_leak,k is the minority current lost into doped layer k (short-diode formula,
+common.params.emitter_leakage_coeffs).  Those carriers recombine in the layer or at
+the ohmic contact, i.e. at the end of the bar, and release E_g + 3k_BT there.  In
+germanium this is about half of the current of V0 at 0.4 V (COMSOL: 52 %).
 
 Heat equation k T'' = -H is integrated exactly (cumulative quadrature of the
 flux) on each half of the bar; see ``_heat_config_A`` / ``_heat_config_B``.
-Energy closes identically: Ac*(int H + 2 Q_b) = I*V_F.
+Energy closes identically: Ac*(int H + Q_b,n + Q_b,p) = I*V_F.
 
 Outputs follow the CSV schema of spec §6 and are written to
 results/reference/<variant_id>/.
@@ -46,7 +53,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from common.csvio import write_csv  # noqa: E402
-from common.params import (K_B, Q_E, evaluate_params, expand_variants, load_base, material,  # noqa: E402
+from common.params import (K_B, Q_E, emitter_leakage_coeffs, evaluate_params, expand_variants, load_base, material,  # noqa: E402
                            parse_range, report_cfg)
 
 RESULTS = ROOT / "results" / "reference"
@@ -107,11 +114,19 @@ class RefDevice:
     mun: float = MU_N
     mup: float = MU_P
     auger: bool = True
+    # leakage into the doped layers, A/m^2 prefactors of (exp(Vj/Vt) - 1):
+    # (recombining at the contact, recombining inside the layer) for the n+ and the p+ layer
+    leak_n: tuple = (0.0, 0.0)
+    leak_p: tuple = (0.0, 0.0)
     convention: str = DEFAULT_CONVENTION
     tau_uniform: float | None = None   # if set, overrides tau(x) (tests)
 
     @classmethod
-    def from_params(cls, p: dict, **kw) -> "RefDevice":
+    def from_params(cls, p: dict, leakage: bool = True, **kw) -> "RefDevice":
+        if leakage:
+            c = emitter_leakage_coeffs(p)
+            kw.setdefault("leak_n", c["n"])
+            kw.setdefault("leak_p", c["p"])
         return cls(Wi=p["Wi"], Wn=p["Wn"], Wp=p["Wp"], T=p["T0"], T_room=p["T_room"],
                    tau_long=p["tau_long"], tau_short=p["tau_short"], w_rz=p["w_rz"],
                    rz_on=p["rz_on"], Ca=p["Cn_aug"] + p["Cp_aug"], k=p["k_th"], Ac=p["Ac"],
@@ -179,10 +194,14 @@ class BiasPoint:
     Rx: np.ndarray
     sigma: np.ndarray
     H: np.ndarray         # W/m^3
-    Q_b: float            # W/m^2, each end (negative)
+    Q_bn: float           # W/m^2, point heat source at the n-end (x = 0); negative = sink
+    Q_bp: float           # W/m^2, point heat source at the p-end
     Pi_tot_eV: float
     V_ohm: float
     sol: object = field(repr=False, default=None)
+    J_i: float = 0.0      # A/m^2, recombination current of the i-region
+    J_sr: tuple = (0.0, 0.0)   # A/m^2, recombining AT the n / p contact
+    J_vol: tuple = (0.0, 0.0)  # A/m^2, recombining inside the n+ / p+ layer
 
 
 # ------------------------------------------------------------- carrier solver
@@ -235,15 +254,21 @@ def bias_point(dev: RefDevice, Vj: float, guess=None) -> BiasPoint:
     n = nb * sol.sol(x / dev.Wi)[0]
     n = np.maximum(n, dev.ni * 1e-6)
     Rx = dev.R(n, x)
-    J = Q_E * trapezoid(Rx, x)
+    J_i = Q_E * trapezoid(Rx, x)
+    ex = np.expm1(Vj / dev.Vt)
+    J_sr = (dev.leak_n[0] * ex, dev.leak_p[0] * ex)
+    J_vol = (dev.leak_n[1] * ex, dev.leak_p[1] * ex)
+    J = J_i + sum(J_sr) + sum(J_vol)
     sigma = Q_E * n * (dev.mun + dev.mup)
     V_ohm = trapezoid(J / sigma, x)
     E_pair = (dev.Eg_eV + 3.0 * dev.Vt) * Q_E          # J per recombined pair
     H = Rx * E_pair + J * J / sigma
     Pi_tot = E_pair - Q_E * Vj                           # J per pair
-    Q_b = -(J / Q_E) * Pi_tot / 2.0
+    Q_bn = (-J * Pi_tot / 2.0 + (J_sr[0] + J_vol[0]) * E_pair) / Q_E
+    Q_bp = (-J * Pi_tot / 2.0 + (J_sr[1] + J_vol[1]) * E_pair) / Q_E
     return BiasPoint(Vj=Vj, VF=Vj + V_ohm, J=J, x=x, n=n, Rx=Rx, sigma=sigma, H=H,
-                     Q_b=Q_b, Pi_tot_eV=Pi_tot / Q_E, V_ohm=V_ohm, sol=sol)
+                     Q_bn=Q_bn, Q_bp=Q_bp, J_i=J_i, J_sr=J_sr, J_vol=J_vol,
+                     Pi_tot_eV=Pi_tot / Q_E, V_ohm=V_ohm, sol=sol)
 
 
 # ------------------------------------------------------------- heat solvers
@@ -263,11 +288,11 @@ def _heat_config_B(dev: RefDevice, bp: BiasPoint):
     T = np.empty_like(x)
     iL, iR = _split(x, xc)
     xL, HL = x[iL], H[iL]
-    qL = bp.Q_b + cumulative_trapezoid(HL, xL, initial=0.0)
+    qL = bp.Q_bn + cumulative_trapezoid(HL, xL, initial=0.0)
     TL = dev.T_room + (trapezoid(qL, xL) - cumulative_trapezoid(qL, xL, initial=0.0)) / k
     xR, HR = x[iR], H[iR]
     GR = cumulative_trapezoid(HR[::-1], -xR[::-1] + xR[-1], initial=0.0)[::-1]  # int_x^L H
-    qR = -bp.Q_b - GR
+    qR = -bp.Q_bp - GR
     TR = dev.T_room - cumulative_trapezoid(qR, xR, initial=0.0) / k
     qx[iL], T[iL] = qL, TL
     qx[iR], T[iR] = qR, TR
@@ -295,7 +320,7 @@ def _heat_config_A(dev: RefDevice, bp: BiasPoint, dT_sink: float = 0.0):
     qx = np.empty_like(x)
     T[iL], qx[iL] = TL, qL
     T[iR], qx[iR] = TR, qR
-    Q_room = dev.Ac * (qx0 - qxL + (bp.J / Q_E) * bp.Pi_tot_eV * Q_E)
+    Q_room = dev.Ac * (qx0 - qxL - bp.Q_bn - bp.Q_bp)      # heat taken out of the room at both ends
     return T, qx, qx0, qxL, Q_room, qL[-1] - qR[0]
 
 
@@ -352,16 +377,19 @@ def _row(dev: RefDevice, bp: BiasPoint) -> dict:
     I = bp.J * Ac
     TB, _ = _heat_config_B(dev, bp)
     _, _, qx0, qxL, Q_room, _ = _heat_config_A(dev, bp, 0.0)
-    pairs = bp.J / Q_E
-    Qjn_n = -Ac * pairs * Q_E * (bp.Pi_tot_eV / 2.0 - dev.Pi_nc)
-    Qjn_p = -Ac * pairs * Q_E * (bp.Pi_tot_eV / 2.0 - dev.Pi_pc)
+    E_pair = dev.Eg_eV + 3.0 * dev.Vt                     # V
+    # same split as the COMSOL export: junction windows contain the junction cooling and the
+    # recombination inside the doped layer; recombination AT the contact is Q_sr
+    Qjn_n = Ac * (-bp.J * (bp.Pi_tot_eV / 2.0 - dev.Pi_nc) + bp.J_vol[0] * E_pair)
+    Qjn_p = Ac * (-bp.J * (bp.Pi_tot_eV / 2.0 - dev.Pi_pc) + bp.J_vol[1] * E_pair)
     Qc = -abs(bp.J) * Ac * (dev.Pi_nc + dev.Pi_pc)
+    Q_sr = Ac * sum(bp.J_sr) * E_pair
     Qtot_int = Ac * trapezoid(bp.H, bp.x) + Qjn_n + Qjn_p
     P_el = I * bp.VF
     return dict(VF=bp.VF, Vj=bp.Vj, I=I, J=bp.J, P_el=P_el, Qtot_int=Qtot_int,
-                Qjn_n=Qjn_n, Qjn_p=Qjn_p, Qc_contacts=Qc, qx_0=qx0, qx_L=qxL,
+                Qjn_n=Qjn_n, Qjn_p=Qjn_p, Qc_contacts=Qc, Q_sr=Q_sr, J_i=bp.J_i, qx_0=qx0, qx_L=qxL,
                 T_P1=TB[0], T_P5=TB[-1], T_P3=dev.T_room, Q_room=Q_room,
-                eta_E=(Qtot_int + Qc) / P_el if P_el > 0 else np.nan,
+                eta_E=(Qtot_int + Qc + Q_sr) / P_el if P_el > 0 else np.nan,
                 n_b=dev.n_boundary(bp.Vj), V_ohm=bp.V_ohm, Pi_tot=bp.Pi_tot_eV)
 
 

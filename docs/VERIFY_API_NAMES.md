@@ -139,6 +139,8 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 | [`Q_TOT`](#q_tot) | variable | `semi.Q_tot` | Results > Add expression > Semiconductor > Heat source |
 | [`U_TOT`](#u_tot) | variable | `semi.Un` | Results > Add expression > Semiconductor > Generation-recombination > total recombination |
 | [`J_X`](#j_x) | variable | `semi.JX` | Results > Add expression > Semiconductor > Current > Total current density, x |
+| [`JN_X`](#jn_x) | variable | `semi.JnX` | Results > Add expression > Semiconductor > Current > Electron current density, x |
+| [`JP_X`](#jp_x) | variable | `semi.JpX` | Results > Add expression > Semiconductor > Current > Hole current density, x |
 | [`E_X`](#e_x) | variable | `semi.EX` | Results > Add expression > Semiconductor > Electric field, x |
 | [`I_TERMINAL`](#i_terminal) | variable | `semi.I0_2` | Results > Add expression > Semiconductor > Terminals > Terminal current (terminal of mc_p) |
 | [`EC`](#ec) | variable | `semi.Ec` | Semiconductor > Band diagram > Conduction band energy |
@@ -1063,6 +1065,24 @@ Tip: *Developer > Record Method* (Application Builder) records the Java calls of
 - **GUI action:** Results > Add expression > Semiconductor > Current > Total current density, x
 - **Java pattern in Save-as-Java output:** `search 'current density' in the variable list`
 - **Candidates probed at run time:** `semi.JX`, `semi.Jx`, `semi.J_x`
+
+### JN_X
+
+<a id="jn_x"></a>
+
+- **Current value:** `semi.JnX` (variable)
+- **GUI action:** Results > Add expression > Semiconductor > Current > Electron current density, x
+- **Java pattern in Save-as-Java output:** `minority current reaching the p-contact (contact recombination heat)`
+- **Candidates probed at run time:** `semi.JnX`, `semi.Jnx`, `semi.Jn_x`
+
+### JP_X
+
+<a id="jp_x"></a>
+
+- **Current value:** `semi.JpX` (variable)
+- **GUI action:** Results > Add expression > Semiconductor > Current > Hole current density, x
+- **Java pattern in Save-as-Java output:** `minority current reaching the n-contact (contact recombination heat)`
+- **Candidates probed at run time:** `semi.JpX`, `semi.Jpx`, `semi.Jp_x`
 
 ### E_X
 

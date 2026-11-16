@@ -114,7 +114,7 @@ def test_C4_magnitude():
     g = vd.glob
     Vt = K_B * 300 / Q_E
     Vbi = Vt * np.log(p["Nd_p"] * p["Na_p"] / an.NI_C4 ** 2)
-    g["V_ifield"] = 0.05
+    g["Vj"] = g.VF - 0.05
     g["Qjn_n"] = g["Qjn_p"] = -0.5 * g.I * (Vbi - (g.VF - 0.05))
     assert an.check_C4(vd).status == "PASS"
     g["Qjn_n"] = g["Qjn_p"] = -0.25 * g.I * (Vbi - (g.VF - 0.05))

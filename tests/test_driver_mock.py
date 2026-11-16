@@ -47,8 +47,10 @@ def test_staged_build_smoke_tests(built):
     smm = b.semi.feature("smm1")
     assert smm.props["minput_temperature_src"] == "userdef" and smm.props["minput_temperature"] == "T0"
     # contact Peltier sinks
-    assert b.ht.feature("bhs_n").props[bm.api.name("BHS_QB")] == "-abs(semi.JX)*Pi_nc"
-    assert b.ht.feature("bhs_p").props[bm.api.name("BHS_QB")] == "-abs(semi.JX)*Pi_pc"
+    assert b.ht.feature("bhs_n").props[bm.api.name("BHS_QB")] == (
+        "-abs(semi.JX)*Pi_nc+abs(semi.JpX)*(Eg_ref+3*k_B_const*T0/e_const)")
+    assert b.ht.feature("bhs_p").props[bm.api.name("BHS_QB")] == (
+        "-abs(semi.JX)*Pi_pc+abs(semi.JnX)*(Eg_ref+3*k_B_const*T0/e_const)")
     assert b.Pi[0] == pytest.approx(0.0517, abs=1e-3)      # Ge, Nd = Nc
 
 
@@ -93,7 +95,7 @@ def test_variant_apply_and_export(built, tmp_path):
     out = rv.export_variant(b, run, out_root=tmp_path / "res", reverse=True)
     g = read_csv(out / "global_vs_VF.csv")
     for c in ("VF", "I", "J", "P_el", "Qtot_int", "Qjn_n", "Qjn_p", "Qc_contacts", "qx_0", "qx_L",
-              "T_P1", "T_P5", "T_P3", "Q_room", "eta_E", "V_ifield"):
+              "T_P1", "T_P5", "T_P3", "Q_room", "eta_E", "V_ifield", "Vj", "Q_sr"):
         assert c in g.columns
     assert g.VF.iloc[-1] == pytest.approx(0.5)
     room = read_csv(out / "room_sweep.csv")

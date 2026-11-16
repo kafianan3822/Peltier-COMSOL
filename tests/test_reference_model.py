@@ -59,10 +59,10 @@ def test_energy_balance_closes(params, rz_on, Vj):
     bp = rm.bias_point(dev, Vj)
     P = bp.J * bp.VF                                   # W/m^2
     # bookkeeping: distributed heat + both end sinks
-    assert (trapezoid(bp.H, bp.x) + 2 * bp.Q_b) == pytest.approx(P, rel=5e-3)
+    assert (trapezoid(bp.H, bp.x) + bp.Q_bn + bp.Q_bp) == pytest.approx(P, rel=5e-3)
     # thermal solution, Config A: reservoirs at both ends + centre sink
     T, qx, qx0, qxL, Q_room, q_centre = rm._heat_config_A(dev, bp, 0.0)
-    total = q_centre + (bp.Q_b - qx0) + (bp.Q_b + qxL)
+    total = q_centre + (bp.Q_bn - qx0) + (bp.Q_bp + qxL)
     assert total == pytest.approx(P, rel=5e-3)
     assert -Q_room / dev.Ac + q_centre == pytest.approx(P, rel=5e-3)
 
@@ -90,7 +90,8 @@ def test_configA_dTmax_equals_configB_end_drop(params):
     *_, Q0, _ = rm._heat_config_A(dev, bp, 0.0)
     dTmax = -Q0 / rm.room_slope(dev)
     TB, _ = rm._heat_config_B(dev, bp)
-    assert dTmax == pytest.approx(dev.T_room - TB[0], rel=1e-6)
+    # the two ends differ (unequal leakage into the n+ and p+ layers): the mean end drop counts
+    assert dTmax == pytest.approx(dev.T_room - 0.5 * (TB[0] + TB[-1]), rel=1e-6)
     *_, Qz, _ = rm._heat_config_A(dev, bp, dTmax)
     assert abs(Qz) < 1e-9 * abs(Q0)
 

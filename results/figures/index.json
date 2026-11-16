@@ -36,8 +36,8 @@
  },
  {
   "name": "fig8_V6_heatmap",
-  "caption": "V6: dT_max heat map over (w_rz, tau_short)",
-  "source": "reference model"
+  "caption": "dT_max over (w_rz, tau_short) (placeholder: COMSOL results not available)",
+  "source": "none"
  },
  {
   "name": "fig9_comsol_vs_reference",

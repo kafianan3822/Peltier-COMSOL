@@ -38,6 +38,7 @@ parameters:
   VF:          ["0.4[V]",                "forward bias (swept)"]
   Nc_ref:      ["1.0e19[1/cm^3]",        "Nc of Ge at T0, for Pi calc (overwritten with material value)"]
   Nv_ref:      ["5.0e18[1/cm^3]",        "Nv of Ge at T0, for Pi calc (overwritten with material value)"]
+  Eg_ref:      ["0.661[V]",              "band gap of Ge at T0, for the contact recombination heat (overwritten with material value)"]
   Pi_nc:       ["k_B_const*T0/e_const*(log(Nc_ref/Nd_p)+2)", "n-contact Peltier coefficient (approx 0.052 V)"]
   Pi_pc:       ["k_B_const*T0/e_const*(log(Nv_ref/Na_p)+2)", "p-contact Peltier coefficient (approx 0.034 V)"]
   h_lat:       ["1e4[W/(m^2*K)]",        "lateral heat-transfer coefficient (Config C)"]

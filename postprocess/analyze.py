@@ -24,7 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from common.csvio import read_csv, read_header  # noqa: E402
-from common.params import K_B, Q_E, evaluate_params, expand_variants, load_base, material, report_cfg  # noqa: E402
+from common.params import (K_B, Q_E, emitter_leakage_coeffs, evaluate_params, expand_variants,  # noqa: E402
+                           material, report_cfg)
 
 RESULTS = ROOT / "results"
 REF = RESULTS / "reference"
@@ -264,14 +265,16 @@ def check_C3(vd: VariantData) -> Check:
 
 def check_C4(vd: VariantData) -> Check:
     name = "Junction-cooling magnitude"
-    if "V_ifield" not in vd.glob:
-        return _pending("C4", name, "needs column V_ifield (i-region field integral)")
+    if "Vj" not in vd.glob:
+        return _pending("C4", name, "needs column Vj (quasi-Fermi-level split next to the junctions)")
     p = evaluate_params(vd.run.get("params", {}))
     Vt = K_B * p["T0"] / Q_E
     Vbi = Vt * math.log(p["Nd_p"] * p["Na_p"] / NI_C4 ** 2)
     lo, hi = REP["C4_VF"]
     g = vd.glob[(vd.glob.VF >= lo - 1e-9) & (vd.glob.VF <= hi + 1e-9)]
-    Vj = g.VF - g.V_ifield
+    # V_j is the quasi-Fermi-level split at the junctions.  (VF - V_ifield is NOT V_j: the field
+    # integral over the i-region contains the built-in voltage.)
+    Vj = g.Vj
     expect = -g.I * (Vbi - Vj)
     ratio = (g.Qjn_n + g.Qjn_p) / expect
     ok = bool(np.all((ratio > 0.7) & (ratio < 1.3)))
@@ -281,28 +284,11 @@ def check_C4(vd: VariantData) -> Check:
 
 
 def emitter_leakage(p: dict, VF) -> np.ndarray:
-    """Minority-carrier current lost into the two doped layers (A/m^2), ignoring the
-    ohmic drop:  J = q (n_i^2/N) e^{VF/Vt} (D/L) coth(W/L)  per emitter, with the M2
-    mobility at the emitter doping and 1/tau = 1/tau_long + C_aug N^2.
-
-    In Ge this term is of the same order as the i-region recombination current
-    (higher minority diffusivity than Si), so the I-V benchmark has to contain it."""
-    base = load_base()
-    Vt = K_B * p["T0"] / Q_E
-    J = np.zeros_like(np.asarray(VF, float))
-    for N, W, C, carrier in ((p["Nd_p"], p["Wn"], p["Cn_aug"], "holes"),
-                             (p["Na_p"], p["Wp"], p["Cp_aug"], "electrons")):
-        c = {k: evaluate_expr_si(v) for k, v in base["mobility_M2"][carrier].items()}
-        mu = c["mu_min"] + (c["mu_max"] - c["mu_min"]) / (1.0 + (N / c["N_ref"]) ** c["alpha"])
-        D = mu * Vt
-        L = math.sqrt(D / (1.0 / p["tau_long"] + C * N * N))
-        J = J + Q_E * NI_C4 ** 2 / N * np.exp(np.asarray(VF, float) / Vt) * D / L / math.tanh(W / L)
-    return J
-
-
-def evaluate_expr_si(expr) -> float:
-    from common.params import eval_expr
-    return eval_expr(str(expr), {})
+    """Current lost into the two doped contact layers (A/m^2) at junction voltage ~ VF
+    (ohmic drop ignored); see common.params.emitter_leakage_coeffs.  In Ge this is as
+    large as the i-region recombination current, so the I-V benchmark has to contain it."""
+    A = sum(a + b for a, b in emitter_leakage_coeffs(p).values())
+    return A * (np.exp(np.asarray(VF, float) / (K_B * p["T0"] / Q_E)) - 1.0)
 
 
 def check_C5(vd: VariantData) -> Check:

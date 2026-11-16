@@ -11,11 +11,11 @@ listed in [`CHANGES.md`](CHANGES.md). To run the whole pipeline with an AI agent
 
 **Physics caveat.** Junction cooling is real (J·E < 0 against the built-in field, plus the
 contact Peltier heat). With an engineered central recombination zone the junction ends cool
-below the sink, but only by **tens of milli-kelvin**: about 12 mK at 0.3 V and about 64 mK at
-0.4 V in the idealised reference model (which ignores carrier leakage into the contacts, so
-COMSOL is expected to give less). Stacking modules does not fix this. Parallel modules multiply
-watts, not ΔT, and a series cascade needs about 200 stages and about 10^95 × the electrical
-power for 10 K ([`results/cascade.md`](results/cascade.md)).
+below the sink, but only by **tens of milli-kelvin**: about 56 mK at 0.4 V in the reference
+model, which includes carrier leakage into the contacts. Without the zone the room is heated.
+Stacking modules does not fix this. Parallel modules multiply watts, not ΔT, and a series
+cascade needs about 200 stages and about 10^95 × the electrical power for
+10 K ([`results/cascade.md`](results/cascade.md)).
 
 **New to COMSOL scripting? Start with the step-by-step [user manual](docs/USER_MANUAL.md).**
 
@@ -88,6 +88,9 @@ python -m pytest -q
 ```
 
 ## 3. Java-only path (Driver B)
+
+> **Out of date.** Driver B lacks the COMSOL 6.3 fixes and the contact-recombination heat
+> (CHANGES.md G15). Use Driver A until it is brought up to date.
 
 Windows:
 

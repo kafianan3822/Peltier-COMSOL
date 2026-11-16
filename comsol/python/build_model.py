@@ -352,6 +352,7 @@ class PinPeltierBuilder:
             LOG.info("material readback %s = '%s' -> %.6g (SI, at T0)", api.name(k), s, v)
         self.j.param().set("Nc_ref", f"{vals['MAT_NC'][1]:.6g}[1/m^3]", "Nc read back from material at T0")
         self.j.param().set("Nv_ref", f"{vals['MAT_NV'][1]:.6g}[1/m^3]", "Nv read back from material at T0")
+        self.j.param().set("Eg_ref", f"{vals['MAT_EG0'][1]:.6g}[V]", "band gap read back from material at T0")
         pin, pip = self.param_value("Pi_nc"), self.param_value("Pi_pc")
         LOG.info("Pi_nc = %.5f V, Pi_pc = %.5f V (%s)", pin, pip, MATERIAL["label"])
         self.Pi = (pin, pip)
@@ -603,14 +604,11 @@ class PinPeltierBuilder:
         with verify("FEAT_HS"):
             hs = ht.create(T["hs1"], api.name("FEAT_HS"), 1)
         hs.selection().all()
-        self.set_heat_source("builtin")
-        jx = self.var("J_X")
-        for tag, pt, pi in ((T["bhs_n"], 1, "Pi_nc"), (T["bhs_p"], 5, "Pi_pc")):
+        for tag, pt in ((T["bhs_n"], 1), (T["bhs_p"], 5)):
             with verify("FEAT_BHS"):
                 b = ht.create(tag, api.name("FEAT_BHS"), 0)
             b.selection().set([pt])
-            with verify("BHS_QB"):
-                b.set(api.name("BHS_QB"), f"-abs({jx})*{pi}")
+        self.set_heat_source("builtin")
         self._temp_node(T["temp_sinkB"], [3], "T_room")
         st = self.j.study(T["std_eq_iv"]).feature("stat")
         self.set_activate(st, semi=True, ht=True)
@@ -635,10 +633,29 @@ class PinPeltierBuilder:
         q = self.var("Q_TOT")
         return q if qsrc == "builtin" else f"{q}+k_B_const*T0*{self.var('U_TOT')}"
 
+    def pair_energy_expr(self, qsrc: str) -> str:
+        """Heat per recombined pair in volts, consistent with the volume source: semi.Q_tot books
+        E_g + 3 k_B T per pair, the corrected source one k_B T more."""
+        return f"(Eg_ref+{3 if qsrc == 'builtin' else 4}*k_B_const*T0/e_const)"
+
+    def contact_source_exprs(self, qsrc: str) -> dict[str, str]:
+        """Boundary heat source at each contact (W/m^2): the contact Peltier sink plus the heat of the
+        minority carriers that recombine AT the ohmic contact.  semi.Q_tot is a volume source and does
+        not contain that surface recombination, so without this term the heat balance loses
+        |J_minority| (E_g + 3 k_B T)/q (about half of the power of V0 at 0.4 V in Ge)."""
+        jx, e = self.var("J_X"), self.pair_energy_expr(qsrc)
+        return {T["bhs_n"]: f"-abs({jx})*Pi_nc+abs({self.var('JP_X')})*{e}",
+                T["bhs_p"]: f"-abs({jx})*Pi_pc+abs({self.var('JN_X')})*{e}"}
+
     def set_heat_source(self, qsrc: str) -> None:
+        self.qsrc = qsrc
         self.hs_expr = self.heat_source_expr(qsrc)
         with verify("HS_Q0"):
             self.ht.feature(T["hs1"]).set(api.name("HS_Q0"), self.hs_expr)
+        for tag, expr in self.contact_source_exprs(qsrc).items():
+            with verify("BHS_QB"):
+                self.ht.feature(tag).set(api.name("BHS_QB"), expr)
+            LOG.info("%s Qb = %s", tag, expr)
         LOG.info("hs1 Q0 = %s (qsrc=%s)", self.hs_expr, qsrc)
 
     # ================================================================= STAGE 6

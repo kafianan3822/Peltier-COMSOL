@@ -141,6 +141,8 @@ public class RunVariants {
   static final String Q_TOT = "semi.Q_tot";  // variable: Results > Add expression > Semiconductor > Heat source
   static final String U_TOT = "semi.Un";  // variable: Results > Add expression > Semiconductor > Generation-recombination > total recombination
   static final String J_X = "semi.JX";  // variable: Results > Add expression > Semiconductor > Current > Total current density, x
+  static final String JN_X = "semi.JnX";  // variable: Results > Add expression > Semiconductor > Current > Electron current density, x
+  static final String JP_X = "semi.JpX";  // variable: Results > Add expression > Semiconductor > Current > Hole current density, x
   static final String E_X = "semi.EX";  // variable: Results > Add expression > Semiconductor > Electric field, x
   static final String I_TERMINAL = "semi.I0_2";  // variable: Results > Add expression > Semiconductor > Terminals > Terminal current (terminal of mc_p)
   static final String EC = "semi.Ec";  // variable: Semiconductor > Band diagram > Conduction band energy
@@ -160,6 +162,8 @@ public class RunVariants {
       {"Q_TOT", "semi.Q_tot", "semi.Qh", "semi.Q"},
       {"U_TOT", "semi.Un", "semi.U_tot", "semi.R_tot", "semi.U", "semi.Rtot", "semi.GR_tot"},
       {"J_X", "semi.JX", "semi.Jx", "semi.J_x"},
+      {"JN_X", "semi.JnX", "semi.Jnx", "semi.Jn_x"},
+      {"JP_X", "semi.JpX", "semi.Jpx", "semi.Jp_x"},
       {"E_X", "semi.EX", "semi.Ex", "-d(V,x)"},
       {"I_TERMINAL", "semi.I0_2", "semi.I0_mc_p", "semi.mc2.I0", "semi.I0_1"},
       {"EC", "semi.Ec", "semi.Ec_e"},

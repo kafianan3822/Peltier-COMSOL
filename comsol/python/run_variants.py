@@ -50,7 +50,7 @@ def apply_variant(b, run: dict) -> None:
     """Apply parameters and physics switches of one run to builder `b` (spec §7)."""
     base = load_base()
     for name, (expr, _) in base["parameters"].items():      # reset, then override
-        if name not in ("Nc_ref", "Nv_ref"):                    # keep material read-back values
+        if name not in ("Nc_ref", "Nv_ref", "Eg_ref"):          # keep material read-back values
             b.model.parameter(name, str(expr))
     for name, expr in run.get("params", {}).items():
         b.model.parameter(name, str(expr))
@@ -87,17 +87,35 @@ def global_table(b, study: str) -> pd.DataFrame:
     df["Qjn_n"] = Ac * g(f"intop_all(({hs})*(x<Wn+5[um]))", unit="W/m^2")
     df["Qjn_p"] = Ac * g(f"intop_all(({hs})*(x>Ltot-Wp-5[um]))", unit="W/m^2")
     df["Qc_contacts"] = -J * Ac * Pi_sum
+    # heat of the minority carriers recombining AT the two ohmic contacts (not in the volume source)
+    E_pair = b.param_value(b.pair_energy_expr(getattr(b, "qsrc", "builtin")))
+    df["Q_sr"] = Ac * E_pair * (np.abs(g(f"pt_n({b.var('JP_X')})", unit="A/m^2"))
+                                + np.abs(g(f"pt_p({b.var('JN_X')})", unit="A/m^2")))
     try:
         df["qx_0"] = g(f"pt_n({tf})", unit="W/m^2")
         df["qx_L"] = g(f"pt_p({tf})", unit="W/m^2")
         df["T_P1"], df["T_P5"], df["T_P3"] = (g(f"{p}(T)", unit="K") for p in ("pt_n", "pt_p", "pt_c"))
-        df["Q_room"] = Ac * (df.qx_0 - df.qx_L + J * Pi_sum)
+        df["Q_room"] = Ac * (df.qx_0 - df.qx_L + J * Pi_sum) - df.Q_sr
     except Exception as exc:  # semi-only study
         LOG.debug("no ht quantities in %s: %s", study, exc)
     with np.errstate(divide="ignore", invalid="ignore"):
-        df["eta_E"] = np.where(df.P_el > 0, (df.Qtot_int + df.Qc_contacts) / df.P_el, np.nan)
-    df["V_ifield"] = -g(f"intop_i({b.var('E_X')})", unit="V")
+        df["eta_E"] = np.where(df.P_el > 0, (df.Qtot_int + df.Qc_contacts + df.Q_sr) / df.P_el, np.nan)
+    df["V_ifield"] = -g(f"intop_i({b.var('E_X')})", unit="V")   # = VF - V_bi + ohmic drop (diagnostic only)
+    df["Vj"] = junction_voltage(b, study)
     return df
+
+
+def junction_voltage(b, study: str) -> np.ndarray:
+    """V_j(VF): quasi-Fermi-level split Efn - Efp, mean of the values 5 um inside the i-region
+    at both junctions (check C4)."""
+    x, efn, efp = b.eval_field(["x", b.var("EFN"), b.var("EFP")], study, unit=["m", "eV", "eV"])
+    lo = b.param_value("Wn") + 5e-6
+    hi = b.param_value("Ltot") - b.param_value("Wp") - 5e-6
+    out = []
+    for xi, d in zip(x, efn - efp):
+        o = np.argsort(xi)
+        out.append(float(np.mean(np.interp([lo, hi], xi[o], d[o]))))
+    return np.asarray(out)
 
 
 def point_temps(b, study: str) -> pd.DataFrame:
@@ -142,7 +160,9 @@ def room_sweep(b) -> pd.DataFrame:
     base = load_base()
     dTs = parse_range(base["sweeps"]["dT_sink"])
     tf, I_t = b.var("TFLUX_X"), b.var("I_TERMINAL")
-    expr = f"Ac*(pt_n({tf})-pt_p({tf}))+abs({I_t})*(Pi_nc+Pi_pc)"
+    e_pair = b.pair_energy_expr(getattr(b, "qsrc", "builtin"))
+    expr = (f"Ac*(pt_n({tf})-pt_p({tf}))+abs({I_t})*(Pi_nc+Pi_pc)"
+            f"-Ac*{e_pair}*(abs(pt_n({b.var('JP_X')}))+abs(pt_p({b.var('JN_X')})))")
     rows = []
     try:
         for k, d in enumerate(dTs, start=1):

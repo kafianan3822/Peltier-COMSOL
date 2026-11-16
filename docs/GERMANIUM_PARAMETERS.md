@@ -68,11 +68,14 @@ Germanium has a band gap 0.46 eV smaller than silicon, so the whole bias window 
    Fermi-Dirac statistics to measure the effect. The alternative, 1e18 cm⁻³, is non-degenerate but
    lets ten times more minority carriers leak into the contacts, which is worse (item 2).
 2. **Leakage into the contact layers.** Minority carriers diffuse through the 2 µm doped layers
-   and recombine at the ohmic contacts. In germanium this current is as large as the i-region
-   recombination current (about 2.5 A/cm² against 1.4 A/cm² at 0.4 V for V0). COMSOL includes
-   it; the reference model does not. Expect COMSOL to show a higher current and less cooling than
-   the reference model. If check C9 (factor 2 agreement) fails, this is the first thing to look
-   at, and thicker or more heavily doped contact layers are the fix.
+   and recombine at the ohmic contacts. COMSOL (first run, V0 at 0.4 V) shows that 52 % of the
+   current ends this way; for V1 it is 5 %. COMSOL's volume heat source `semi.Q_tot` does not
+   contain this surface recombination, so the first run lost that heat and V0 appeared to cool
+   by 19 mK. That was an artefact. The model now adds |J_minority|·(E_g + 3kT)/q as a boundary
+   heat source at each contact and subtracts it from the room heat balance. The reference model
+   contains the same leakage (short-diode formula), and agrees with COMSOL's current within 2 %
+   for V0 and 8 % for V1. Thicker or more heavily doped contact layers would reduce the leakage;
+   that is a design change, not made here.
 3. **Radiative recombination is not modelled.** With B = 6.4e-14 cm³/s [I] the radiative
    lifetime at n = 4e16 cm⁻³ is 0.4 ms, comparable to `tau_long`. It matters for V0 only; in V1
    the 1 µs zone dominates. The V5 sweep of `tau_long` (0.1 to 5 ms) brackets the effect.
@@ -89,12 +92,15 @@ The limit was **not** raised. The room sweep stops at 0.4 V instead. If COMSOL r
 more, treat it as a bug first; raise `report.plausibility_limit` only after checking the energy
 balance (C2) by hand.
 
-## 6. Reference-model results (no COMSOL)
+## 6. Reference-model results (no COMSOL), with contact leakage
 
-| Variant | J at 0.4 V | Q_room (dT = 0) | dT_max | Ends minus sink, Config B |
+| Variant | J at 0.4 V | Q_room (dT = 0) | dT_max | Ends minus sink, Config B (mean) |
 |---|---|---|---|---|
-| V0 (uniform lifetime) | 1.44 A/cm² | −0.51 mW | none (room heated) | +2.1 mK |
-| V1 (recombination zone) | 4.77 A/cm² | +15.4 mW | 64 mK | −64 mK |
+| V0 (uniform lifetime) | 2.94 A/cm² | −7.4 mW | none (room heated) | +31 mK |
+| V1 (recombination zone) | 4.76 A/cm² | +13.5 mW | 56 mK | −56 mK |
 
-These are upper bounds on the cooling (item 2 above). COMSOL has not been run on the germanium
-model yet.
+At 0.4 V, Auger recombination carries about 78 % of the volume recombination of V0 (COMSOL:
+10 860 of 13 864 A/m²). The Auger coefficient is the least certain material value (section 1),
+so V0 at this bias depends on it directly. V1 does not: its current is 99 % SRH in the zone.
+
+COMSOL results produced before the contact-heat fix (commit `6f51f5a`) must not be used.
