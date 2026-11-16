@@ -20,7 +20,7 @@ def device(params, **kw):
 def test_uniform_tau_no_auger_matches_cosh(params, convention):
     """n = n_b cosh((x-W/2)/L_a)/cosh(W/2L_a) within 1 % (n >> n_i, so the -n_i shift is negligible)."""
     dev = device(params, auger=False, tau_uniform=params["tau_long"], convention=convention)
-    Vj = 0.6
+    Vj = 0.3
     bp = rm.bias_point(dev, Vj)
     La = np.sqrt(dev.Da * dev.s * dev.tau_uniform)
     nb = dev.n_boundary(Vj)
@@ -32,11 +32,11 @@ def test_uniform_tau_no_auger_matches_cosh(params, convention):
 def test_uniform_tau_short_lifetime_strong_curvature(params):
     """Same test with L_a << W_i (tau = 1 us), where the profile is far from flat."""
     dev = device(params, auger=False, tau_uniform=1e-6)
-    bp = rm.bias_point(dev, 0.6)
+    bp = rm.bias_point(dev, 0.45)
     La = np.sqrt(dev.Da * dev.s * 1e-6)
-    nb = dev.n_boundary(0.6)
+    nb = dev.n_boundary(0.45)
     n_exact = dev.ni + (nb - dev.ni) * np.cosh((bp.x - dev.Wi / 2) / La) / np.cosh(dev.Wi / (2 * La))
-    mask = n_exact > 1e3 * dev.ni
+    mask = n_exact > 10 * dev.ni
     assert np.max(np.abs(bp.n[mask] / n_exact[mask] - 1)) < 0.01
 
 
@@ -52,7 +52,7 @@ def test_zero_bias_no_current_no_heating(params, rz_on):
     assert np.max(np.abs(TA - dev.T_room)) < 1e-12
 
 
-@pytest.mark.parametrize("rz_on,Vj", [(0.0, 0.6), (0.0, 0.75), (1.0, 0.6), (1.0, 0.75)])
+@pytest.mark.parametrize("rz_on,Vj", [(0.0, 0.3), (0.0, 0.45), (1.0, 0.3), (1.0, 0.45)])
 def test_energy_balance_closes(params, rz_on, Vj):
     """Total heat delivered to all reservoirs equals J*VF within 0.5 %."""
     dev = device(dict(params, rz_on=rz_on))
@@ -80,13 +80,13 @@ def test_rect_lifetime(params):
 
 def test_ambipolar_diffusivity(params):
     dev = device(params)
-    assert dev.Da * 1e4 == pytest.approx(18.25, abs=0.2)   # ~18 cm^2/s (spec §11.1)
+    assert dev.Da * 1e4 == pytest.approx(66.0, abs=0.5)    # Ge: 2 Dn Dp/(Dn+Dp), Dn = 100.8, Dp = 49.1 cm^2/s
 
 
 def test_configA_dTmax_equals_configB_end_drop(params):
     """Symmetric bar: dT_sink at Q_room = 0 (Config A) equals T_room - T_end (Config B)."""
     dev = device(dict(params, rz_on=1.0))
-    bp = rm.bias_point(dev, 0.65)
+    bp = rm.bias_point(dev, 0.35)
     *_, Q0, _ = rm._heat_config_A(dev, bp, 0.0)
     dTmax = -Q0 / rm.room_slope(dev)
     TB, _ = rm._heat_config_B(dev, bp)
@@ -99,7 +99,8 @@ def test_uniform_lifetime_heats_ends_rz_cools_ends(params):
     """Spec §1 key outcomes: uniform tau -> ends warmer; engineered zone -> ends cooler, mK scale."""
     for rz, sign in ((0.0, +1), (1.0, -1)):
         dev = device(dict(params, rz_on=rz))
-        bp = rm.bias_point(dev, 0.75)
+        # VF = 0.4 V is above (Eg+3kT)/2q = 0.37 V; below that even V0 cools its ends slightly
+        bp = rm.solve_at_VF(dev, rm.VF_REPORT, rm.sweep_Vj(dev, Vj_max=0.45, dVj=0.05))
         TB, _ = rm._heat_config_B(dev, bp)
         dT = TB[0] - dev.T_room
         assert np.sign(dT) == sign
@@ -108,7 +109,7 @@ def test_uniform_lifetime_heats_ends_rz_cools_ends(params):
 
 def test_iv_monotonic(params):
     dev = device(dict(params, rz_on=1.0))
-    pts = rm.sweep_Vj(dev, Vj_max=0.8, dVj=0.05)
+    pts = rm.sweep_Vj(dev, Vj_max=0.5, dVj=0.05)
     J = np.array([p.J for p in pts])
     VF = np.array([p.VF for p in pts])
     assert np.all(np.diff(J) > 0) and np.all(np.diff(VF) > 0)
@@ -116,23 +117,23 @@ def test_iv_monotonic(params):
 
 def test_solve_at_VF_hits_target(params):
     dev = device(params)
-    pts = rm.sweep_Vj(dev, Vj_max=0.8, dVj=0.05)
-    bp = rm.solve_at_VF(dev, 0.7, pts)
-    assert bp.VF == pytest.approx(0.7, abs=1e-6)
+    pts = rm.sweep_Vj(dev, Vj_max=0.5, dVj=0.05)
+    bp = rm.solve_at_VF(dev, 0.4, pts)
+    assert bp.VF == pytest.approx(0.4, abs=1e-6)
 
 
 def test_analytic_bound(params):
     dev = device(params)
-    b = rm.analytic_bound(dev, 0.7)
+    b = rm.analytic_bound(dev, 0.4)
     assert b["n_b_auger"] == pytest.approx(2 / dev.Wi * np.sqrt(dev.Da / dev.Ca))
     assert 0 < b["dT_bound"] <= b["dT_bound_auger"]
-    Pi_side = (dev.Eg_eV + 3 * dev.Vt - 0.7) / 2 * Q_E
+    Pi_side = (dev.Eg_eV + 3 * dev.Vt - 0.4) / 2 * Q_E
     assert b["dT_bound"] == pytest.approx(min(b["n_b"], b["n_b_auger"]) * dev.Da * Pi_side / dev.k)
-    assert b["dT_bound"] < 0.1      # milli-kelvin scale
+    assert b["dT_bound"] < 0.2      # below the kelvin scale
 
 
 def test_thermophotonic_stub():
     assert rm.thermophotonic_cop(0.9, 1.4, 1.2) == pytest.approx(0.9 * 1.4 - 1.2)
     assert rm.thermophotonic_cools(0.9, 1.4, 1.2)          # 0.9 > 0.857
     assert not rm.thermophotonic_cools(0.8, 1.4, 1.2)      # 0.8 < 0.857
-    assert not rm.thermophotonic_cools(1e-3, 1.12, 0.7)    # Si-like EQE
+    assert not rm.thermophotonic_cools(1e-3, 0.661, 0.4)   # Ge-like EQE (indirect gap)

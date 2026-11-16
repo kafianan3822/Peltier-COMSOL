@@ -24,13 +24,19 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from common.csvio import read_csv, read_header  # noqa: E402
-from common.params import K_B, Q_E, evaluate_params, expand_variants  # noqa: E402
+from common.params import K_B, Q_E, evaluate_params, expand_variants, load_base, material, report_cfg  # noqa: E402
 
 RESULTS = ROOT / "results"
 REF = RESULTS / "reference"
-VF_REPORT = 0.7
-PLAUSIBILITY_LIMIT = 0.1      # K (spec §0 rule 6, §10 C7)
-NI_C4 = 1e10 * 1e6            # m^-3, spec C4/C5
+REP = report_cfg()
+MAT = material()
+VF_REPORT = float(REP["VF_report"])
+PLAUSIBILITY_LIMIT = float(REP["plausibility_limit"])   # K (spec §0 rule 6, §10 C7)
+NI_C4 = MAT["ni"]             # m^-3, intrinsic density of the material at T0
+VT0 = K_B * evaluate_params()["T0"] / Q_E
+# Reverse bias (C8): thermal generation gives a real, small negative heat source of
+# relative size n_i/n_b(VF_REPORT) = exp(-VF_REPORT/2Vt).  Anything beyond 5x that is a fail.
+REVERSE_FLOOR = max(1e-6, 5.0 * math.exp(-VF_REPORT / (2.0 * VT0)))
 
 
 # ======================================================================
@@ -57,9 +63,11 @@ def eta_E(Qtot_int, Qc_contacts, I, VF):
 
 def eta_E_expected(VF, T=300.0, qsrc="builtin"):
     """Spec §8.3: ~ 1 - (kT/q)/VF for builtin, ~ 1 for corrected."""
+    VF = np.asarray(VF, float)
     if qsrc == "corrected":
-        return np.ones_like(np.asarray(VF, float))
-    return 1.0 - K_B * T / Q_E / np.asarray(VF, float)
+        return np.ones_like(VF)
+    with np.errstate(divide="ignore"):
+        return 1.0 - K_B * T / Q_E / VF
 
 
 @dataclass
@@ -219,7 +227,7 @@ def _pending(cid, name, why="needs COMSOL results (results/<variant>/)"):
 def check_C1(vd: VariantData) -> Check:
     name = "Zero bias"
     if 0.0 not in vd.profiles or VF_REPORT not in vd.profiles:
-        return _pending("C1", name, "needs profiles_VF0.csv and profiles_VF0.7.csv")
+        return _pending("C1", name, f"needs profiles_VF0.csv and profiles_VF{VF_REPORT:g}.csv")
     p0, p7 = vd.profiles[0.0], vd.profiles[VF_REPORT]
     T_room = evaluate_params(vd.run.get("params", {}))["T_room"]
     qmax7 = np.nanmax(np.abs(p7.Q_tot))
@@ -227,25 +235,27 @@ def check_C1(vd: VariantData) -> Check:
     dT0 = np.nanmax(np.abs(p0["T"] - T_room))
     ok = q0 < 1e-6 * qmax7 and dT0 < 1e-6
     return Check("C1", name, "PASS" if ok else "FAIL",
-                 f"{vd.vid}: max|Q_tot(0)|/max|Q_tot(0.7)| = {q0/qmax7:.2e} (<1e-6), "
+                 f"{vd.vid}: max|Q_tot(0)|/max|Q_tot({VF_REPORT:g})| = {q0/qmax7:.2e} (<1e-6), "
                  f"max|T-T_room| = {dT0*1e6:.3g} uK (<1 uK)")
 
 
 def check_C2(vd: VariantData) -> Check:
     name = "Energy balance"
-    g = vd.glob[vd.glob.VF >= 0.5 - 1e-9]
+    vmin, tol = float(REP["C2_VF_min"]), float(REP["C2_tol"])
+    g = vd.glob[vd.glob.VF >= vmin - 1e-9]
     qsrc = vd.run.get("qsrc", "builtin")
-    lo, hi = (0.98, 1.02) if qsrc == "corrected" else (0.93, 0.99)
     e = g.eta_E.to_numpy()
-    ok = bool(np.all((e >= lo) & (e <= hi)))
+    dev = e - eta_E_expected(g.VF.to_numpy(), evaluate_params()["T0"], qsrc)
+    ok = bool(np.all(np.abs(dev) <= tol))
     return Check("C2", name, "PASS" if ok else "FAIL",
-                 f"{vd.vid} ({qsrc}): eta_E in [{np.nanmin(e):.4f}, {np.nanmax(e):.4f}] for VF>=0.5, "
-                 f"required [{lo}, {hi}]")
+                 f"{vd.vid} ({qsrc}): eta_E - expected in [{np.nanmin(dev):+.4f}, {np.nanmax(dev):+.4f}] "
+                 f"for VF>={vmin:g} (expected = {'1' if qsrc == 'corrected' else '1 - Vt/VF'}; need |.| <= {tol:g})")
 
 
 def check_C3(vd: VariantData) -> Check:
     name = "Junction cooling exists"
-    g = vd.glob[(vd.glob.VF >= 0.3 - 1e-9) & (vd.glob.VF <= 1.0 + 1e-9)]
+    lo, hi = REP["C3_VF"]
+    g = vd.glob[(vd.glob.VF >= lo - 1e-9) & (vd.glob.VF <= hi + 1e-9)]
     ok = bool(np.all(g.Qjn_n < 0) and np.all(g.Qjn_p < 0))
     return Check("C3", name, "PASS" if ok else "FAIL",
                  f"{vd.vid}: max Qjn_n = {g.Qjn_n.max():.3e} W, max Qjn_p = {g.Qjn_p.max():.3e} W "
@@ -259,14 +269,40 @@ def check_C4(vd: VariantData) -> Check:
     p = evaluate_params(vd.run.get("params", {}))
     Vt = K_B * p["T0"] / Q_E
     Vbi = Vt * math.log(p["Nd_p"] * p["Na_p"] / NI_C4 ** 2)
-    g = vd.glob[(vd.glob.VF >= 0.5 - 1e-9) & (vd.glob.VF <= 0.8 + 1e-9)]
+    lo, hi = REP["C4_VF"]
+    g = vd.glob[(vd.glob.VF >= lo - 1e-9) & (vd.glob.VF <= hi + 1e-9)]
     Vj = g.VF - g.V_ifield
     expect = -g.I * (Vbi - Vj)
     ratio = (g.Qjn_n + g.Qjn_p) / expect
     ok = bool(np.all((ratio > 0.7) & (ratio < 1.3)))
     return Check("C4", name, "PASS" if ok else "FAIL",
                  f"{vd.vid}: (Qjn_n+Qjn_p)/(-I(V_bi-V_j)) in [{ratio.min():.3f}, {ratio.max():.3f}] "
-                 f"for VF 0.5-0.8 V (V_bi = {Vbi:.3f} V; need 0.7-1.3)")
+                 f"for VF {lo:g}-{hi:g} V (V_bi = {Vbi:.3f} V; need 0.7-1.3)")
+
+
+def emitter_leakage(p: dict, VF) -> np.ndarray:
+    """Minority-carrier current lost into the two doped layers (A/m^2), ignoring the
+    ohmic drop:  J = q (n_i^2/N) e^{VF/Vt} (D/L) coth(W/L)  per emitter, with the M2
+    mobility at the emitter doping and 1/tau = 1/tau_long + C_aug N^2.
+
+    In Ge this term is of the same order as the i-region recombination current
+    (higher minority diffusivity than Si), so the I-V benchmark has to contain it."""
+    base = load_base()
+    Vt = K_B * p["T0"] / Q_E
+    J = np.zeros_like(np.asarray(VF, float))
+    for N, W, C, carrier in ((p["Nd_p"], p["Wn"], p["Cn_aug"], "holes"),
+                             (p["Na_p"], p["Wp"], p["Cp_aug"], "electrons")):
+        c = {k: evaluate_expr_si(v) for k, v in base["mobility_M2"][carrier].items()}
+        mu = c["mu_min"] + (c["mu_max"] - c["mu_min"]) / (1.0 + (N / c["N_ref"]) ** c["alpha"])
+        D = mu * Vt
+        L = math.sqrt(D / (1.0 / p["tau_long"] + C * N * N))
+        J = J + Q_E * NI_C4 ** 2 / N * np.exp(np.asarray(VF, float) / Vt) * D / L / math.tanh(W / L)
+    return J
+
+
+def evaluate_expr_si(expr) -> float:
+    from common.params import eval_expr
+    return eval_expr(str(expr), {})
 
 
 def check_C5(vd: VariantData) -> Check:
@@ -274,13 +310,14 @@ def check_C5(vd: VariantData) -> Check:
     p = evaluate_params(vd.run.get("params", {}))
     Vt = K_B * p["T0"] / Q_E
     tau_eff = 2.0 * p["tau_long"]   # SRH high-injection lifetime tau_n + tau_p (see CHANGES.md)
-    g = vd.glob[(vd.glob.VF >= 0.6 - 1e-9) & (vd.glob.VF <= 0.8 + 1e-9)]
-    Jref = Q_E * NI_C4 * np.exp(g.VF / (2 * Vt)) * p["Wi"] / tau_eff
+    lo, hi = REP["C5_VF"]
+    g = vd.glob[(vd.glob.VF >= lo - 1e-9) & (vd.glob.VF <= hi + 1e-9)]
+    Jref = Q_E * NI_C4 * np.exp(g.VF / (2 * Vt)) * p["Wi"] / tau_eff + emitter_leakage(p, g.VF.to_numpy())
     ratio = g.J / Jref
     ok = bool(np.all((ratio > 1 / 3) & (ratio < 3)))
     return Check("C5", name, "PASS" if ok else "FAIL",
-                 f"{vd.vid}: J/J_ref in [{ratio.min():.3f}, {ratio.max():.3f}] for 0.6-0.8 V "
-                 f"(tau_eff = 2 tau_long; need 1/3-3)")
+                 f"{vd.vid}: J/J_ref in [{ratio.min():.3f}, {ratio.max():.3f}] for {lo:g}-{hi:g} V "
+                 f"(J_ref = i-region SRH with tau_eff = 2 tau_long + emitter leakage; need 1/3-3)")
 
 
 def check_C6(v1: VariantData, v4: VariantData) -> Check:
@@ -331,9 +368,9 @@ def check_C8(vd: VariantData) -> Check:
     qmin = float(np.nanmin(vd.reverse.Q_tot))
     Qr = float(vd.reverse_glob.Q_room.iloc[-1])
     P7 = interp_at(vd.glob, "P_el", VF_REPORT)
-    ok = qmin > -1e-6 * qmax7 and Qr <= 1e-6 * P7
+    ok = qmin > -REVERSE_FLOOR * qmax7 and Qr <= REVERSE_FLOOR * P7
     return Check("C8", name, "PASS" if ok else "FAIL",
-                 f"{vd.vid}: min Q_tot(-0.5 V) = {qmin:.3e} W/m^3 (noise floor {-1e-6*qmax7:.2e}), "
+                 f"{vd.vid}: min Q_tot(-0.5 V) = {qmin:.3e} W/m^3 (generation floor {-REVERSE_FLOOR*qmax7:.2e}), "
                  f"Q_room = {Qr:.3e} W (need <= 0)")
 
 
@@ -408,7 +445,7 @@ def reference_checks(ref: dict[str, VariantData], all_m: list[dict]) -> list[Che
     m0, m1 = metrics(v0), metrics(v1)
     ok = m0["dT_end_B"] > 0 and m1["dT_end_B"] < 0
     out.append(Check("R4", "Qualitative outcome (V0 ends warmer, V1 ends cooler)", "PASS" if ok else "FAIL",
-                     f"Config B T_end - T_room at 0.7 V: V0 {m0['dT_end_B']*1e3:+.3f} mK, "
+                     f"Config B T_end - T_room at {VF_REPORT:g} V: V0 {m0['dT_end_B']*1e3:+.3f} mK, "
                      f"V1 {m1['dT_end_B']*1e3:+.3f} mK"))
     return out
 

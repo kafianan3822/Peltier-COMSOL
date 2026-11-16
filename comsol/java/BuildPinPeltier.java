@@ -363,12 +363,18 @@ public class BuildPinPeltier {
         () -> m.component(COMP).physics(SEMI).feature(SMM_TAG).set(SMM_BGN_PROP, v));
   }
 
+  /** Arora mobility, Slotboom BGN and Fletcher scattering are silicon models: usable only
+   *  with the silicon library material (material.silicon_models in params_base.yaml). */
+  static boolean siModels() {
+    return MATERIAL_USED.equals("library") && "true".equals(CFG.get("material.silicon_models"));
+  }
+
   static void setMobility(Model m, String mode, boolean fletcher) {
     PhysicsFeature smm = m.component(COMP).physics(SEMI).feature(SMM_TAG);
     List<String> existing = Arrays.asList(smm.feature().tags());
     if (mode.equals("M1")) {
-      if (!MATERIAL_USED.equals("library"))
-        throw new RuntimeException("mobility M1 (Arora) needs the library material comsol/materials/Si_library.mph");
+      if (!siModels())
+        throw new RuntimeException("mobility M1 (Arora) is a silicon model: needs the silicon library material");
       if (!existing.contains("mmal1"))
         verify("FEAT_MOB_ARORA", FEAT_MOB_ARORA, () -> smm.create("mmal1", FEAT_MOB_ARORA, 1));
       smm.feature("mmal1").active(true);
@@ -665,9 +671,9 @@ public class BuildPinPeltier {
     log("== stage 2: material");
     Material mat = m.component(COMP).material().create(MAT, "Common");
     mat.selection().all();
-    File lib = new File(ROOT + "/comsol/materials/Si_library.mph");
+    File lib = new File(ROOT + "/comsol/materials/" + CFG.get("material.library_file"));
     if (lib.exists()) {
-      Model src = ModelUtil.load("SiLib", lib.getPath());
+      Model src = ModelUtil.load("MatLib", lib.getPath());
       try {
         Material sm = src.component("comp1").material("mat1");
         for (String gt : sm.propertyGroup().tags()) {
@@ -689,9 +695,9 @@ public class BuildPinPeltier {
       MATERIAL_USED = "fallback";
       log("material: explicit fallback properties (spec §4.2)");
     }
-    mat.propertyGroup("def").set("thermalconductivity", diag3("k_Si"));
-    mat.propertyGroup("def").set("density", "rho_Si");
-    mat.propertyGroup("def").set("heatcapacity", "Cp_Si");
+    mat.propertyGroup("def").set("thermalconductivity", diag3("k_th"));
+    mat.propertyGroup("def").set("density", "rho_m");
+    mat.propertyGroup("def").set("heatcapacity", "Cp_m");
     // read back (spec §4.2)
     String[][] rb = {{"MAT_EG0", MAT_EG0}, {"MAT_NC", MAT_NC}, {"MAT_NV", MAT_NV}};
     double[] val = new double[3];
@@ -703,9 +709,9 @@ public class BuildPinPeltier {
         log("material readback " + rb[k][1] + " = '" + s + "' -> " + val[k]);
       });
     }
-    m.param().set("Nc_si", String.format(Locale.ROOT, "%.6g[1/m^3]", val[1]), "Nc read back from material at T0");
-    m.param().set("Nv_si", String.format(Locale.ROOT, "%.6g[1/m^3]", val[2]), "Nv read back from material at T0");
-    log(String.format(Locale.ROOT, "Pi_nc = %.5f V, Pi_pc = %.5f V (spec ~0.079 / ~0.081)", pval(m, "Pi_nc"), pval(m, "Pi_pc")));
+    m.param().set("Nc_ref", String.format(Locale.ROOT, "%.6g[1/m^3]", val[1]), "Nc read back from material at T0");
+    m.param().set("Nv_ref", String.format(Locale.ROOT, "%.6g[1/m^3]", val[2]), "Nv read back from material at T0");
+    log(String.format(Locale.ROOT, "Pi_nc = %.5f V, Pi_pc = %.5f V (%s)", pval(m, "Pi_nc"), pval(m, "Pi_pc"), CFG.get("material.name")));
   }
 
   /** Stage 3: semi interface + doping; equilibrium solve; net-doping smoke test. */
@@ -721,8 +727,8 @@ public class BuildPinPeltier {
     verify("SMM_TEMP", SMM_TEMP, () -> smm.set(SMM_TEMP, "T0"));
     setBgn(m, "off");
     verify("SMM_INCION_PROP", SMM_INCION_PROP, () -> smm.set(SMM_INCION_PROP, false));
-    MOBILITY_BASE = MATERIAL_USED.equals("library") ? "M1" : "M2";
-    if (MOBILITY_BASE.equals("M2")) log("WARNING: fallback material has no Arora parameters -> base mobility M2 (see CHANGES.md)");
+    MOBILITY_BASE = siModels() ? "M1" : "M2";
+    if (MOBILITY_BASE.equals("M2")) log("base mobility M2 (user-defined doping-dependent mobility; Arora is a silicon model)");
     setMobility(m, MOBILITY_BASE, false);
     String[][] dops = {{"dop_bg", "acceptor", "0", "Ltot", "N_bg", "none"},
                        {"dop_n", "donor", "0", "Wn", "Nd_p", "gaussian"},
@@ -824,9 +830,12 @@ public class BuildPinPeltier {
     double Ac = pval(m, "Ac");
     for (int i = 1; i < I.length; i++)
       if (VF[i] > 0.05 && I[i] <= I[i - 1]) throw new RuntimeException("stage 4 smoke test: I-V not monotonic");
-    double J07 = interp(0.7, VF, I) / Ac * 1e-4;
-    log("J(0.7 V) = " + J07 + " A/cm^2 (V0 window 0.02-1)");
-    if (J07 < 0.02 || J07 > 1.0) throw new RuntimeException("stage 4 smoke test: J(0.7 V) outside 0.02-1 A/cm^2");
+    double VR = Double.parseDouble(CFG.get("report.VF_report"));
+    String[] win = CFG.get("report.J_smoke").split(",");
+    double Jr = interp(VR, VF, I) / Ac * 1e-4;
+    log("J(" + VR + " V) = " + Jr + " A/cm^2 (V0 window " + win[0] + "-" + win[1] + ")");
+    if (Jr < Double.parseDouble(win[0]) || Jr > Double.parseDouble(win[1]))
+      throw new RuntimeException("stage 4 smoke test: J(" + VR + " V) outside " + win[0] + "-" + win[1] + " A/cm^2");
   }
 
   static void tempNode(Model m, String tag, int[] pts, String value) {

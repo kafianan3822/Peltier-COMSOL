@@ -5,9 +5,10 @@
 # Every variant inherits `defaults` and then applies its own keys.
 #   params   : overrides of config/params_base.yaml entries (COMSOL expressions)
 #   stats    : MB (Maxwell-Boltzmann) | FD (Fermi-Dirac)
-#   bgn      : off | slotboom
-#   mobility : M1 (Arora, library) | M2 (user-defined Caughey-Thomas)
-#   fletcher : false | true   (carrier-carrier scattering add-on)
+#   bgn      : off | slotboom   (slotboom is a silicon model: not used for Ge)
+#   mobility : M2 (user-defined doping-dependent mobility, the Ge base) |
+#              M1 (Arora: silicon library material only)
+#   fletcher : false | true   (silicon model: not used for Ge)
 #   qsrc     : builtin (semi.Q_tot) | corrected (semi.Q_tot + k_B*T0*U)
 #   configs  : thermal configurations to run (A = std_room, B = std_float,
 #              C = std_lat).  Study 1 (std_eq_iv) always runs.
@@ -18,7 +19,7 @@ defaults:
   params: {rz_on: "0", mesh_factor: "1"}
   stats: MB
   bgn: "off"
-  mobility: M1
+  mobility: M2
   fletcher: false
   qsrc: builtin
   configs: [A, B]
@@ -30,18 +31,14 @@ variants:
     purpose: "Engineered recombination zone"
     params: {rz_on: "1"}
   V2a:
-    purpose: "Realistic transport (V0 + FD, Slotboom BGN, Fletcher)"
+    purpose: "Degenerate contacts (V0 + Fermi-Dirac statistics)"
     stats: FD
-    bgn: slotboom
-    fletcher: true
-    flag: "Q_tot inside doped layers less reliable with BGN"
+    flag: "1e19 cm^-3 is degenerate in Ge; contact Peltier formula stays Maxwell-Boltzmann"
   V2b:
-    purpose: "Realistic transport (V1 + FD, Slotboom BGN, Fletcher)"
+    purpose: "Degenerate contacts (V1 + Fermi-Dirac statistics)"
     params: {rz_on: "1"}
     stats: FD
-    bgn: slotboom
-    fletcher: true
-    flag: "Q_tot inside doped layers less reliable with BGN"
+    flag: "1e19 cm^-3 is degenerate in Ge; contact Peltier formula stays Maxwell-Boltzmann"
   V3a:
     purpose: "Corrected heat source (V0)"
     qsrc: corrected
@@ -79,14 +76,7 @@ variants:
     sweep:
       h_lat:  ["1e3[W/(m^2*K)]", "1e4[W/(m^2*K)]", "1e5[W/(m^2*K)]"]
       w_wall: ["0[um]", "50[um]", "200[um]"]
-  V8a:
-    purpose: "Mobility fallback M2 (V0)"
-    mobility: M2
-  V8b:
-    purpose: "Mobility fallback M2 (V1)"
-    params: {rz_on: "1"}
-    mobility: M2
 
 sets:
   core: [V0, V1]
-  full: [V0, V1, V2a, V2b, V3a, V3b, V4, V5, V6, V7a, V7b, V8a, V8b]
+  full: [V0, V1, V2a, V2b, V3a, V3b, V4, V5, V6, V7a, V7b]

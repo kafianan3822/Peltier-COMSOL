@@ -85,6 +85,29 @@ def evaluate_params(overrides: dict[str, str] | None = None, base: dict | None =
     return env
 
 
+def material(base: dict | None = None, T: float | None = None) -> dict:
+    """Material constants in SI units at temperature T (default T0), evaluated
+    from `material` and `material_fallback` of params_base.yaml.
+
+    n_i follows from mass action, n_i = sqrt(Nc Nv) exp(-Eg / 2 k_B T), so the
+    reference model and the checks use the same n_i as COMSOL."""
+    base = base or load_base()
+    p = evaluate_params(base=base)
+    T = p["T0"] if T is None else T
+    fb = base["material_fallback"]
+    env = dict(p, T=T)
+    Eg, Nc, Nv = (eval_expr(fb[k], env) for k in ("Eg0", "Nc", "Nv"))
+    out = dict(base.get("material", {}))
+    out.update(Eg_eV=Eg, Nc=Nc, Nv=Nv, mun=eval_expr(fb["mun"], env), mup=eval_expr(fb["mup"], env),
+               ni=math.sqrt(Nc * Nv) * math.exp(-Eg * Q_E / (2.0 * K_B * T)))
+    return out
+
+
+def report_cfg(base: dict | None = None) -> dict:
+    """Operating point and check windows (`report` section of params_base.yaml)."""
+    return dict((base or load_base())["report"])
+
+
 def parse_range(s: str) -> np.ndarray:
     """COMSOL range(start, step, stop) -> numpy array (inclusive stop)."""
     m = re.fullmatch(r"\s*range\(([^,]+),([^,]+),([^,]+)\)\s*", s)

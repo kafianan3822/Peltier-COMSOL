@@ -21,6 +21,9 @@ sys.path.insert(0, str(ROOT / "postprocess"))
 
 import analyze as an  # noqa: E402
 
+VR = an.VF_REPORT
+VRS = f"{VR:g}"
+
 OUT = ROOT / "results" / "summary.md"
 
 REFERENCES = [
@@ -32,10 +35,11 @@ REFERENCES = [
     "device modeling,\" *IEEE Trans. CAD* 9(11), 1141-1149 (1990).",
     "K. P. Pipe, R. J. Ram, A. Shakouri, \"Bias-dependent Peltier coefficient and internal cooling in bipolar "
     "devices,\" *Phys. Rev. B* 66, 125316 (2002).",
-    "J. Dziewior, W. Schmid, \"Auger coefficients for highly doped and highly excited silicon,\" "
-    "*Appl. Phys. Lett.* 31, 346 (1977).",
-    "D. M. Caughey, R. E. Thomas, \"Carrier mobilities in silicon empirically related to doping and field,\" "
-    "*Proc. IEEE* 55, 2192 (1967).",
+    "Ioffe Institute, *New Semiconductor Materials: Ge - Germanium* (band structure, electrical, thermal and "
+    "recombination parameters at 300 K). https://www.ioffe.ru/SVA/NSM/Semicond/Ge/",
+    "S. M. Sze, K. K. Ng, *Physics of Semiconductor Devices*, 3rd ed., Wiley (2007), Appendix G.",
+    "C. Hilsum, \"Simple empirical relationship between mobility and carrier concentration,\" "
+    "*Electron. Lett.* 10, 259 (1974).",
     "T. Sadi, I. Radevici, J. Oksanen, \"Thermophotonic cooling with light-emitting diodes,\" "
     "*Nature Photonics* 14, 205 (2020).",
 ]
@@ -48,8 +52,8 @@ def f(v, scale=1.0, fmt="{:.3f}", none="-"):
 
 
 def table(metrics: list[dict]) -> list[str]:
-    hdr = ("| Variant | dT_max @0.7 V | best dT_max (VF) | Q_room(dT=0) @0.7 V | COP(dT=0) | COP(dT_max/2) "
-           "| eta_E @0.7 V | T_end-T_room, Config B |")
+    hdr = (f"| Variant | dT_max @{VRS} V | best dT_max (VF) | Q_room(dT=0) @{VRS} V | COP(dT=0) | COP(dT_max/2) "
+           f"| eta_E @{VRS} V | T_end-T_room, Config B |")
     lines = [hdr, "|---|---|---|---|---|---|---|---|"]
     for m in metrics:
         if not m.get("available"):
@@ -77,7 +81,7 @@ def conclusion(res: dict) -> str:
     if "V0" not in d or "V1" not in d:
         return "No V0/V1 results are available yet. Run `python reference/reference_model.py` first."
     v0, v1 = d["V0"], d["V1"]
-    s = [f"In the {src} results at VF = 0.7 V, the device as drawn (V0, uniform lifetime) "
+    s = [f"In the {src} results at VF = {VRS} V, the device as drawn (V0, uniform lifetime) "
          f"{'heats' if v0['dT_end_B'] > 0 else 'cools'} its junction ends by "
          f"{abs(v0['dT_end_B'])*1e3:.3f} mK relative to the sink in Config B. "
          f"Config A gives Q_room = {v0['Q_room']*1e3:.3f} mW and dT_max = {v0.get('dT_max_text', '-')}. "
@@ -90,12 +94,12 @@ def conclusion(res: dict) -> str:
                   "the top of the Study 2 sweep.")
     else:
         s[-1] += "."
-    s.append("Junction cooling is therefore real but milli-kelvin in size, consistent with the estimate "
+    s.append("Junction cooling is therefore real but far below one kelvin, consistent with the estimate "
              "dT ~ n_b D_a Pi/k (Fig. 7).")
     casc = ROOT / "results" / "cascade.md"
     if casc.exists():
-        s.append("Stacking does not change this: see `results/cascade.md` (about 2000 series stages for 10 K, "
-                 "with an electrical power multiplier of about 10^1556 at COP = 0.2 per stage).")
+        s.append("Stacking does not change this: see `results/cascade.md` for the number of series stages "
+                 "and the electrical power multiplier needed for 10 K.")
     if src != "COMSOL":
         s.append("These numbers come from the COMSOL-independent reference model. The COMSOL results, and with "
                  "them checks C1-C9, are pending (see 'Not executed').")
@@ -124,8 +128,8 @@ def main() -> int:
         L += ["**PENDING.** No COMSOL results were found in `results/<variant>/`. This table is filled in once you run "
               "`python comsol/python/build_model.py` and `python comsol/python/run_variants.py --set core` "
               "(or `comsol/java/build_and_run.bat`), then `python postprocess/report.py`.", "",
-              "| Variant | dT_max @0.7 V | best dT_max (VF) | Q_room(dT=0) @0.7 V | COP(dT=0) | COP(dT_max/2) "
-              "| eta_E @0.7 V | T_end-T_room, Config B |", "|---|---|---|---|---|---|---|---|",
+              f"| Variant | dT_max @{VRS} V | best dT_max (VF) | Q_room(dT=0) @{VRS} V | COP(dT=0) | COP(dT_max/2) "
+              f"| eta_E @{VRS} V | T_end-T_room, Config B |", "|---|---|---|---|---|---|---|---|",
               "| V0 | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |",
               "| V1 | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |"]
     flags = [r for r in an.expand_variants("full") if r.get("flag")]

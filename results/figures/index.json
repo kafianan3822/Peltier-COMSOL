@@ -1,27 +1,27 @@
 [
  {
   "name": "fig1_band_diagram",
-  "caption": "Band diagram Ec, Ev, Efn, Efp at VF = 0 and 0.7 V (V0), zoomed on both junctions (placeholder: COMSOL results not available)",
+  "caption": "Band diagram Ec, Ev, Efn, Efp at VF = 0 and 0.4 V (V0), zoomed on both junctions (placeholder: COMSOL results not available)",
   "source": "none"
  },
  {
   "name": "fig2_carriers",
-  "caption": "Electron and hole densities, V0 vs V1, VF = 0.7 V",
+  "caption": "Electron and hole densities, V0 vs V1, VF = 0.4 V",
   "source": "reference model"
  },
  {
   "name": "fig3_heat_source",
-  "caption": "Q_tot(x) zoomed on 0-10 um and the mirror region with J\u00b7E and Q_rec, V0, VF = 0.7 V",
+  "caption": "Q_tot(x) zoomed on 0-10 um and the mirror region with J\u00b7E and Q_rec, V0, VF = 0.4 V",
   "source": "reference model"
  },
  {
   "name": "fig4_temperature_configB",
-  "caption": "KEY FIGURE: T(x) - T_room in mK, Config B, V0 vs V1, VF = 0.7 V",
+  "caption": "KEY FIGURE: T(x) - T_room in mK, Config B, V0 vs V1, VF = 0.4 V",
   "source": "reference model"
  },
  {
   "name": "fig5_Qroom_vs_dTsink",
-  "caption": "Q_room vs dT_sink (Config A), V0 vs V1, VF = 0.65/0.70/0.75 V, with dT_max markers",
+  "caption": "Q_room vs dT_sink (Config A), V0 vs V1, VF = 0.3/0.35/0.4 V, with dT_max markers",
   "source": "reference model"
  },
  {

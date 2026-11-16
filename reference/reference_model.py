@@ -46,15 +46,20 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from common.csvio import write_csv  # noqa: E402
-from common.params import K_B, Q_E, evaluate_params, expand_variants, load_base, parse_range  # noqa: E402
+from common.params import (K_B, Q_E, evaluate_params, expand_variants, load_base, material,  # noqa: E402
+                           parse_range, report_cfg)
 
 RESULTS = ROOT / "results" / "reference"
 
-# Material constants for the reference model (spec §11.1, §4.2)
-EG_EV = 1.12               # band gap, eV
-NI = 9.65e9 * 1e6          # intrinsic density, m^-3 (spec §11.1)
-MU_N = 1414e-4             # m^2/(V s)  (spec §11.1, Caughey-Thomas mu_max)
-MU_P = 470.5e-4
+# Material constants of the reference model, from config/params_base.yaml
+# (material_fallback): germanium at T0.  n_i = sqrt(Nc Nv) exp(-Eg/2kT).
+_MAT = material()
+MATERIAL = _MAT["name"]
+EG_EV = _MAT["Eg_eV"]      # band gap, eV
+NI = _MAT["ni"]            # intrinsic density, m^-3
+MU_N = _MAT["mun"]         # lattice mobilities, m^2/(V s) (the i-region is undoped)
+MU_P = _MAT["mup"]
+VF_REPORT = float(report_cfg()["VF_report"])
 LIFETIME_CONVENTIONS = {"srh_hl": 2.0, "spec_literal": 1.0}
 DEFAULT_CONVENTION = "srh_hl"
 RECT_SMOOTH = 10e-6        # rect1 transition-zone size, m (spec §5.2)
@@ -109,7 +114,7 @@ class RefDevice:
     def from_params(cls, p: dict, **kw) -> "RefDevice":
         return cls(Wi=p["Wi"], Wn=p["Wn"], Wp=p["Wp"], T=p["T0"], T_room=p["T_room"],
                    tau_long=p["tau_long"], tau_short=p["tau_short"], w_rz=p["w_rz"],
-                   rz_on=p["rz_on"], Ca=p["Cn_aug"] + p["Cp_aug"], k=p["k_Si"], Ac=p["Ac"],
+                   rz_on=p["rz_on"], Ca=p["Cn_aug"] + p["Cp_aug"], k=p["k_th"], Ac=p["Ac"],
                    Pi_nc=p["Pi_nc"], Pi_pc=p["Pi_pc"], **kw)
 
     # derived ----------------------------------------------------------------
@@ -301,7 +306,9 @@ def room_slope(dev: RefDevice) -> float:
 
 
 # ------------------------------------------------------------- bias sweeps
-def sweep_Vj(dev: RefDevice, Vj_max: float = 0.9, dVj: float = 0.01) -> list[BiasPoint]:
+def sweep_Vj(dev: RefDevice, Vj_max: float | None = None, dVj: float = 0.01) -> list[BiasPoint]:
+    if Vj_max is None:      # V_j <= V_F, so the top of the terminal sweep is enough
+        Vj_max = float(parse_range(load_base()["sweeps"]["VF_iv"]).max())
     pts, guess = [], None
     for Vj in np.round(np.arange(0.0, Vj_max + 1e-12, dVj), 10):
         bp = bias_point(dev, float(Vj), guess)
@@ -455,7 +462,7 @@ def plot_thermophotonic(out_dir: Path) -> list[Path]:
     for e in (0.7, 0.9):
         ax.axvline(e, color="0.25", lw=0.8, ls="--")
     ax.text(0.8, 0.53, "III-V LEDs\n" r"EQE $\gtrsim$ 0.7-0.9", ha="center", fontsize=8)
-    ax.annotate(r"Si: EQE $\ll 10^{-2}$" "\n(far left, off-scale)", xy=(0.5, 0.75), xytext=(0.53, 0.9),
+    ax.annotate(r"Ge (indirect gap): EQE $\ll 10^{-2}$" "\n(far left, off-scale)", xy=(0.5, 0.75), xytext=(0.53, 0.9),
                 fontsize=8, arrowprops=dict(arrowstyle="->"))
     ax.text(0.93, 0.66, "cooling", fontsize=9, color="navy", ha="center")
     ax.text(0.52, 0.97, "heating", fontsize=9, color="darkred", va="top")
@@ -486,13 +493,13 @@ def main(argv=None) -> None:
     for r in runs:
         res = run_variant(r["id"], r["params"], args.convention)
         g = res.glob.set_index("VF")
-        row = g.loc[np.isclose(g.index, 0.7)].iloc[0] if np.any(np.isclose(g.index, 0.7)) else None
+        row = g.loc[np.isclose(g.index, VF_REPORT)].iloc[0] if np.any(np.isclose(g.index, VF_REPORT)) else None
         slope = room_slope(res.dev)
         if row is not None:
             dTmax = -row.Q_room / slope
             summary.append((r["id"], row.J * 1e-4, row.Q_room * 1e3, dTmax * 1e3,
                             (row.T_P1 - res.dev.T_room) * 1e3, row.eta_E))
-            print(f"{r['id']:<32s} J(0.7V)={row.J*1e-4:8.4f} A/cm2  Q_room(dT=0)={row.Q_room*1e3:9.4f} mW  "
+            print(f"{r['id']:<32s} J({VF_REPORT:g}V)={row.J*1e-4:8.4f} A/cm2  Q_room(dT=0)={row.Q_room*1e3:9.4f} mW  "
                   f"dTmax={dTmax*1e3:8.3f} mK  T_end-T_room(B)={(row.T_P1-res.dev.T_room)*1e3:8.3f} mK  "
                   f"eta_E={row.eta_E:.5f}")
     plot_thermophotonic(ROOT / "results" / "figures")

@@ -33,10 +33,11 @@ sys.path.insert(0, str(HERE))
 
 import api_names as api  # noqa: E402
 from api_names import ALL_THERMAL_NODES, CONFIG_NODES, TAGS, ApiNameError  # noqa: E402
-from common.params import load_base, parse_range  # noqa: E402
+from common.params import load_base, parse_range, report_cfg  # noqa: E402
 
 MODELS = ROOT / "comsol" / "models"
-SI_LIBRARY_MPH = ROOT / "comsol" / "materials" / "Si_library.mph"
+MATERIAL = load_base()["material"]
+LIBRARY_MPH = ROOT / "comsol" / "materials" / MATERIAL["library_file"]
 LOG = logging.getLogger("pin_peltier")
 
 T = TAGS
@@ -86,6 +87,12 @@ class PinPeltierBuilder:
         self.hs_expr = None
 
     # ----------------------------------------------------------------- small helpers
+    @property
+    def si_models(self) -> bool:
+        """Arora mobility, Slotboom BGN and Fletcher scattering are silicon models: usable only
+        with the silicon library material."""
+        return self.material_used == "library" and bool(MATERIAL.get("silicon_models", False))
+
     @property
     def comp(self):
         return self.j.component(T["comp"])
@@ -267,10 +274,10 @@ class PinPeltierBuilder:
         LOG.info("== stage 2: material")
         mat = self.comp.material().create(T["mat"], "Common")
         mat.selection().all()
-        use_lib = self.material_source in ("auto", "library") and SI_LIBRARY_MPH.exists()
+        use_lib = self.material_source in ("auto", "library") and LIBRARY_MPH.exists()
         if self.material_source == "library" and not use_lib:
-            raise FileNotFoundError(f"material_source=library but {SI_LIBRARY_MPH} is missing "
-                                    "(see docs/GUI_build_steps.md, 'Si library material')")
+            raise FileNotFoundError(f"material_source=library but {LIBRARY_MPH} is missing "
+                                    "(see docs/GUI_build_steps.md, 'library material')")
         if use_lib:
             self._copy_library_material(mat)
             self.material_used = "library"
@@ -279,9 +286,9 @@ class PinPeltierBuilder:
             self.material_used = "fallback"
         # spec §4.2: thermal properties are always the spec parameters
         d = mat.propertyGroup("def")
-        d.set("thermalconductivity", diag3("k_Si"))
-        d.set("density", "rho_Si")
-        d.set("heatcapacity", "Cp_Si")
+        d.set("thermalconductivity", diag3("k_th"))
+        d.set("density", "rho_m")
+        d.set("heatcapacity", "Cp_m")
         self.readback_material()
 
     def _fallback_material(self, mat) -> None:
@@ -297,11 +304,11 @@ class PinPeltierBuilder:
         LOG.info("material: explicit fallback properties (spec §4.2 table)")
 
     def _copy_library_material(self, mat) -> None:
-        """Copy every property group of the library Si material saved by the user in
-        comsol/materials/Si_library.mph (see docs/GUI_build_steps.md)."""
+        """Copy every property group of the library material saved by the user in
+        comsol/materials/Ge_library.mph (see docs/GUI_build_steps.md)."""
         if self.client is None:
             raise RuntimeError("copying the library material needs an mph client")
-        src = self.client.load(str(SI_LIBRARY_MPH))
+        src = self.client.load(str(LIBRARY_MPH))
         try:
             sm = src.java.component("comp1").material("mat1")
             for gtag in sm.propertyGroup().tags():
@@ -323,7 +330,7 @@ class PinPeltierBuilder:
             self.client.remove(src)
 
     def readback_material(self) -> None:
-        """Read Eg0, Nc, Nv back from the material, overwrite Nc_si/Nv_si, log Pi (spec §4.2)."""
+        """Read Eg0, Nc, Nv back from the material, overwrite Nc_ref/Nv_ref, log Pi (spec §4.2)."""
         g = self.comp.material(T["mat"]).propertyGroup(api.name("MAT_SEMI_GROUP"))
         vals = {}
         for key in ("MAT_EG0", "MAT_NC", "MAT_NV"):
@@ -333,10 +340,10 @@ class PinPeltierBuilder:
             vals[key] = (s, self.param_value(expr))
         for k, (s, v) in vals.items():
             LOG.info("material readback %s = '%s' -> %.6g (SI, at T0)", api.name(k), s, v)
-        self.j.param().set("Nc_si", f"{vals['MAT_NC'][1]:.6g}[1/m^3]", "Nc read back from material at T0")
-        self.j.param().set("Nv_si", f"{vals['MAT_NV'][1]:.6g}[1/m^3]", "Nv read back from material at T0")
+        self.j.param().set("Nc_ref", f"{vals['MAT_NC'][1]:.6g}[1/m^3]", "Nc read back from material at T0")
+        self.j.param().set("Nv_ref", f"{vals['MAT_NV'][1]:.6g}[1/m^3]", "Nv read back from material at T0")
         pin, pip = self.param_value("Pi_nc"), self.param_value("Pi_pc")
-        LOG.info("Pi_nc = %.5f V, Pi_pc = %.5f V (spec: ~0.079 / ~0.081 V)", pin, pip)
+        LOG.info("Pi_nc = %.5f V, Pi_pc = %.5f V (%s)", pin, pip, MATERIAL["label"])
         self.Pi = (pin, pip)
 
     # ================================================================= STAGE 3
@@ -358,10 +365,10 @@ class PinPeltierBuilder:
         self.set_bgn("off")
         with verify("SMM_INCION_PROP"):
             smm.set(api.name("SMM_INCION_PROP"), False)
-        self.mobility_base = "M1" if self.material_used == "library" else "M2"
+        self.mobility_base = "M1" if self.si_models else "M2"
         if self.mobility_base == "M2":
-            LOG.warning("fallback material has no Arora parameters -> base mobility = M2 "
-                        "(Caughey-Thomas, spec §4.3). Recorded in the run headers; see CHANGES.md.")
+            LOG.info("base mobility = M2 (user-defined doping-dependent mobility of %s; the Arora model "
+                     "needs the silicon library material). Recorded in the run headers.", MATERIAL["label"])
         self.set_mobility(self.mobility_base, fletcher=False)
 
         for tag, dtype, x0, w, conc, profile in (
@@ -425,9 +432,9 @@ class PinPeltierBuilder:
         smm = self.semi.feature(api.name("SMM_TAG"))
         existing = [str(t) for t in smm.feature().tags()]
         if mode == "M1":
-            if self.material_used != "library":
-                raise RuntimeError("mobility M1 (Arora, library parameters) needs the library material; "
-                                   f"provide {SI_LIBRARY_MPH} (docs/GUI_build_steps.md)")
+            if not self.si_models:
+                raise RuntimeError("mobility M1 (Arora) is a silicon model: it needs the silicon library "
+                                   "material and material.silicon_models = true in params_base.yaml")
             if T["mob_arora"] not in existing:
                 with verify("FEAT_MOB_ARORA"):
                     smm.create(T["mob_arora"], api.name("FEAT_MOB_ARORA"), 1)
@@ -502,12 +509,14 @@ class PinPeltierBuilder:
         J = I / Ac
         if np.any(np.diff(I[VF > 0.05]) <= 0):
             raise RuntimeError("stage 4 smoke test failed: I-V not monotonic")
-        J07 = float(np.interp(0.7, VF, J)) * 1e-4
-        LOG.info("J(0.7 V) = %.4f A/cm^2 (spec V0 window 0.02-1)", J07)
-        if not 0.02 <= J07 <= 1.0:
-            raise RuntimeError(f"stage 4 smoke test failed: J(0.7 V) = {J07:.4g} A/cm^2 not in 0.02-1")
+        rep = report_cfg()
+        VR, (Jlo, Jhi) = float(rep["VF_report"]), rep["J_smoke"]
+        Jr = float(np.interp(VR, VF, J)) * 1e-4
+        LOG.info("J(%g V) = %.4f A/cm^2 (V0 window %g-%g)", VR, Jr, Jlo, Jhi)
+        if not Jlo <= Jr <= Jhi:
+            raise RuntimeError(f"stage 4 smoke test failed: J({VR:g} V) = {Jr:.4g} A/cm^2 not in {Jlo:g}-{Jhi:g}")
         JX = np.abs(self.eval_global(f"pt_p({self.var('J_X')})", T["std_eq_iv"]))
-        r = I[VF > 0.3] / (Ac * JX[VF > 0.3])
+        r = I[VF > 0.5 * VR] / (Ac * JX[VF > 0.5 * VR])
         LOG.info("consistency |I_TERMINAL| / (Ac*|J_X|) = %.4f .. %.4f", r.min(), r.max())
         if np.any(np.abs(r - 1) > 0.05):
             LOG.warning("I_TERMINAL is not Ac*|J_X| (maybe per-area or a different terminal) -- "
@@ -801,7 +810,7 @@ def dry_run() -> None:
                              PinPeltierBuilder.stage7, PinPeltierBuilder.stage8], start=1):
         print(f"  {n}: {(doc.__doc__ or doc.__name__).strip().splitlines()[0]}")
     print(f"\n{len(api.VERIFY)} API_NAMES entries to verify (docs/VERIFY_API_NAMES.md).")
-    print(f"Library material file: {SI_LIBRARY_MPH} ({'present' if SI_LIBRARY_MPH.exists() else 'absent -> fallback'})")
+    print(f"Library material file: {LIBRARY_MPH} ({'present' if LIBRARY_MPH.exists() else 'absent -> fallback'})")
     p = parse_range(load_base()["sweeps"]["VF_iv"])
     print(f"VF sweep: {p[0]}..{p[-1]} V, {p.size} points")
 

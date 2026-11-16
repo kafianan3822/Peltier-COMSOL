@@ -8,7 +8,7 @@ can drive a hand-built model too.
 
 > **Rule:** the semiconductor temperature is the constant `T0`. Never couple `ht.T`
 > into the Semiconductor interface, and do not add a *Nonisothermal* multiphysics
-> coupling. The temperature differences of interest are milli-kelvin (one-way coupling, spec §0).
+> coupling. The temperature differences of interest are tens of milli-kelvin at most (one-way coupling, spec §0).
 
 ---
 
@@ -21,7 +21,7 @@ can drive a hand-built model too.
 ## Stage 1: parameters, functions, variables, geometry, mesh
 
 1. *Global Definitions > Parameters 1 > Load from File...* > `comsol/params.txt`. Check that 32 parameters
-   appear, and that `Pi_nc` ≈ 0.0789 V and `Pi_pc` ≈ 0.0810 V in the *Value* column.
+   appear, and that `Pi_nc` ≈ 0.0517 V and `Pi_pc` ≈ 0.0338 V in the *Value* column.
 2. *Global Definitions > Functions > Rectangle* (`rect1`): Lower limit `Xc-w_rz/2`, Upper limit `Xc+w_rz/2`,
    *Smoothing > Size of transition zone* `10[um]`.
 3. *Component 1 > Definitions > Variables* (`var1`, entire model):
@@ -49,24 +49,24 @@ can drive a hand-built model too.
 
 ## Stage 2: material
 
-**Preferred (library):** *Materials > Add Material from Library > Semiconductors > Si - Silicon*, applied to
-all domains. Then *File > Save As* `comsol/materials/Si_library.mph`, a model with only this material, tag
+**Optional (library):** *Materials > Add Material from Library > Semiconductors > Ge - Germanium*, applied to
+all domains. Then *File > Save As* `comsol/materials/Ge_library.mph`, a model with only this material, tag
 `mat1` in `comp1`. The scripts copy every property group from that file (CHANGES.md M4).
 
-**Fallback (blank material `mat1`):**
+**Default (blank material `mat1`, germanium, `docs/GERMANIUM_PARAMETERS.md`):**
 
 | Group | Property | Value |
 |---|---|---|
-| Basic (`def`) | Relative permittivity | 11.7 |
-| Semiconductor material | Band gap E_g0 | 1.12[V] |
-| | Electron affinity χ0 | 4.05[V] |
-| | Nc | `2.86e19[1/cm^3]*(T/300[K])^1.5` |
-| | Nv | `3.10e19[1/cm^3]*(T/300[K])^1.5` |
-| | μn, μp | 1448, 473 [cm^2/(V*s)] |
+| Basic (`def`) | Relative permittivity | 16.2 |
+| Semiconductor material | Band gap E_g0 | 0.661[V] |
+| | Electron affinity χ0 | 4.0[V] |
+| | Nc | `1.0e19[1/cm^3]*(T/300[K])^1.5` |
+| | Nv | `5.0e18[1/cm^3]*(T/300[K])^1.5` |
+| | μn, μp | 3900, 1900 [cm^2/(V*s)] |
 
-In both cases set *Basic*: thermal conductivity `k_Si`, density `rho_Si`, heat capacity `Cp_Si`.
+In both cases set *Basic*: thermal conductivity `k_th`, density `rho_m`, heat capacity `Cp_m`.
 
-**Read back:** note the values of Nc and Nv at 300 K and enter them as `Nc_si` and `Nv_si` in Parameters.
+**Read back:** note the values of Nc and Nv at 300 K and enter them as `Nc_ref` and `Nv_ref` in Parameters.
 Check that `Pi_nc` and `Pi_pc` update.
 
 ## Stage 3: semiconductor interface and doping
@@ -80,8 +80,7 @@ Check that `Pi_nc` and `Pi_pc` update.
    - *Model Input > Temperature: User defined* `T0` (**one-way coupling**).
    - Band-gap narrowing: Off.
    - Dopant ionization: complete.
-   - Mobility: with the library material, add *Arora Mobility Model (LI)* (`mmal1`) and select it for electrons
-     and holes (M1). With the fallback material, use *User defined* μn = `mun_CT` and μp = `mup_CT` (M2).
+   - Mobility: *User defined* μn = `mun_CT` and μp = `mup_CT` (M2). The Arora model is silicon-only.
 3. Three *Analytic Doping Model* nodes, all domains, *Distribution: Box*:
 
    | Tag | Impurity | Base x | Width | Concentration | Profile outside box |
@@ -98,9 +97,9 @@ Check that `Pi_nc` and `Pi_pc` update.
 2. *Auger Recombination* (`auger1`): Cn = `Cn_aug`, Cp = `Cp_aug` (User defined). No radiative recombination.
 3. *Metal Contact* `mc_n` (point 1): Ideal ohmic, Terminal type Voltage, V0 = `0[V]`.
    *Metal Contact* `mc_p` (point 5): Ideal ohmic, Voltage, V0 = `VF`.
-4. Study 1 > add *Stationary* step (`stat`): *Study Extensions > Auxiliary sweep* VF = `range(0,0.025,0.9)` V,
+4. Study 1 > add *Stationary* step (`stat`): *Study Extensions > Auxiliary sweep* VF = `range(0,0.0125,0.5)` V,
    continuation on VF. *Solver Configurations > Stationary Solver 1 > Relative tolerance* `1e-6`. Compute.
-   **Checks:** the I-V curve is monotonic, and J(0.7 V) for V0 lies between 0.02 and 1 A/cm². The reference model gives 0.056 A/cm².
+   **Checks:** the I-V curve is monotonic, and J(0.4 V) for V0 lies between 0.3 and 30 A/cm². The reference model gives 1.44 A/cm² for the i-region alone; leakage into the contacts adds about 2.5 A/cm².
 5. Note the true names of: total recombination rate (`U_TOT`), total current density x (`J_X`),
    terminal current of `mc_p` (`I_TERMINAL`). See `docs/VERIFY_API_NAMES.md`.
 
@@ -129,10 +128,10 @@ Check that `Pi_nc` and `Pi_pc` update.
 
    | Study | Configuration | Thermal nodes active (others disabled) | VF sweep |
    |---|---|---|---|
-   | Study 1 `std_eq_iv` (both steps) | A at dT_sink = 0 | `temp_ends`, `temp_sinkA` | 0:0.025:0.9 |
-   | Study 2 `std_room` | A | `temp_ends`, `temp_sinkA` | 0:0.025:0.8 + *Parametric Sweep* dT_sink = `range(-0.02,0.0025,0.02)` K |
-   | Study 3 `std_float` | B | `temp_sinkB` | 0:0.025:0.9 |
-   | Study 4 `std_lat` | C | `hs_lat` | 0:0.025:0.9 |
+   | Study 1 `std_eq_iv` (both steps) | A at dT_sink = 0 | `temp_ends`, `temp_sinkA` | 0:0.0125:0.5 |
+   | Study 2 `std_room` | A | `temp_ends`, `temp_sinkA` | 0:0.0125:0.4 + *Parametric Sweep* dT_sink = `range(-0.02,0.0025,0.02)` K |
+   | Study 3 `std_float` | B | `temp_sinkB` | 0:0.0125:0.5 |
+   | Study 4 `std_lat` | C | `hs_lat` | 0:0.0125:0.5 |
 
    `hs1`, `bhs_n` and `bhs_p` stay active everywhere.
 4. Convergence fallback: *Stationary Solver 1 > Segregated*, with group 1 = semi variables (V, N, P) and group 2 = T.

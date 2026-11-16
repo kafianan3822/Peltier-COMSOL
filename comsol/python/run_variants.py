@@ -11,7 +11,7 @@ physics switches, re-runs geometry and mesh, solves Study 1 and the studies of
 its thermal configurations, and writes results/<variant_id>/:
 
     global_vs_VF.csv      spec §6.1 (+ V_ifield for check C4)
-    profiles_VF{v}.csv    spec §6.2, v in {0, 0.6, 0.7, 0.75, 0.8}
+    profiles_VF{v}.csv    spec §6.2, v in sweeps.profile_VF of params_base.yaml
     room_sweep.csv        spec §6.3 (Config A runs)
     float_vs_VF.csv       Config B point temperatures (merged into global_vs_VF)
     lat_vs_VF.csv         Config C point temperatures
@@ -42,7 +42,7 @@ LOG = logging.getLogger("pin_peltier")
 MODELS = ROOT / "comsol" / "models"
 BASE_MPH = MODELS / "pin_peltier_base.mph"
 RESULTS = ROOT / "results"
-REVERSE_VF = "range(0,-0.025,-0.5)"
+REVERSE_VF = load_base()["sweeps"]["VF_reverse"]
 
 
 # ===================================================================== applying a variant
@@ -50,7 +50,7 @@ def apply_variant(b, run: dict) -> None:
     """Apply parameters and physics switches of one run to builder `b` (spec §7)."""
     base = load_base()
     for name, (expr, _) in base["parameters"].items():      # reset, then override
-        if name not in ("Nc_si", "Nv_si"):                    # keep material read-back values
+        if name not in ("Nc_ref", "Nv_ref"):                    # keep material read-back values
             b.model.parameter(name, str(expr))
     for name, expr in run.get("params", {}).items():
         b.model.parameter(name, str(expr))
@@ -179,7 +179,7 @@ def reverse_bias(b, hdr: dict, out: Path) -> None:
         hs = b.hs_expr
         x, q = b.eval_field(["x", hs], T["std_eq_iv"], unit=["m", "W/m^3"])
         write_csv(out / "reverse_bias_profile.csv",
-                  pd.DataFrame(dict(x=x[-1], Q_tot=q[-1])).sort_values("x"), {**hdr, "VF": -0.5})
+                  pd.DataFrame(dict(x=x[-1], Q_tot=q[-1])).sort_values("x"), {**hdr, "VF": float(parse_range(REVERSE_VF)[-1])})
     finally:
         st.set("plistarr", [fwd])
 
@@ -269,13 +269,13 @@ def main(argv=None) -> int:
     for r in runs:
         b = load_builder(client)
         try:
-            if r.get("mobility") == "M1" and b.material_used != "library":
+            if r.get("mobility") == "M1" and not b.si_models:
                 r = dict(r, mobility="M2")
-                LOG.warning("%s: M1 needs the library material -> running with M2", r["id"])
+                LOG.warning("%s: M1 (Arora) is a silicon model -> running with M2", r["id"])
             if r.get("fletcher") or r.get("bgn") == "slotboom":
-                if b.material_used != "library":
-                    LOG.error("%s needs library material parameters (BGN/Fletcher); skipped", r["id"])
-                    failed.append((r["id"], "needs library material"))
+                if not b.si_models:
+                    LOG.error("%s needs silicon library parameters (BGN/Fletcher); skipped", r["id"])
+                    failed.append((r["id"], "needs silicon library material"))
                     continue
             apply_variant(b, r)
             export_variant(b, r, reverse=(not a.no_reverse) and r["id"] in ("V0", "V1"), version=version)

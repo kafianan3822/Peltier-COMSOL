@@ -62,3 +62,24 @@ leaves a choice open, or an addition. Each item gives the reason.
 | P5 | Reference-model sanity checks R1-R4 are reported separately from C1-C9. | C1-C9 are defined on COMSOL output. Without COMSOL they are PENDING rather than faked. |
 | P6 | Figures 1 and 9 are written as labelled placeholders / reference-only until COMSOL data exist. Fig. 3 shows the reference i-region source and states that the junction dip needs COMSOL. | The reference model does not compute band edges or the distributed junction dip. Fake curves are not drawn. |
 | P7 | Fig. 7 plots the estimate n_b D_a Π_side / k at each run's own V_j, plus the Auger-limited upper bound (2/W_i)·sqrt(D_a/C_a). | §11.3 gives both. Using one V_j for every W_i would misplace the estimate, since short bars have a smaller ohmic drop. |
+
+## Germanium port
+
+The specification describes a silicon device. The material is now germanium; geometry, doping and
+lifetimes are unchanged. `docs/GERMANIUM_PARAMETERS.md` lists every value with its source.
+This section supersedes "No numerical value of §5 was changed" above, and items M4/M5 where they
+mention the Arora, Slotboom and Fletcher models.
+
+| # | Change | Reason |
+|---|---|---|
+| G1 | Material table (`material_fallback`), Auger coefficients, thermal properties and M2 mobility constants are germanium values. | Material change. |
+| G2 | Parameters renamed: `k_Si`, `rho_Si`, `Cp_Si`, `Nc_si`, `Nv_si` → `k_th`, `rho_m`, `Cp_m`, `Nc_ref`, `Nv_ref`. Library file is `Ge_library.mph`. | Names no longer tied to one material. |
+| G3 | New `material:` and `report:` sections in `params_base.yaml`. The reference model, checks, figures, smoke tests and both drivers read the material constants, the headline bias (0.4 V) and the check windows from there. n_i is computed from Nc, Nv, Eg. | The silicon bias 0.7 V and n_i = 1e10 cm⁻³ were hard-coded in about 40 places. |
+| G4 | Bias sweeps: 0 to 0.5 V (I-V), 0 to 0.4 V (room sweep), step 0.0125 V. | E_g = 0.661 eV, V_bi = 0.68 V. |
+| G5 | Base mobility is always M2. Arora, Slotboom BGN and Fletcher are disabled (`material.silicon_models: false`). V2a/V2b are now "Fermi-Dirac statistics only"; V8a/V8b removed. Full set: 49 runs. | Those models are calibrated for silicon. 1e19 cm⁻³ is degenerate in Ge, so the FD variants are the relevant test. |
+| G6 | C2 compares eta_E with 1 − (kT/q)/VF (±0.03) instead of a fixed window. | The fixed window 0.93-0.99 was that formula evaluated for silicon voltages. |
+| G7 | C5 reference current includes minority-carrier leakage into the contact layers (`analyze.emitter_leakage`). | In Ge the leakage is as large as the i-region recombination current. |
+| G8 | C8 floor is 5·exp(−VF_report/2Vt) instead of 1e-6. | Thermal generation in reverse bias is real and about 2000 times larger in Ge. |
+| G9 | Cascade calculator defaults: 50 mK per stage, COP 0.5. | Germanium reference values (idealised). |
+| G10 | The 0.1 K plausibility limit is unchanged; the room sweep stops at 0.4 V. | See `docs/GERMANIUM_PARAMETERS.md` section 5. |
+| G11 | Added `CLAUDE.md` and `docs/AGENT_SETUP.md`. | Running the pipeline with an agent. |

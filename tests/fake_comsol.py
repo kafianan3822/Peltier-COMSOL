@@ -388,7 +388,7 @@ class FakeModel:
             return VF
         if expr.startswith("Ac*(pt_n("):           # room expression
             dT = parse_range("range(-0.02,0.0025,0.02)")[(outer or 1) - 1]
-            slope = -Ac * p["k_Si"] * (2 / p["Xc"])
+            slope = -Ac * p["k_th"] * (2 / p["Xc"])
             return self._ref("Q_room", VF) + slope * dT
         m = re.fullmatch(r"(pt_n|pt_c|pt_p|intop_all|intop_i)\((.*)\)", expr)
         if expr.startswith("semi.I0") or expr.startswith("abs(semi.I0"):

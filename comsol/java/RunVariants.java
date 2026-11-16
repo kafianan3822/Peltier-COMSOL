@@ -362,12 +362,18 @@ public class RunVariants {
         () -> m.component(COMP).physics(SEMI).feature(SMM_TAG).set(SMM_BGN_PROP, v));
   }
 
+  /** Arora mobility, Slotboom BGN and Fletcher scattering are silicon models: usable only
+   *  with the silicon library material (material.silicon_models in params_base.yaml). */
+  static boolean siModels() {
+    return MATERIAL_USED.equals("library") && "true".equals(CFG.get("material.silicon_models"));
+  }
+
   static void setMobility(Model m, String mode, boolean fletcher) {
     PhysicsFeature smm = m.component(COMP).physics(SEMI).feature(SMM_TAG);
     List<String> existing = Arrays.asList(smm.feature().tags());
     if (mode.equals("M1")) {
-      if (!MATERIAL_USED.equals("library"))
-        throw new RuntimeException("mobility M1 (Arora) needs the library material comsol/materials/Si_library.mph");
+      if (!siModels())
+        throw new RuntimeException("mobility M1 (Arora) is a silicon model: needs the silicon library material");
       if (!existing.contains("mmal1"))
         verify("FEAT_MOB_ARORA", FEAT_MOB_ARORA, () -> smm.create("mmal1", FEAT_MOB_ARORA, 1));
       smm.feature("mmal1").active(true);
@@ -596,7 +602,6 @@ public class RunVariants {
   }
   // END SHARED
 
-  static final String REVERSE_VF = "range(0,-0.025,-0.5)";
   static String VERSION = "6.3";
 
   static List<Map<String, String>> readRuns() throws IOException {
@@ -633,7 +638,7 @@ public class RunVariants {
 
   static void applyVariant(Model m, Map<String, String> r) throws IOException {
     for (String[] p : readParams())
-      if (!p[0].equals("Nc_si") && !p[0].equals("Nv_si")) m.param().set(p[0], p[1]);
+      if (!p[0].equals("Nc_ref") && !p[0].equals("Nv_ref")) m.param().set(p[0], p[1]);
     for (String kv : r.get("params").split(";")) {
       if (kv.isEmpty()) continue;
       int e = kv.indexOf('=');
@@ -808,7 +813,7 @@ public class RunVariants {
     if (r.get("id").equals("V0") || r.get("id").equals("V1")) {
       StudyFeature st = m.study(STD_EQ_IV).feature("stat");
       String fwd = st.getStringArray("plistarr")[0];
-      st.set("plistarr", new String[]{REVERSE_VF});
+      st.set("plistarr", new String[]{CFG.get("sweep.VF_reverse")});
       try {
         solve(m, STD_EQ_IV);
         String dr = datasetOf(m, STD_EQ_IV, false);
@@ -832,12 +837,12 @@ public class RunVariants {
       List<String> failed = new ArrayList<>();
       for (Map<String, String> r : readRuns()) {
         String needsLib = (r.get("bgn").equals("slotboom") || Boolean.parseBoolean(r.get("fletcher"))) ? "yes" : "no";
-        if (needsLib.equals("yes") && !MATERIAL_USED.equals("library")) {
-          log(r.get("id") + " needs the library material (BGN/Fletcher); skipped");
+        if (needsLib.equals("yes") && !siModels()) {
+          log(r.get("id") + " needs the silicon library material (BGN/Fletcher); skipped");
           failed.add(r.get("id"));
           continue;
         }
-        if (r.get("mobility").equals("M1") && !MATERIAL_USED.equals("library")) r.put("mobility", "M2");
+        if (r.get("mobility").equals("M1") && !siModels()) r.put("mobility", "M2");
         Model m = ModelUtil.load("Model", ROOT + "/comsol/models/pin_peltier_base.mph");
         try {
           applyVariant(m, r);

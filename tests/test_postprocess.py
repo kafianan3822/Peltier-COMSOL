@@ -58,23 +58,28 @@ def test_dTmax_vs_VF_table():
 
 
 # ------------------------------------------------------------ checks on synthetic data
-def _synthetic(vid="V0", eta=0.96, qjn=-1e-4, qsrc="builtin"):
+def _synthetic(vid="V0", d_eta=0.0, qjn=-1e-4, qsrc="builtin"):
+    """d_eta = offset of eta_E from the builtin expectation 1 - Vt/VF."""
     p = evaluate_params()
-    VF = parse_range("range(0,0.025,0.9)")
+    VF = parse_range("range(0,0.0125,0.5)")
     Vt = K_B * 300 / Q_E
-    J = Q_E * 1e16 * np.exp(VF / (2 * Vt)) * p["Wi"] / (2 * p["tau_long"])
+    J = Q_E * an.NI_C4 * np.exp(VF / (2 * Vt)) * p["Wi"] / (2 * p["tau_long"]) + an.emitter_leakage(p, VF)
     J[0] = 0.0
     I = J * p["Ac"]
-    g = pd.DataFrame(dict(VF=VF, I=I, J=J, P_el=I * VF, eta_E=np.where(VF > 0, eta, np.nan),
+    with np.errstate(divide="ignore"):
+        eta = np.where(VF > 0, an.eta_E_expected(VF, 300.0, "builtin") + d_eta, np.nan)
+    g = pd.DataFrame(dict(VF=VF, I=I, J=J, P_el=I * VF, eta_E=eta,
                           Qjn_n=np.where(VF > 0, qjn, 0.0), Qjn_p=np.where(VF > 0, qjn, 0.0),
                           T_P1=300.0, T_P5=300.0))
     return an.VariantData(vid, "comsol", an.RESULTS / vid, glob=g, run={"qsrc": qsrc, "params": {}})
 
 
 def test_C2_pass_and_fail():
-    assert an.check_C2(_synthetic(eta=0.96)).status == "PASS"
-    assert an.check_C2(_synthetic(eta=1.00)).status == "FAIL"
-    assert an.check_C2(_synthetic(eta=1.00, qsrc="corrected")).status == "PASS"
+    assert an.check_C2(_synthetic(d_eta=0.01)).status == "PASS"
+    assert an.check_C2(_synthetic(d_eta=0.06)).status == "FAIL"          # eta_E ~ 1 with the builtin source
+    vd = _synthetic(qsrc="corrected")
+    vd.glob["eta_E"] = np.where(vd.glob.VF > 0, 1.0, np.nan)
+    assert an.check_C2(vd).status == "PASS"
 
 
 def test_C3():
@@ -97,7 +102,7 @@ def test_C1_zero_bias():
     x = np.linspace(0, 1e-3, 11)
     vd = _synthetic()
     vd.profiles = {0.0: pd.DataFrame(dict(x=x, Q_tot=0.0 * x, T=300.0 + 0 * x)),
-                   0.7: pd.DataFrame(dict(x=x, Q_tot=1e6 + 0 * x, T=300.0 + 0 * x))}
+                   an.VF_REPORT: pd.DataFrame(dict(x=x, Q_tot=1e6 + 0 * x, T=300.0 + 0 * x))}
     assert an.check_C1(vd).status == "PASS"
     vd.profiles[0.0]["T"] = 300.0 + 1e-5
     assert an.check_C1(vd).status == "FAIL"
@@ -108,7 +113,7 @@ def test_C4_magnitude():
     vd = _synthetic()
     g = vd.glob
     Vt = K_B * 300 / Q_E
-    Vbi = Vt * np.log(p["Nd_p"] * p["Na_p"] / 1e32)
+    Vbi = Vt * np.log(p["Nd_p"] * p["Na_p"] / an.NI_C4 ** 2)
     g["V_ifield"] = 0.05
     g["Qjn_n"] = g["Qjn_p"] = -0.5 * g.I * (Vbi - (g.VF - 0.05))
     assert an.check_C4(vd).status == "PASS"
@@ -117,13 +122,22 @@ def test_C4_magnitude():
 
 
 # ------------------------------------------------------------ configuration consistency
-def test_params_values_spec5():
+def test_material_is_germanium():
+    from common.params import material
+    m = material()
+    assert m["name"] == "Ge" and m["Eg_eV"] == pytest.approx(0.661)
+    assert m["ni"] * 1e-6 == pytest.approx(2.0e13, rel=0.05)     # literature n_i of Ge at 300 K
+    assert (m["mun"] * 1e4, m["mup"] * 1e4) == pytest.approx((3900.0, 1900.0))
+
+
+def test_params_values_germanium():
     p = evaluate_params()
     assert p["Ltot"] == pytest.approx(1.004e-3)
     assert p["Xc"] == pytest.approx(0.502e-3)
-    assert p["Pi_nc"] == pytest.approx(0.079, abs=1e-3)
-    assert p["Pi_pc"] == pytest.approx(0.081, abs=1e-3)
-    assert p["Cn_aug"] == pytest.approx(2.8e-43)
+    assert p["Pi_nc"] == pytest.approx(0.0517, abs=1e-3)      # Ge, Nd = Nc
+    assert p["Pi_pc"] == pytest.approx(0.0338, abs=1e-3)      # Ge, Na = 2 Nv
+    assert p["Cn_aug"] + p["Cp_aug"] == pytest.approx(1e-42)  # Ge, 1e-30 cm^6/s
+    assert p["k_th"] == pytest.approx(60.0)
     assert p["Ac"] == pytest.approx(1e-6)
 
 
@@ -154,7 +168,7 @@ def test_api_names_all_verify_items_documented():
 # ------------------------------------------------------------ cascade
 def test_cascade_numbers():
     r = cc.compute(cc.CascadeInputs())
-    assert r["N_stages"] == 2000
-    assert r["log10_power_multiplier"] == pytest.approx(2000 * np.log10(6.0))
+    assert r["N_stages"] == 200                                    # 10 K / 50 mK
+    assert r["log10_power_multiplier"] == pytest.approx(200 * np.log10(3.0))   # COP = 0.5
     assert r["dT_interface"] == pytest.approx(1e-5 * cc.DEFAULT_QFLUX)
-    assert r["parallel_dT"] == 5e-3
+    assert r["parallel_dT"] == 5e-2

@@ -20,7 +20,7 @@ from fake_comsol import FakeClient, FakeModel
 def ref():
     import reference_model as rm
     r = rm.run_variant("V0", {"rz_on": "0"}, write=False)
-    return r.glob, r.profiles[0.7]
+    return r.glob, r.profiles[an.VF_REPORT]
 
 
 @pytest.fixture()
@@ -49,7 +49,7 @@ def test_staged_build_smoke_tests(built):
     # contact Peltier sinks
     assert b.ht.feature("bhs_n").props["Qb"] == "-abs(semi.JX)*Pi_nc"
     assert b.ht.feature("bhs_p").props["Qb"] == "-abs(semi.JX)*Pi_pc"
-    assert b.Pi[0] == pytest.approx(0.0789, abs=1e-3)
+    assert b.Pi[0] == pytest.approx(0.0517, abs=1e-3)      # Ge, Nd = Nc
 
 
 def test_mesh_grading_fine_at_junctions(built):
@@ -79,7 +79,7 @@ def test_solver_fallback_segregated(built):
 def test_solver_fallback_halves_vf_step(built):
     built.model.fail_next["std_float"] = 2
     built.solve("std_float")
-    assert built.j.study("std_float").feature("stat").getString("plistarr") == "range(0,0.0125,0.9)"
+    assert built.j.study("std_float").feature("stat").getString("plistarr") == "range(0,0.00625,0.5)"
 
 
 def test_variant_apply_and_export(built, tmp_path):
@@ -95,10 +95,10 @@ def test_variant_apply_and_export(built, tmp_path):
     for c in ("VF", "I", "J", "P_el", "Qtot_int", "Qjn_n", "Qjn_p", "Qc_contacts", "qx_0", "qx_L",
               "T_P1", "T_P5", "T_P3", "Q_room", "eta_E", "V_ifield"):
         assert c in g.columns
-    assert g.VF.iloc[-1] == pytest.approx(0.9)
+    assert g.VF.iloc[-1] == pytest.approx(0.5)
     room = read_csv(out / "room_sweep.csv")
     assert set(room.columns) == {"VF", "dT_sink", "Q_room"} and room.dT_sink.nunique() == 17
-    for v in (0, 0.6, 0.7, 0.75, 0.8):
+    for v in (0, 0.3, 0.35, 0.4, 0.45):
         prof = read_csv(out / f"profiles_VF{v:g}.csv")
         assert list(prof.columns) == rv.PROFILE_COLS
         assert np.all(np.diff(prof.x) >= 0)

@@ -32,7 +32,9 @@ FIG = ROOT / "results" / "figures"
 # categorical slots 1-3 of the validated reference palette (fixed order; colour follows the variant)
 C = {"V0": "#2a78d6", "V1": "#eb6834", "third": "#1baf7a"}
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
-VF_STYLES = {0.65: ":", 0.70: "-", 0.75: "--"}
+VR = an.VF_REPORT                      # headline bias (config: report.VF_report)
+VRS = f"{VR:g}"
+VF_STYLES = dict(zip((float(v) for v in an.REP["VF_fig5"]), (":", "-", "--")))
 
 plt.rcParams.update({
     "font.size": 9, "axes.labelsize": 9, "axes.titlesize": 9, "legend.fontsize": 8,
@@ -80,13 +82,13 @@ def placeholder(name: str, title: str, caption: str) -> None:
 # ------------------------------------------------------------------ figure 1
 def fig1_band():
     vd = data("V0")
-    name, cap = "fig1_band_diagram", "Band diagram Ec, Ev, Efn, Efp at VF = 0 and 0.7 V (V0), zoomed on both junctions"
-    if vd is None or vd.source != "comsol" or 0.7 not in vd.profiles:
+    name, cap = "fig1_band_diagram", f"Band diagram Ec, Ev, Efn, Efp at VF = 0 and {VRS} V (V0), zoomed on both junctions"
+    if vd is None or vd.source != "comsol" or VR not in vd.profiles:
         return placeholder(name, "Fig. 1  Band diagram (V0)", cap)
     p = evaluate_params()
     fig, axes = plt.subplots(1, 3, figsize=(7.2, 3.0), sharey=True, gridspec_kw=dict(width_ratios=[1, 2, 1]))
     windows = [(0, p["Wn"] + 8e-6), (0, p["Ltot"]), (p["Ltot"] - p["Wp"] - 8e-6, p["Ltot"])]
-    for v, ls in ((0.0, "--"), (0.7, "-")):
+    for v, ls in ((0.0, "--"), (VR, "-")):
         df = vd.profiles[v]
         for ax, (a, b) in zip(axes, windows):
             m = (df.x >= a) & (df.x <= b)
@@ -111,27 +113,27 @@ def fig2_carriers():
     srcs = []
     for vid in ("V0", "V1"):
         vd = data(vid)
-        if vd is None or 0.7 not in vd.profiles:
+        if vd is None or VR not in vd.profiles:
             continue
-        df = vd.profiles[0.7]
+        df = vd.profiles[VR]
         ax.semilogy(df.x * 1e3, df.n, color=C[vid], label=f"{vid} n ({src_label(vd)})")
         if vd.source == "comsol":
             ax.semilogy(df.x * 1e3, df.p, color=C[vid], ls="--", label=f"{vid} p")
         srcs.append(src_label(vd))
     ax.set_xlabel("x (mm)")
     ax.set_ylabel("carrier density (m$^{-3}$)")
-    ax.set_title("n(x), p(x) at VF = 0.7 V" + ("" if "COMSOL" in srcs else "  (reference: n = p, i-region only)"))
+    ax.set_title(f"n(x), p(x) at VF = {VRS} V" + ("" if "COMSOL" in srcs else "  (reference: n = p, i-region only)"))
     ax.legend()
-    save(fig, "fig2_carriers", "Electron and hole densities, V0 vs V1, VF = 0.7 V", ", ".join(sorted(set(srcs))))
+    save(fig, "fig2_carriers", f"Electron and hole densities, V0 vs V1, VF = {VRS} V", ", ".join(sorted(set(srcs))))
 
 
 # ------------------------------------------------------------------ figure 3
 def fig3_heat_source():
     vd = data("V0")
-    if vd is None or 0.7 not in vd.profiles:
+    if vd is None or VR not in vd.profiles:
         return placeholder("fig3_heat_source", "Fig. 3  Q_tot(x)", "Q_tot(x) near the junctions")
     p = evaluate_params()
-    df = vd.profiles[0.7]
+    df = vd.profiles[VR]
     fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.0), sharey=False)
     fig.subplots_adjust(wspace=0.4)
     for ax, (a, b), title in ((axes[0], (0, 10e-6), "n side, 0-10 um"),
@@ -148,14 +150,14 @@ def fig3_heat_source():
     axes[0].set_ylabel("heat source (W m$^{-3}$)")
     axes[0].legend(loc="center right")
     if vd.source != "comsol":
-        Qb = float(an.interp_at(vd.glob, "Qjn_n", 0.7)) / p["Ac"]
+        Qb = float(an.interp_at(vd.glob, "Qjn_n", VR)) / p["Ac"]
         axes[1].text(0.04, 0.55, "Reference model (i-region only): the junction\n"
                      "and contact cooling is a lumped point sink of\n"
                      f"{Qb:.3g} W/m$^2$ per end, not a distributed dip.\n"
                      "The negative Q_tot dip requires COMSOL data.",
                      transform=axes[1].transAxes, fontsize=7, va="center", color=MUTED)
-        fig.suptitle("Q_tot(x), V0, VF = 0.7 V (reference model; COMSOL pending)", fontsize=9, y=1.06)
-    save(fig, "fig3_heat_source", "Q_tot(x) zoomed on 0-10 um and the mirror region with J·E and Q_rec, V0, VF = 0.7 V",
+        fig.suptitle(f"Q_tot(x), V0, VF = {VRS} V (reference model; COMSOL pending)", fontsize=9, y=1.06)
+    save(fig, "fig3_heat_source", f"Q_tot(x) zoomed on 0-10 um and the mirror region with J·E and Q_rec, V0, VF = {VRS} V",
          src_label(vd))
 
 
@@ -166,9 +168,9 @@ def fig4_temperature():
     T_room = evaluate_params()["T_room"]
     for vid in ("V0", "V1"):
         vd = data(vid)
-        if vd is None or 0.7 not in vd.profiles:
+        if vd is None or VR not in vd.profiles:
             continue
-        df = vd.profiles[0.7]
+        df = vd.profiles[VR]
         ax.plot(df.x * 1e3, (df["T"] - T_room) * 1e3, color=C[vid], label=f"{vid} ({src_label(vd)})")
         end = (df["T"].iloc[0] - T_room) * 1e3
         ax.annotate(f"end: {end:+.2f} mK", (df.x.iloc[0] * 1e3, end), textcoords="offset points",
@@ -177,9 +179,9 @@ def fig4_temperature():
     ax.axhline(0, color=MUTED, lw=0.8)
     ax.set_xlabel("x (mm)")
     ax.set_ylabel("T - T_room (mK)")
-    ax.set_title("Config B: sink at centre, insulated ends, VF = 0.7 V")
+    ax.set_title(f"Config B: sink at centre, insulated ends, VF = {VRS} V")
     ax.legend()
-    save(fig, "fig4_temperature_configB", "KEY FIGURE: T(x) - T_room in mK, Config B, V0 vs V1, VF = 0.7 V",
+    save(fig, "fig4_temperature_configB", f"KEY FIGURE: T(x) - T_room in mK, Config B, V0 vs V1, VF = {VRS} V",
          ", ".join(sorted(set(srcs))))
 
 
@@ -205,7 +207,7 @@ def fig5_room():
     ax.set_ylabel("Q_room (mW)   (+ = room cooled)")
     ax.set_title("Config A: room heat balance; markers = dT_max")
     ax.legend(ncol=2)
-    save(fig, "fig5_Qroom_vs_dTsink", "Q_room vs dT_sink (Config A), V0 vs V1, VF = 0.65/0.70/0.75 V, with dT_max markers",
+    save(fig, "fig5_Qroom_vs_dTsink", "Q_room vs dT_sink (Config A), V0 vs V1, VF = " + "/".join(f"{v:g}" for v in VF_STYLES) + " V, with dT_max markers",
          ", ".join(sorted(set(srcs))))
 
 
@@ -237,7 +239,7 @@ def fig6_dtmax_cop():
 
 
 # ------------------------------------------------------------------ figure 7
-def _sweep_metric(prefix: str, VF: float = 0.7):
+def _sweep_metric(prefix: str, VF: float = VR):
     rows = []
     for r in expand_variants(ids=[prefix]):
         vd = data(r["id"])
@@ -269,14 +271,14 @@ def fig7_scaling():
         for r in sel:
             vd = data(r["id"])
             g = vd.glob
-            Vj = (an.interp_at(g, "Vj", 0.7) if "Vj" in g else 0.7 - an.interp_at(g, "V_ifield", 0.7))
+            Vj = (an.interp_at(g, "Vj", VR) if "Vj" in g else VR - an.interp_at(g, "V_ifield", VR))
             dev = rm.RefDevice.from_params(r["p"])
             Wb.append(r["p"]["Wi"] * 1e3)
             bb.append(rm.analytic_bound(dev, Vj)["dT_bound"] * 1e3)
         ax.plot(Wb, bb, color=INK, ls=ls, lw=0.9, marker="x", ms=4,
                 label="estimate n_b D_a Pi_side/k" if tau == taus[0] else None)
     Wg = np.linspace(0.2e-3, 2.1e-3, 60)
-    ba = [rm.analytic_bound(rm.RefDevice.from_params(evaluate_params({"rz_on": "1", "Wi": f"{W}[m]"})), 0.7)
+    ba = [rm.analytic_bound(rm.RefDevice.from_params(evaluate_params({"rz_on": "1", "Wi": f"{W}[m]"})), VR)
           ["dT_bound_auger"] for W in Wg]
     ax.plot(Wg * 1e3, np.array(ba) * 1e3, color=MUTED, lw=1.0, ls="-.",
             label="upper bound, Auger-limited n_b = (2/W_i)(D_a/C_a)^1/2")
@@ -284,7 +286,7 @@ def fig7_scaling():
     ax.set_xlabel("W_i (mm)")
     ax.set_ylabel("dT_max = T_room - T_end, Config B (mK)")
     src = "COMSOL" if all(r["source"] == "comsol" for r in rows) else "reference model"
-    ax.set_title(f"V5 scaling at VF = 0.7 V ({src})")
+    ax.set_title(f"V5 scaling at VF = {VRS} V ({src})")
     ax.legend(fontsize=7)
     save(fig, "fig7_V5_scaling", "V5: dT_max vs Wi for each tau_long, with the analytic bound n D_a Pi / k", src)
 
@@ -311,7 +313,7 @@ def fig8_rz_map():
     ax.grid(False)
     ax.set_xlabel("w_rz (um)")
     ax.set_ylabel("tau_short (us)")
-    fig.colorbar(im, ax=ax, label="dT_max (mK), Config B, VF = 0.7 V")
+    fig.colorbar(im, ax=ax, label=f"dT_max (mK), Config B, VF = {VRS} V")
     src = "COMSOL" if all(r["source"] == "comsol" for r in rows) else "reference model"
     ax.set_title(f"V6 recombination-zone design ({src})")
     save(fig, "fig8_V6_heatmap", "V6: dT_max heat map over (w_rz, tau_short)", src)

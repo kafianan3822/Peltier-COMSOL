@@ -15,14 +15,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from common.params import report_cfg  # noqa: E402
+
+VR = float(report_cfg()["VF_report"])
+VRS = f"{VR:g}"
 OUT = ROOT / "results" / "cascade.md"
 DEFAULT_QFLUX = 500.0  # W/m^2, used when no reference result is available
 
 
 @dataclass
 class CascadeInputs:
-    dT_stage: float = 5e-3      # K, per-stage lift
-    cop: float = 0.2            # per-stage COP
+    dT_stage: float = 5e-2      # K, per-stage lift (Ge reference V1: about 64 mK at 0.4 V, idealised)
+    cop: float = 0.5            # per-stage COP (Ge reference V1 at dT_max/2: about 0.56)
     dT_target: float = 10.0     # K
     Q_load: float = 100.0       # W
     R_c: float = 1e-5           # m^2 K / W, per interface
@@ -30,7 +34,7 @@ class CascadeInputs:
     A_module: float = 1e-6      # m^2, module cross-section (Ac)
 
 
-def reference_q_flux(VF: float = 0.7) -> float | None:
+def reference_q_flux(VF: float = VR) -> float | None:
     """Room-side cooling flux of reference V1 at VF (Config A, dT_sink = 0)."""
     path = ROOT / "results" / "reference" / "V1" / "global_vs_VF.csv"
     if not path.exists():
@@ -112,13 +116,13 @@ def main(argv=None) -> None:
     ap.add_argument("--Q-load", type=float, default=d.Q_load)
     ap.add_argument("--R-c", type=float, default=d.R_c)
     ap.add_argument("--q-flux", type=float, default=None,
-                    help="per-stage heat flux W/m^2 (default: reference V1 at 0.7 V, else 500)")
+                    help=f"per-stage heat flux W/m^2 (default: reference V1 at {VRS} V, else 500)")
     a = ap.parse_args(argv)
     if a.q_flux is not None:
         q, src = a.q_flux, "command line"
     else:
         q = reference_q_flux()
-        src = "reference model V1, VF = 0.7 V, Config A, dT_sink = 0 (Q_room/Ac)"
+        src = f"reference model V1, VF = {VRS} V, Config A, dT_sink = 0 (Q_room/Ac)"
         if q is None or q <= 0:
             q, src = DEFAULT_QFLUX, "default (reference results not found)"
     inp = CascadeInputs(a.dT_stage, a.cop, a.dT_target, a.Q_load, a.R_c, q)

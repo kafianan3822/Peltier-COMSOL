@@ -1,17 +1,21 @@
 # PIN-diode junction cooling: COMSOL simulation package
 
-A reproducible COMSOL Multiphysics 6.3 study of a forward-biased silicon n⁺-i-p⁺ diode
+A reproducible COMSOL Multiphysics 6.3 study of a forward-biased **germanium** n⁺-i-p⁺ diode
 (2 µm | 1 mm | 2 µm, 1 mm²). It asks whether the bipolar Peltier effect at the junctions can
 cool a "room" while the recombination heat is dumped in the intrinsic region. It implements
-`CLAUDE_CODE_SPEC_PIN_Peltier_COMSOL.md`. Deviations and interpretations are listed in
-[`CHANGES.md`](CHANGES.md).
+`CLAUDE_CODE_SPEC_PIN_Peltier_COMSOL.md`, which was written for silicon; the material is now
+germanium. Every germanium value and its justification is in
+[`docs/GERMANIUM_PARAMETERS.md`](docs/GERMANIUM_PARAMETERS.md). Deviations and interpretations are
+listed in [`CHANGES.md`](CHANGES.md). To run the whole pipeline with an AI agent, see
+[`docs/AGENT_SETUP.md`](docs/AGENT_SETUP.md).
 
 **Physics caveat.** Junction cooling is real (J·E < 0 against the built-in field, plus the
 contact Peltier heat). With an engineered central recombination zone the junction ends cool
-below the sink, but only by **milli-kelvin**: about 1 mK at 0.7 V and about 5 mK at 0.8 V in the
-reference model. Stacking modules does not fix this. Parallel modules multiply watts, not ΔT,
-and a series cascade needs about 2000 stages and about 10^1556 × the electrical power for
-10 K ([`results/cascade.md`](results/cascade.md)).
+below the sink, but only by **tens of milli-kelvin**: about 12 mK at 0.3 V and about 64 mK at
+0.4 V in the idealised reference model (which ignores carrier leakage into the contacts, so
+COMSOL is expected to give less). Stacking modules does not fix this. Parallel modules multiply
+watts, not ΔT, and a series cascade needs about 200 stages and about 10^95 × the electrical
+power for 10 K ([`results/cascade.md`](results/cascade.md)).
 
 **New to COMSOL scripting? Start with the step-by-step [user manual](docs/USER_MANUAL.md).**
 
@@ -37,10 +41,12 @@ COMSOL is located from the `COMSOL63_PATH` environment variable, then `comsol.in
 set COMSOL63_PATH=C:\Program Files\COMSOL\COMSOL63\Multiphysics
 ```
 
-Optional, recommended: save the library material once (*Materials > Add Material from Library >
-Semiconductors > Si - Silicon*, then *File > Save As* `comsol/materials/Si_library.mph`). Without that file
-the builders use the explicit §4.2 fallback material. In that case the base mobility is Caughey-Thomas (M2), and
-the BGN/Fletcher variants V2a/V2b are skipped (CHANGES.md M4-M5).
+The germanium material is the explicit table `material_fallback` in `config/params_base.yaml`. That is
+the recommended setup, because the reference model uses the same numbers. Optionally you can save the
+COMSOL library material (*Materials > Add Material from Library > Semiconductors > Ge - Germanium*, then
+*File > Save As* `comsol/materials/Ge_library.mph`); the builders then copy it instead. The mobility is
+always the user-defined doping-dependent model M2: the Arora, Slotboom and Fletcher models are
+silicon-calibrated and are not used.
 
 ## 2. Quick start (Driver A: Python + MPh)
 
@@ -62,7 +68,7 @@ Runs stages 1-8 and writes `comsol/models/stage1.mph` … `stage8.mph` and `pin_
 ```bash
 python comsol/python/run_variants.py --set core
 ```
-Solves V0 and V1 and writes `results/V0/`, `results/V1/`. Use `--set full` for the whole matrix (51 runs).
+Solves V0 and V1 and writes `results/V0/`, `results/V1/`. Use `--set full` for the whole matrix (49 runs).
 
 ```bash
 python postprocess/report.py
@@ -73,7 +79,7 @@ Useful options:
 
 - `build_model.py --until 4` stops after a stage.
 - `build_model.py --dry-run` and `run_variants.py --dry-run` work without COMSOL.
-- `run_variants.py --ids V4,V8a` runs selected variants. A parent id such as `V5` expands to all of its runs.
+- `run_variants.py --ids V4,V3a` runs selected variants. A parent id such as `V5` expands to all of its runs.
 
 Tests (no COMSOL needed):
 
@@ -138,8 +144,8 @@ A manual GUI build is described in [`docs/GUI_build_steps.md`](docs/GUI_build_st
 | Reference model, one variant (≈ 90 continuation steps of `solve_bvp`) | ≈ 5 s |
 | Reference model, default set (V0, V1, 12 × V5, 12 × V6) | ≈ 2 min |
 | COMSOL build, stages 1-8 (1D, about 2000 elements) | ≈ 1-3 min |
-| COMSOL, one variant with Configs A + B (37 + 33 × 17 + 37 bias points) | ≈ 1-5 min; the Study 2 parametric sweep dominates |
-| COMSOL, full matrix (51 runs) | ≈ 1-3 h |
+| COMSOL, one variant with Configs A + B (41 + 33 × 17 + 41 bias points) | ≈ 1-5 min; the Study 2 parametric sweep dominates |
+| COMSOL, full matrix (49 runs) | ≈ 1-3 h |
 | `report.py` | ≈ 20 s |
 
 ## 6. Troubleshooting
@@ -152,7 +158,6 @@ A manual GUI build is described in [`docs/GUI_build_steps.md`](docs/GUI_build_st
 | Missing variable names | See `docs/VERIFY_API_NAMES.md`; set `config/api_names_override.yaml` |
 | `ApiNameError ...` | The named constant is wrong for your COMSOL version: verify and override it (Section 4) |
 | `BUG: net cooling >= 0.1 K` from `analyze.py`/`report.py` | A model or sign error, not a result (spec §0 rule 6). Check the hs1 expression and the boundary sinks |
-| V2a/V2b skipped | Provide `comsol/materials/Si_library.mph` (BGN and Fletcher need library parameters) |
 | `MPh` cannot find COMSOL | Set `COMSOL63_PATH`; on Windows COMSOL must be installed with the Java API (default) |
 
 ## 7. Repository layout
@@ -174,6 +179,7 @@ docs/          GUI_build_steps.md, VERIFY_API_NAMES.md (generated)
 2. COMSOL Application Library, *Thermal Analysis of a Bipolar Transistor* (Semiconductor_Module/Transistors/bipolar_transistor_thermal).
 3. G. K. Wachutka, "Rigorous thermodynamic treatment of heat generation and conduction in semiconductor device modeling," *IEEE Trans. CAD* 9(11), 1141-1149 (1990).
 4. K. P. Pipe, R. J. Ram, A. Shakouri, "Bias-dependent Peltier coefficient and internal cooling in bipolar devices," *Phys. Rev. B* 66, 125316 (2002).
-5. J. Dziewior, W. Schmid, "Auger coefficients for highly doped and highly excited silicon," *Appl. Phys. Lett.* 31, 346 (1977).
-6. D. M. Caughey, R. E. Thomas, "Carrier mobilities in silicon empirically related to doping and field," *Proc. IEEE* 55, 2192 (1967).
-7. T. Sadi, I. Radevici, J. Oksanen, "Thermophotonic cooling with light-emitting diodes," *Nature Photonics* 14, 205 (2020).
+5. Ioffe Institute, *New Semiconductor Materials: Ge - Germanium*. https://www.ioffe.ru/SVA/NSM/Semicond/Ge/
+6. S. M. Sze, K. K. Ng, *Physics of Semiconductor Devices*, 3rd ed., Wiley (2007), Appendix G.
+7. C. Hilsum, "Simple empirical relationship between mobility and carrier concentration," *Electron. Lett.* 10, 259 (1974).
+8. T. Sadi, I. Radevici, J. Oksanen, "Thermophotonic cooling with light-emitting diodes," *Nature Photonics* 14, 205 (2020).

@@ -16,7 +16,7 @@ Heat Transfer modules, **Python 3.11 or newer**.
 2. [Install Python and the packages (once)](#2-install-python-and-the-packages-once)
 3. [Tell the scripts where COMSOL is (once)](#3-tell-the-scripts-where-comsol-is-once)
 4. [Warm-up without COMSOL: tests and the reference model](#4-warm-up-without-comsol)
-5. [Save the silicon library material (once, recommended)](#5-save-the-silicon-library-material-once-recommended)
+5. [Save the germanium library material (optional)](#5-save-the-germanium-library-material-optional)
 6. [Build the COMSOL model stage by stage](#6-build-the-comsol-model-stage-by-stage)
 7. [When a stage fails: fixing a COMSOL name](#7-when-a-stage-fails-fixing-a-comsol-name)
 8. [Look at the model in the COMSOL window](#8-look-at-the-model-in-the-comsol-window)
@@ -189,8 +189,8 @@ python reference/reference_model.py
 It takes about 2 minutes and prints one line per run. The two lines that matter:
 
 ```
-V0   J(0.7V)= 0.0562 A/cm2  Q_room(dT=0)= -0.0582 mW  dTmax= -0.098 mK  T_end-T_room(B)=  0.098 mK
-V1   J(0.7V)= 0.1173 A/cm2  Q_room(dT=0)=  0.5581 mW  dTmax=  0.943 mK  T_end-T_room(B)= -0.943 mK
+V0   J(0.4V)= 1.4416 A/cm2  Q_room(dT=0)= -0.5075 mW  dTmax= -2.114 mK  T_end-T_room(B)=  2.114 mK
+V1   J(0.4V)= 4.7733 A/cm2  Q_room(dT=0)= 15.4146 mW  dTmax= 64.227 mK  T_end-T_room(B)= -64.227 mK
 ```
 
 Meaning: with uniform lifetime (V0) the junction ends get **warmer**; with the engineered
@@ -212,19 +212,21 @@ complete.
 
 ---
 
-## 5. Save the silicon library material (once, recommended)
+## 5. Save the germanium library material (optional)
 
-Without this file the scripts use a simplified silicon. With it, you get the COMSOL library
-silicon, the Arora mobility model (the spec's default) and you can run variants V2a/V2b.
+You can skip this section. Without this file the scripts use the germanium table in
+`config/params_base.yaml` (justified in `docs/GERMANIUM_PARAMETERS.md`), which is the recommended
+setup because the reference model uses the same numbers. With the file, the COMSOL library
+germanium is copied instead.
 
 1. Open COMSOL 6.3.
 2. **Model Wizard** > **1D** > select no physics, click **Done** (or *Blank Model*, then right-click
    *Model > Add Component > 1D*). The component must be called **Component 1** (`comp1`).
 3. In the Model Builder tree right-click **Materials** > **Add Material from Library**.
-4. In the window that opens: **Semiconductors** > **Si - Silicon** > click **Add to Component**. It
-   appears as *Si - Silicon (mat1)*. The tag must be **mat1** (the default for the first material).
+4. In the window that opens: **Semiconductors** > **Ge - Germanium** > click **Add to Component**. It
+   appears as *Ge - Germanium (mat1)*. The tag must be **mat1** (the default for the first material).
 5. **File > Save As** > go to your project folder > `comsol\materials\` > file name
-   **`Si_library.mph`** > Save.
+   **`Ge_library.mph`** > Save.
 6. Close the file.
 
 To check the tags: in the Model Builder toolbar click the eye icon (*Model Builder Node Label*)
@@ -265,11 +267,11 @@ python comsol/python/build_model.py --until 2
 Look for:
 
 ```
-material: copied library material 'Si - Silicon'      (or: explicit fallback properties)
-Pi_nc = 0.079.. V, Pi_pc = 0.081.. V
+material: copied library material 'Ge - Germanium'      (or: explicit fallback properties)
+Pi_nc = 0.0517.. V, Pi_pc = 0.0338.. V
 ```
 
-If you did section 5 and it still says *fallback*, the file `comsol\materials\Si_library.mph` was not
+If you did section 5 and it still says *fallback*, the file `comsol\materials\Ge_library.mph` was not
 found: check the name and folder.
 
 ### 6.3 Stage 3: semiconductor physics and doping (first solve)
@@ -289,7 +291,7 @@ python comsol/python/build_model.py --until 4
 Look for lines `API name ... (verified by evaluation)` and
 
 ```
-J(0.7 V) = 0.0xxx A/cm^2 (spec V0 window 0.02-1)
+J(0.4 V) = x.xxx A/cm^2 (V0 window 0.3-30)
 consistency |I_TERMINAL| / (Ac*|J_X|) = 1.0000 .. 1.0000
 ```
 
@@ -418,7 +420,7 @@ name) and add it to `api_names_override.yaml` the same way.
 |---|---|---|
 | `stage 1 smoke test failed: expected 4 domains / 5 points` | Geometry points wrong | Check `Wn`, `Wi`, `Wp` in `config/params_base.yaml` are unchanged |
 | `stage 3 smoke test failed: net doping ...` | Doping profile set wrong | Open `stage2.mph`, add one Analytic Doping Model by hand, compare names (section 7.2) |
-| `stage 4 smoke test failed: J(0.7 V) = ... not in 0.02-1` | Current far from expectation | Usually a lifetime or recombination setting that did not apply. Open `stage3.mph`, add *Trap-Assisted Recombination* by hand and compare the names (section 7.2) |
+| `stage 4 smoke test failed: J(0.4 V) = ... not in 0.3-30` | Current far from expectation | Usually a lifetime or recombination setting that did not apply. Open `stage3.mph`, add *Trap-Assisted Recombination* by hand and compare the names (section 7.2) |
 | `failed (...) -> fallback 1: segregated solver` | Solver struggled; script retries | Nothing, unless all fallbacks fail; then see section 14 |
 
 ---
@@ -427,7 +429,7 @@ name) and add it to `api_names_override.yaml` the same way.
 
 Open `comsol\models\pin_peltier_base.mph` in COMSOL and check, as a sanity check:
 
-1. **Global Definitions > Parameters 1**: 32 parameters; `Pi_nc` ≈ 0.079 V, `Pi_pc` ≈ 0.081 V.
+1. **Global Definitions > Parameters 1**: 32 parameters; `Pi_nc` ≈ 0.052 V, `Pi_pc` ≈ 0.034 V.
 2. **Semiconductor > Semiconductor Material Model 1 > Model Input**: Temperature = *User defined*,
    `T0`. This is the **one-way coupling**: the electrical model never sees the computed temperature.
 3. **Heat Transfer in Solids**: `hs1` (Q = `semi.Q_tot`), `bhs_n`, `bhs_p` (contact Peltier
@@ -459,7 +461,7 @@ Result files (one folder per variant, e.g. `results\V0\`):
 | File | Content |
 |---|---|
 | `global_vs_VF.csv` | One row per bias VF: current, heat integrals, junction cooling, room heat balance, energy-balance ratio |
-| `profiles_VF0.7.csv` (and 0, 0.6, 0.75, 0.8) | Position-resolved bands, carrier densities, heat source, temperature |
+| `profiles_VF0.4.csv` (and 0, 0.3, 0.35, 0.45) | Position-resolved bands, carrier densities, heat source, temperature |
 | `room_sweep.csv` | Room heat `Q_room` for every VF and every sink temperature offset |
 | `float_vs_VF.csv` | End temperatures in Config B |
 | `reverse_bias_*.csv` | Run at VF = -0.5 V (check C8) |
@@ -496,17 +498,19 @@ If `report.py` ends with **`BUG: net cooling >= 0.1 K`**, stop and read section 
 
 ### 11.1 The numbers in the summary table
 
-| Column | What it means | Reference-model value (V0 / V1 at 0.7 V) |
+| Column | What it means | Reference-model value (V0 / V1 at 0.4 V) |
 |---|---|---|
-| `dT_max @0.7 V` | How much warmer than the room the heat sink may be while the room is still cooled (Config A) | none (room heated) / 0.94 mK |
-| `Q_room(dT=0)` | Heat pulled out of the room when sink = room temperature. **Positive = room cooled** | -0.058 mW / +0.56 mW |
-| `COP` | Q_room divided by electrical power | negative / 0.68 |
-| `eta_E` | Energy balance: heat accounted for / electrical power | COMSOL expects 0.95-0.97 (builtin source) |
-| `T_end-T_room, Config B` | Temperature of the junction ends relative to the centre sink | +0.10 mK / -0.94 mK |
+| `dT_max @0.4 V` | How much warmer than the room the heat sink may be while the room is still cooled (Config A) | none (room heated) / 64 mK |
+| `Q_room(dT=0)` | Heat pulled out of the room when sink = room temperature. **Positive = room cooled** | -0.51 mW / +15.4 mW |
+| `COP` | Q_room divided by electrical power | negative / 0.81 |
+| `eta_E` | Energy balance: heat accounted for / electrical power | COMSOL expects about 1 - 0.026 V / VF, i.e. 0.94 at 0.4 V (builtin source) |
+| `T_end-T_room, Config B` | Temperature of the junction ends relative to the centre sink | +2.1 mK / -64 mK |
 
-**Expected physics:** V0 heats the ends (positive), V1 cools them by a few tenths to a few mK.
-The cooling grows with VF (about 5 mK at 0.8 V in the reference model). Milli-kelvin is the
-correct order of magnitude; it is not a failure of the simulation.
+**Expected physics:** V0 heats the ends (positive) at 0.4 V, V1 cools them by tens of mK in the
+reference model. The reference model ignores carrier leakage into the contacts, which is
+significant in germanium, so COMSOL should give a smaller cooling. Tens of milli-kelvin or less
+is the correct order of magnitude; it is not a failure of the simulation. Below about 0.37 V even
+V0 cools its ends slightly (by about 0.2 mK).
 
 ### 11.2 The checks C1-C9
 
@@ -554,17 +558,16 @@ Do not use the numbers until the BUG is gone.
 ## 12. Run the rest of the variant matrix
 
 After V0 and V1 look right, run the other variants. You can run everything at once
-(`--set full`, 51 runs, roughly 1-3 hours), but it is easier to follow in groups:
+(`--set full`, 49 runs, roughly 1-3 hours), but it is easier to follow in groups:
 
 | Order | Command | What it tests | Approx. time |
 |---|---|---|---|
 | 1 | `python comsol/python/run_variants.py --ids V4` | Mesh convergence (enables check C6) | 10 min |
 | 2 | `python comsol/python/run_variants.py --ids V3a,V3b` | Corrected (Wachutka) heat source | 15 min |
-| 3 | `python comsol/python/run_variants.py --ids V8a,V8b` | Alternative mobility model | 15 min |
+| 3 | `python comsol/python/run_variants.py --ids V2a,V2b` | Fermi-Dirac statistics (degenerate contacts) | 15 min |
 | 4 | `python comsol/python/run_variants.py --ids V5` | Scaling with length and lifetime (12 runs, Fig. 7) | 20-40 min |
 | 5 | `python comsol/python/run_variants.py --ids V6` | Recombination-zone design (12 runs, Fig. 8) | 20-40 min |
 | 6 | `python comsol/python/run_variants.py --ids V7a,V7b` | Lateral sink, Config C (18 runs) | 30-60 min |
-| 7 | `python comsol/python/run_variants.py --ids V2a,V2b` | Realistic transport; **needs section 5** | 15 min |
 
 After each group run `python postprocess/report.py` again; the summary and figures update.
 
@@ -612,7 +615,6 @@ Use this if Python cannot connect to COMSOL. It does the same work with COMSOL's
 | `COMSOL rejected API name ...` | Section 7. |
 | Solver does not converge (all fallbacks failed) | In `config/params_base.yaml` raise `l_dec` to `"0.3[um]"`, or in `sweeps` use a VF step of `0.01`. Rebuild. Record the change in `CHANGES.md`. |
 | `Wrong-sign Q_room` (V1 heats the room in COMSOL but cools in the reference) | Check the flux variable `TFLUX_X` (`ht.tfluxX` is positive in +x direction) and the boundary sinks. |
-| `V2a needs the library material ... skipped` | Do section 5, rebuild (section 6), run V2a/V2b again. |
 | The run is very slow | Close other programs; set `cores` in `config/user_env.yaml` (`mph: cores:`) to your number of CPU cores. |
 | The computer froze / out of memory | Unlikely for 1D. Restart, run one variant at a time with `--ids`. |
 | Everything is broken and you want to start over | Delete the folder `comsol\models\` and the result folders `results\V0`, `results\V1` (not `results\reference`), then section 6 again. Your `api_names_override.yaml` stays. |
@@ -627,7 +629,7 @@ problem (missing file or package), `2` BUG (cooling ≥ 0.1 K), `3` a COMSOL nam
 
 | Term | Meaning |
 |---|---|
-| **VF** | Forward bias voltage applied to the p⁺ contact (V). Swept from 0 to 0.9 V. |
+| **VF** | Forward bias voltage applied to the p⁺ contact (V). Swept from 0 to 0.5 V. |
 | **Config A** | Both junction ends held at room temperature, centre sink at room + `dT_sink`. Used to compute the room heat balance. |
 | **Config B** | Junction ends insulated, centre held at room temperature. Shows how far the ends cool or warm by themselves. |
 | **Config C** | Ends insulated, heat removed sideways from the i-region by convection (`h_lat`). |
@@ -649,7 +651,7 @@ problem (missing file or package), `2` BUG (cooling ≥ 0.1 K), `3` a COMSOL nam
 - [ ] Python ≥ 3.11 installed, `.venv` created, packages installed
 - [ ] `COMSOL63_PATH` set; `mph.start()` test prints the COMSOL version
 - [ ] `python -m pytest -q` passes
-- [ ] (Recommended) `comsol\materials\Si_library.mph` saved
+- [ ] (Recommended) `comsol\materials\Ge_library.mph` saved
 - [ ] `build_model.py --until 1` ... `--until 5`, then full build: `stage 8 OK`
 - [ ] Any rejected names fixed in `config\api_names_override.yaml`
 - [ ] Model opened in the GUI and the five sanity points of section 8 checked

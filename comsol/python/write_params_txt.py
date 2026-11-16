@@ -68,6 +68,11 @@ def model_config_text() -> str:
         out.append(f"mesh.{k}\t{v}")
     for k, v in b["sweeps"].items():
         out.append(f"sweep.{k}\t{','.join(str(x) for x in v) if isinstance(v, list) else v}")
+    out.append(f"material.name\t{b['material']['name']}")
+    out.append(f"material.library_file\t{b['material']['library_file']}")
+    out.append(f"material.silicon_models\t{str(bool(b['material']['silicon_models'])).lower()}")
+    for k, v in b["report"].items():
+        out.append(f"report.{k}\t{','.join(str(x) for x in v) if isinstance(v, list) else v}")
     return "\n".join(out) + "\n"
 
 
