@@ -1,6 +1,6 @@
 # PIN-diode junction cooling: results summary
 
-_Generated 2026-11-16T18:30:51 by `postprocess/report.py`._
+_Generated 2026-11-17T15:00:59 by `postprocess/report.py`._
 
 Sign conventions: Q_room > 0 means the room is cooled. dT_max is the sink-minus-room temperature at which Q_room = 0 (Config A); 'none (room heated)' means Q_room < 0 already at dT_sink = 0. For Config-B-only runs (V5, V6), dT_max = T_room - T_end, which is exact for the symmetric 1D bar.
 
@@ -8,8 +8,53 @@ Sign conventions: Q_room > 0 means the room is cooled. dT_max is the sink-minus-
 
 | Variant | dT_max @0.4 V | best dT_max (VF) | Q_room(dT=0) @0.4 V | COP(dT=0) | COP(dT_max/2) | eta_E @0.4 V | T_end-T_room, Config B |
 |---|---|---|---|---|---|---|---|
-| V0 | none (room heated) | 0.060 mK (0.225 V) | -6.512 mW | -0.564 | - | 0.9354 | +27.242 mK |
+| V0 | none (room heated) | 0.062 mK (0.225 V) | -6.512 mW | -0.564 | - | 0.9354 | +27.242 mK |
 | V1 | 57.000 mK (extrap.) | 57.000 mK (0.400 V) | 13.625 mW | 0.776 | 0.504 | 0.9368 | -57.000 mK |
+| V2a | none (room heated) | 0.110 mK (0.263 V) | -3.431 mW | -0.373 | - | 0.8683 | +14.354 mK |
+| V2b | 65.072 mK (extrap.) | 65.072 mK (0.400 V) | 15.555 mW | 0.886 | 0.614 | 0.8698 | -65.073 mK |
+| V3a | none (room heated) | 0.053 mK (0.225 V) | -7.111 mW | -0.616 | - | 1.0000 | +29.748 mK |
+| V3b | 56.425 mK (extrap.) | 56.425 mK (0.400 V) | 13.488 mW | 0.768 | 0.496 | 1.0015 | -56.425 mK |
+| V4 | 56.993 mK (extrap.) | 56.993 mK (0.400 V) | 13.624 mW | 0.776 | 0.504 | 0.9351 | -56.993 mK |
+| V5_Wi=0.25mm_tau_long=0.1ms | 36.520 mK (B) | - | 34.507 mW | 0.459 | - | 0.9353 | -36.520 mK |
+| V5_Wi=0.25mm_tau_long=1ms | 37.011 mK (B) | - | 34.971 mW | 0.469 | - | 0.9353 | -37.011 mK |
+| V5_Wi=0.25mm_tau_long=5ms | 37.055 mK (B) | - | 35.013 mW | 0.47 | - | 0.9353 | -37.055 mK |
+| V5_Wi=0.5mm_tau_long=0.1ms | 54.049 mK (B) | - | 25.737 mW | 0.629 | - | 0.9353 | -54.049 mK |
+| V5_Wi=0.5mm_tau_long=1ms | 56.843 mK (B) | - | 27.068 mW | 0.663 | - | 0.9353 | -56.843 mK |
+| V5_Wi=0.5mm_tau_long=5ms | 57.098 mK (B) | - | 27.190 mW | 0.667 | - | 0.9353 | -57.098 mK |
+| V5_Wi=1mm_tau_long=0.1ms | 47.003 mK (B) | - | 11.236 mW | 0.681 | - | 0.9366 | -47.003 mK |
+| V5_Wi=1mm_tau_long=1ms | 57.000 mK (B) | - | 13.625 mW | 0.776 | - | 0.9368 | -57.000 mK |
+| V5_Wi=1mm_tau_long=5ms | 57.981 mK (B) | - | 13.860 mW | 0.785 | - | 0.9368 | -57.981 mK |
+| V5_Wi=2mm_tau_long=0.1ms | 19.288 mK (B) | - | 2.310 mW | 0.615 | - | 0.9487 | -19.288 mK |
+| V5_Wi=2mm_tau_long=1ms | 42.091 mK (B) | - | 5.041 mW | 0.84 | - | 0.9549 | -42.091 mK |
+| V5_Wi=2mm_tau_long=5ms | 45.042 mK (B) | - | 5.394 mW | 0.868 | - | 0.9556 | -45.042 mK |
+| V6_w_rz=25um_tau_short=0.1us | 45.259 mK (B) | - | 10.819 mW | 0.964 | - | 0.9366 | -45.259 mK |
+| V6_w_rz=25um_tau_short=1us | 42.014 mK (B) | - | 10.043 mW | 0.497 | - | 0.9338 | -42.014 mK |
+| V6_w_rz=25um_tau_short=10us | none (ends warmer) | - | -3.648 mW | -0.276 | - | 0.9348 | +15.260 mK |
+| V6_w_rz=50um_tau_short=0.1us | 25.581 mK (B) | - | 6.115 mW | 1.05 | - | 0.9397 | -25.581 mK |
+| V6_w_rz=50um_tau_short=1us | 58.383 mK (B) | - | 13.956 mW | 0.671 | - | 0.9364 | -58.383 mK |
+| V6_w_rz=50um_tau_short=10us | none (ends warmer) | - | -1.279 mW | -0.0873 | - | 0.9357 | +5.350 mK |
+| V6_w_rz=100um_tau_short=0.1us | 9.513 mK (B) | - | 2.274 mW | 1.14 | - | 0.9389 | -9.513 mK |
+| V6_w_rz=100um_tau_short=1us | 57.000 mK (B) | - | 13.625 mW | 0.776 | - | 0.9368 | -57.000 mK |
+| V6_w_rz=100um_tau_short=10us | 9.699 mK (B) | - | 2.319 mW | 0.137 | - | 0.9361 | -9.699 mK |
+| V6_w_rz=200um_tau_short=0.1us | 3.485 mK (B) | - | 0.833 mW | 1.11 | - | 0.9373 | -3.485 mK |
+| V6_w_rz=200um_tau_short=1us | 34.460 mK (B) | - | 8.237 mW | 0.825 | - | 0.9359 | -34.460 mK |
+| V6_w_rz=200um_tau_short=10us | 26.808 mK (B) | - | 6.408 mW | 0.326 | - | 0.9356 | -26.808 mK |
+| V7a_h_lat=1e3Wperm2K_w_wall=0um | none (ends warmer) | - | -6.512 mW | -0.564 | - | 0.9354 | - mK |
+| V7a_h_lat=1e3Wperm2K_w_wall=50um | none (ends warmer) | - | -6.512 mW | -0.564 | - | 0.9354 | - mK |
+| V7a_h_lat=1e4Wperm2K_w_wall=0um | none (ends warmer) | - | -6.512 mW | -0.564 | - | 0.9354 | - mK |
+| V7a_h_lat=1e4Wperm2K_w_wall=50um | none (ends warmer) | - | -6.512 mW | -0.564 | - | 0.9354 | - mK |
+| V7a_h_lat=1e4Wperm2K_w_wall=200um | none (ends warmer) | - | -6.512 mW | -0.564 | - | 0.9354 | - mK |
+| V7a_h_lat=1e5Wperm2K_w_wall=0um | none (ends warmer) | - | -6.512 mW | -0.564 | - | 0.9354 | - mK |
+| V7a_h_lat=1e5Wperm2K_w_wall=50um | none (ends warmer) | - | -6.512 mW | -0.564 | - | 0.9354 | - mK |
+| V7a_h_lat=1e5Wperm2K_w_wall=200um | none (ends warmer) | - | -6.512 mW | -0.564 | - | 0.9354 | - mK |
+| V7b_h_lat=1e3Wperm2K_w_wall=0um | none (ends warmer) | - | 13.625 mW | 0.776 | - | 0.9368 | - mK |
+| V7b_h_lat=1e3Wperm2K_w_wall=50um | none (ends warmer) | - | 13.625 mW | 0.776 | - | 0.9368 | - mK |
+| V7b_h_lat=1e4Wperm2K_w_wall=0um | none (ends warmer) | - | 13.625 mW | 0.776 | - | 0.9368 | - mK |
+| V7b_h_lat=1e4Wperm2K_w_wall=50um | none (ends warmer) | - | 13.625 mW | 0.776 | - | 0.9368 | - mK |
+| V7b_h_lat=1e4Wperm2K_w_wall=200um | none (ends warmer) | - | 13.625 mW | 0.776 | - | 0.9368 | - mK |
+| V7b_h_lat=1e5Wperm2K_w_wall=0um | none (ends warmer) | - | 13.625 mW | 0.776 | - | 0.9368 | - mK |
+| V7b_h_lat=1e5Wperm2K_w_wall=50um | none (ends warmer) | - | 13.625 mW | 0.776 | - | 0.9368 | - mK |
+| V7b_h_lat=1e5Wperm2K_w_wall=200um | none (ends warmer) | - | 13.625 mW | 0.776 | - | 0.9368 | - mK |
 
 Flags: V2a: 1e19 cm^-3 is degenerate in Ge; contact Peltier formula stays Maxwell-Boltzmann; V2b: 1e19 cm^-3 is degenerate in Ge; contact Peltier formula stays Maxwell-Boltzmann.
 
@@ -60,12 +105,12 @@ Ambipolar high-injection model of the i-region with lumped end sinks. eta_E = 1 
 | # | Check | Status | Detail |
 |---|---|---|---|
 | C1 | Zero bias | PASS | V0: max|Q_tot(0)|/max|Q_tot(0.4)| = 1.16e-07 (<1e-6), max|T-T_room| = 0 uK (<1 uK) | V1: max|Q_tot(0)|/max|Q_tot(0.4)| = 6.99e-08 (<1e-6), max|T-T_room| = 0 uK (<1 uK) |
-| C2 | Energy balance | **FAIL** | V0 (builtin): eta_E - expected in [-0.0000, +0.2175] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V1 (builtin): eta_E - expected in [+0.0009, +0.0073] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) |
-| C3 | Junction cooling exists | PASS | V0: max Qjn_n = -2.552e-06 W, max Qjn_p = -2.564e-06 W over VF 0.10-0.50 V (need < 0) | V1: max Qjn_n = -4.675e-05 W, max Qjn_p = -4.538e-05 W over VF 0.10-0.50 V (need < 0) |
-| C4 | Junction-cooling magnitude | PASS | V0: (Qjn_n+Qjn_p)/(-I(V_bi-V_j)) in [0.774, 0.925] for VF 0.2-0.4 V (V_bi = 0.679 V; need 0.7-1.3) | V1: (Qjn_n+Qjn_p)/(-I(V_bi-V_j)) in [0.980, 0.997] for VF 0.2-0.4 V (V_bi = 0.679 V; need 0.7-1.3) |
+| C2 | Energy balance | **FAIL** | V0 (builtin): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V1 (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V2a (builtin): eta_E - expected in [-0.1342, -0.0537] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V2b (builtin): eta_E - expected in [-0.1311, -0.0527] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V3a (corrected): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1; need |.| <= 0.03) | V3b (corrected): eta_E - expected in [+0.0009, +0.0032] for VF>=0.2 (expected = 1; need |.| <= 0.03) | V4 (builtin): eta_E - expected in [-0.0005, -0.0002] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=0.25mm_tau_long=0.1ms (builtin): eta_E - expected in [-0.0001, -0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=0.25mm_tau_long=1ms (builtin): eta_E - expected in [-0.0001, -0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=0.25mm_tau_long=5ms (builtin): eta_E - expected in [-0.0001, -0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=0.5mm_tau_long=0.1ms (builtin): eta_E - expected in [-0.0001, -0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=0.5mm_tau_long=1ms (builtin): eta_E - expected in [-0.0001, -0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=0.5mm_tau_long=5ms (builtin): eta_E - expected in [-0.0001, -0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=1mm_tau_long=0.1ms (builtin): eta_E - expected in [+0.0008, +0.0027] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=1mm_tau_long=1ms (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=1mm_tau_long=5ms (builtin): eta_E - expected in [+0.0009, +0.0032] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=2mm_tau_long=0.1ms (builtin): eta_E - expected in [+0.0096, +0.0274] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=2mm_tau_long=1ms (builtin): eta_E - expected in [+0.0123, +0.0416] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V5_Wi=2mm_tau_long=5ms (builtin): eta_E - expected in [+0.0126, +0.0434] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=25um_tau_short=0.1us (builtin): eta_E - expected in [+0.0008, +0.0024] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=25um_tau_short=1us (builtin): eta_E - expected in [-0.0041, -0.0006] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=25um_tau_short=10us (builtin): eta_E - expected in [-0.0034, -0.0001] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=50um_tau_short=0.1us (builtin): eta_E - expected in [+0.0033, +0.0088] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=50um_tau_short=1us (builtin): eta_E - expected in [+0.0005, +0.0022] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=50um_tau_short=10us (builtin): eta_E - expected in [+0.0001, +0.0013] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=100um_tau_short=0.1us (builtin): eta_E - expected in [+0.0028, +0.0071] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=100um_tau_short=1us (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=100um_tau_short=10us (builtin): eta_E - expected in [+0.0002, +0.0024] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=200um_tau_short=0.1us (builtin): eta_E - expected in [+0.0015, +0.0038] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=200um_tau_short=1us (builtin): eta_E - expected in [+0.0003, +0.0010] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V6_w_rz=200um_tau_short=10us (builtin): eta_E - expected in [+0.0001, +0.0006] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7a_h_lat=1e3Wperm2K_w_wall=0um (builtin): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7a_h_lat=1e3Wperm2K_w_wall=50um (builtin): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7a_h_lat=1e4Wperm2K_w_wall=0um (builtin): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7a_h_lat=1e4Wperm2K_w_wall=50um (builtin): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7a_h_lat=1e4Wperm2K_w_wall=200um (builtin): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7a_h_lat=1e5Wperm2K_w_wall=0um (builtin): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7a_h_lat=1e5Wperm2K_w_wall=50um (builtin): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7a_h_lat=1e5Wperm2K_w_wall=200um (builtin): eta_E - expected in [-0.0001, +0.0000] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7b_h_lat=1e3Wperm2K_w_wall=0um (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7b_h_lat=1e3Wperm2K_w_wall=50um (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7b_h_lat=1e4Wperm2K_w_wall=0um (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7b_h_lat=1e4Wperm2K_w_wall=50um (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7b_h_lat=1e4Wperm2K_w_wall=200um (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7b_h_lat=1e5Wperm2K_w_wall=0um (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7b_h_lat=1e5Wperm2K_w_wall=50um (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) | V7b_h_lat=1e5Wperm2K_w_wall=200um (builtin): eta_E - expected in [+0.0009, +0.0031] for VF>=0.2 (expected = 1 - Vt/VF; need |.| <= 0.03) |
+| C3 | Junction cooling exists | PASS | V0: max Qjn_n = -2.676e-06 W, max Qjn_p = -2.670e-06 W over VF 0.10-0.50 V (need < 0) | V1: max Qjn_n = -4.676e-05 W, max Qjn_p = -4.539e-05 W over VF 0.10-0.50 V (need < 0) |
+| C4 | Junction-cooling magnitude | PASS | V0: (Qjn_n+Qjn_p)/(-I(V_bi-V_j)) in [0.774, 0.961] for VF 0.2-0.4 V (V_bi = 0.679 V; need 0.7-1.3) | V1: (Qjn_n+Qjn_p)/(-I(V_bi-V_j)) in [0.980, 0.998] for VF 0.2-0.4 V (V_bi = 0.679 V; need 0.7-1.3) |
 | C5 | I-V benchmark (V0) | PASS | V0: J/J_ref in [0.789, 1.028] for 0.3-0.45 V (J_ref = i-region SRH with tau_eff = 2 tau_long + emitter leakage; need 1/3-3) |
-| C6 | Mesh convergence | PENDING | needs COMSOL results for V1 and V4 |
-| C7 | Plausibility (|dT_max| < 0.1 K) | PASS | COMSOL: largest |dT_max| = 57.000 mK |
+| C6 | Mesh convergence | PASS | V4 vs V1: dT_max 0.01%, Qjn_n 0.04%, Qjn_p 0.04% (need < 2%) |
+| C7 | Plausibility (|dT_max| < 0.1 K) | PASS | COMSOL: largest |dT_max| = 65.072 mK |
 | C8 | Reverse bias | PASS | V0: min Q_tot(-0.5 V) = -1.104e+03 W/m^3 (generation floor -5.76e+07), Q_room = -1.079e-06 W (need <= 0) | V1: min Q_tot(-0.5 V) = -4.871e+05 W/m^3 (generation floor -9.54e+07), Q_room = -5.888e-05 W (need <= 0) |
 | C9 | COMSOL vs reference model | PASS | V0: COMSOL 27.242 mK vs ref 30.946 mK (ratio 0.88); V1: COMSOL -57.000 mK vs ref -56.451 mK (ratio 1.01) (need 0.5-2) |
 
@@ -86,8 +131,8 @@ Ambipolar high-injection model of the i-region with lumped end sinks. eta_E = 1 
 - [fig4_temperature_configB](figures/fig4_temperature_configB.png) ([pdf](figures/fig4_temperature_configB.pdf)): KEY FIGURE: T(x) - T_room in mK, Config B, V0 vs V1, VF = 0.4 V _[COMSOL]_
 - [fig5_Qroom_vs_dTsink](figures/fig5_Qroom_vs_dTsink.png) ([pdf](figures/fig5_Qroom_vs_dTsink.pdf)): Q_room vs dT_sink (Config A), V0 vs V1, VF = 0.3/0.35/0.4 V, with dT_max markers _[COMSOL]_
 - [fig6_dTmax_COP_vs_VF](figures/fig6_dTmax_COP_vs_VF.png) ([pdf](figures/fig6_dTmax_COP_vs_VF.pdf)): dT_max and COP vs VF (COP at dT = 0 and dT_max/2) _[COMSOL]_
-- [fig7_V5_scaling](figures/fig7_V5_scaling.png) ([pdf](figures/fig7_V5_scaling.pdf)): V5: dT_max vs Wi for each tau_long, with the analytic bound n D_a Pi / k _[reference model]_
-- [fig8_V6_heatmap](figures/fig8_V6_heatmap.png) ([pdf](figures/fig8_V6_heatmap.pdf)): V6: dT_max heat map over (w_rz, tau_short) _[reference model]_
+- [fig7_V5_scaling](figures/fig7_V5_scaling.png) ([pdf](figures/fig7_V5_scaling.pdf)): V5: dT_max vs Wi for each tau_long, with the analytic bound n D_a Pi / k _[COMSOL]_
+- [fig8_V6_heatmap](figures/fig8_V6_heatmap.png) ([pdf](figures/fig8_V6_heatmap.pdf)): V6: dT_max heat map over (w_rz, tau_short) _[COMSOL]_
 - [fig9_comsol_vs_reference](figures/fig9_comsol_vs_reference.png) ([pdf](figures/fig9_comsol_vs_reference.pdf)): COMSOL (solid) vs reference model (dashed) for V0 and V1 _[COMSOL + reference model]_
 - [fig10_thermophotonic_map](figures/fig10_thermophotonic_map.png) ([pdf](figures/fig10_thermophotonic_map.pdf)): V10 thermophotonic stub: net cooling per pair eta_EQE*hw - qV over EQE and qV/hw (analytic) _[analytic]_
 

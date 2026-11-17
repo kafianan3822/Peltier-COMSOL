@@ -23,7 +23,7 @@ sweep.VF_iv	range(0,0.0125,0.5)
 sweep.VF_room	range(0,0.0125,0.4)
 sweep.dT_sink	range(-0.02,0.0025,0.02)
 sweep.VF_reverse	range(0,-0.025,-0.5)
-sweep.rtol	1e-6
+sweep.rtol	1e-8
 sweep.profile_VF	0.0,0.3,0.35,0.4,0.45
 material.name	Ge
 material.library_file	Ge_library.mph

@@ -32,12 +32,12 @@
  {
   "name": "fig7_V5_scaling",
   "caption": "V5: dT_max vs Wi for each tau_long, with the analytic bound n D_a Pi / k",
-  "source": "reference model"
+  "source": "COMSOL"
  },
  {
   "name": "fig8_V6_heatmap",
   "caption": "V6: dT_max heat map over (w_rz, tau_short)",
-  "source": "reference model"
+  "source": "COMSOL"
  },
  {
   "name": "fig9_comsol_vs_reference",
